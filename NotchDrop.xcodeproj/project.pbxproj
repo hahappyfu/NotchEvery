@@ -46,6 +46,7 @@
 		50E26E292C3AF67B007CF247 /* TrayDrop+DropItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E26E282C3AF67B007CF247 /* TrayDrop+DropItem.swift */; };
 		50EFDB522C3BF7B4002D3E0F /* Ext+NSImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EFDB512C3BF7B4002D3E0F /* Ext+NSImage.swift */; };
 		60AD62872C579F4400299297 /* NotchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60AD62862C579F4400299297 /* NotchSettingsView.swift */; };
+		A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071829304050 /* Glass.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -82,6 +83,7 @@
 		50E26E282C3AF67B007CF247 /* TrayDrop+DropItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrayDrop+DropItem.swift"; sourceTree = "<group>"; };
 		50EFDB512C3BF7B4002D3E0F /* Ext+NSImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Ext+NSImage.swift"; sourceTree = "<group>"; };
 		60AD62862C579F4400299297 /* NotchSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchSettingsView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6071829304050 /* Glass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glass.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -137,6 +139,7 @@
 				504381982C3A8893000ED325 /* NotchWindow.swift */,
 				504381A32C3A8C7E000ED325 /* NotchWindowController.swift */,
 				5043819F2C3A8BA1000ED325 /* NotchView.swift */,
+				A1B2C3D4E5F6071829304050 /* Glass.swift */,
 				504381B02C3AE0B6000ED325 /* NotchHeaderView.swift */,
 				503D8EB92C3F838200E173FF /* NotchMenuView.swift */,
 				504381AE2C3ADFF2000ED325 /* NotchContentView.swift */,
@@ -287,6 +290,7 @@
 				60AD62872C579F4400299297 /* NotchSettingsView.swift in Sources */,
 				504381A82C3A926E000ED325 /* NotchViewModel.swift in Sources */,
 				5044EEA02C3B116000071C5C /* PublishedPersist.swift in Sources */,
+				A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -349,7 +353,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -411,7 +415,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -437,7 +441,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_POINTER_AUTHENTICATION = NO;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readwrite;
+				ENABLE_USER_SELECTED_FILES = read-only;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotchDrop/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NotchDrop;
@@ -472,7 +476,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_POINTER_AUTHENTICATION = NO;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readwrite;
+				ENABLE_USER_SELECTED_FILES = read-only;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					"$(inherited)",
 					"LookInsideServer*",
