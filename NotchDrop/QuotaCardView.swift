@@ -26,7 +26,7 @@ struct QuotaCardView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ring(size: 76, percent: store.snapshot.window("5h")?.percent, label: "5h")
+            ring(size: 68, percent: store.snapshot.window("5h")?.percent, label: "5h")
             VStack(alignment: .leading, spacing: 8) {
                 row(key: "weekly", title: "周")
                 row(key: "monthly", title: "月")
@@ -62,12 +62,19 @@ struct QuotaCardView: View {
             Circle()
                 .fill(store.snapshot.expired ? .orange : .green)
                 .frame(width: 6, height: 6)
-            if let at = store.snapshot.fetchedAt {
-                Text(at, style: .relative)
+            if store.snapshot.expired || !store.snapshot.available {
+                Text(store.snapshot.available ? "已过期" : "暂无数据")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
-            } else {
-                Text(store.snapshot.available ? "已过期" : "暂无数据")
+            } else if let resetAt = store.snapshot.window("5h")?.resetAt {
+                Text(resetAt, style: .timer)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Text("后重置")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            } else if let at = store.snapshot.fetchedAt {
+                Text(at, style: .relative)
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
