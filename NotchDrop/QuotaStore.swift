@@ -42,6 +42,13 @@ final class QuotaStore: ObservableObject {
         timer = nil
     }
 
+#if DEBUG
+    /// 预览/调试用：直接灌快照（绕过文件读取）
+    func seedForPreview(_ snapshot: QuotaSnapshot) {
+        self.snapshot = snapshot
+    }
+#endif
+
     func refresh() {
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let data = try? Data(contentsOf: Self.cacheURL)

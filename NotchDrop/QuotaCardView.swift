@@ -105,3 +105,53 @@ struct QuotaCardView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview("正常") {
+    QuotaCardView(vm: .init())
+        .frame(width: 180)
+        .padding()
+        .background(.ultraThinMaterial)
+        .onAppear {
+            QuotaStore.shared.seedForPreview(QuotaSnapshot(
+                fetchedAt: Date(),
+                expired: false,
+                available: true,
+                windows: [
+                    QuotaWindow(key: "5h", used: 11, limit: 100, percent: 11, resetAt: Date().addingTimeInterval(3600)),
+                    QuotaWindow(key: "weekly", used: 41, limit: 100, percent: 41, resetAt: nil),
+                    QuotaWindow(key: "monthly", used: 53, limit: 100, percent: 53, resetAt: nil),
+                ]
+            ))
+        }
+}
+
+#Preview("过期") {
+    QuotaCardView(vm: .init())
+        .frame(width: 180)
+        .padding()
+        .background(.ultraThinMaterial)
+        .onAppear {
+            QuotaStore.shared.seedForPreview(QuotaSnapshot(
+                fetchedAt: Date().addingTimeInterval(-3600),
+                expired: true,
+                available: true,
+                windows: [
+                    QuotaWindow(key: "5h", used: 92, limit: 100, percent: 92, resetAt: nil),
+                    QuotaWindow(key: "weekly", used: 75, limit: 100, percent: 75, resetAt: nil),
+                    QuotaWindow(key: "monthly", used: 53, limit: 100, percent: 53, resetAt: nil),
+                ]
+            ))
+        }
+}
+
+#Preview("无数据") {
+    QuotaCardView(vm: .init())
+        .frame(width: 180)
+        .padding()
+        .background(.ultraThinMaterial)
+        .onAppear {
+            QuotaStore.shared.seedForPreview(.empty)
+        }
+}
+#endif
