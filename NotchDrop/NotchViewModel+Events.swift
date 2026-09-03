@@ -57,7 +57,6 @@ extension NotchViewModel {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] mouseLocation in
                 guard let self else { return }
-                let mouseLocation: NSPoint = NSEvent.mouseLocation
                 let aboutToOpen = deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation)
                 if status == .closed, aboutToOpen { notchPop() }
                 if status == .popping, !aboutToOpen { notchClose() }

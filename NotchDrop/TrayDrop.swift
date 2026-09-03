@@ -2,6 +2,9 @@ import Cocoa
 import Combine
 import Foundation
 import OrderedCollections
+import os.log
+
+private let trayLog = Logger(subsystem: Bundle.main.bundleIdentifier ?? "NotchDrop", category: "TrayDrop")
 
 class TrayDrop: ObservableObject {
     static let shared = TrayDrop()
@@ -31,7 +34,7 @@ class TrayDrop: ObservableObject {
                 TimeInterval(customStorageTime) * 60 * 60 * 24 * 365
             }
             let ans = selectedFileStorageTime.toTimeInterval(customTime: customTime)
-            print("[*] using interval \(ans) to keep files")
+            trayLog.info("using interval \(ans) to keep files")
             return ans
         }
         .receive(on: DispatchQueue.main)
@@ -57,23 +60,56 @@ class TrayDrop: ObservableObject {
 
     @Published var isLoading: Int = 0
 
+    // ——— 修复 #2/#7: 主线程死锁 + 单文件失败丢整批 ———
     func load(_ providers: [NSItemProvider]) {
-        assert(!Thread.isMainThread)
-        DispatchQueue.main.asyncAndWait { isLoading += 1 }
+        // 主线程安全：不再用 asyncAndWait
+        func bumpLoading(_ delta: Int) {
+            if Thread.isMainThread {
+                isLoading += delta
+            } else {
+                DispatchQueue.main.sync { isLoading += delta }
+            }
+        }
+        bumpLoading(1)
+
         guard let urls = providers.interfaceConvert() else {
-            DispatchQueue.main.asyncAndWait { isLoading -= 1 }
+            bumpLoading(-1)
             return
         }
-        do {
-            let items = try urls.map { try DropItem(url: $0) }
-            DispatchQueue.main.async {
-                items.forEach { self.items.updateOrInsert($0, at: 0) }
-                self.isLoading -= 1
+        // 逐个尝试，失败项收集，成功项保留（修复 #7）
+        var succeeded: [DropItem] = []
+        var failures: [Error] = []
+        var tempURLsToClean: [URL] = []
+        for url in urls {
+            do {
+                let item = try DropItem(url: url)
+                succeeded.append(item)
+            } catch {
+                failures.append(error)
+                tempURLsToClean.append(url)
             }
-        } catch {
+        }
+        // 清理失败项对应的临时拷贝
+        for u in tempURLsToClean { try? FileManager.default.removeItem(at: u) }
+
+        if succeeded.isEmpty, !failures.isEmpty {
             DispatchQueue.main.async {
-                self.isLoading -= 1
-                NSAlert.popError(error)
+                bumpLoading(-1)
+                if let first = failures.first { NSAlert.popError(first) }
+            }
+            return
+        }
+        DispatchQueue.main.async {
+            succeeded.forEach { self.items.updateOrInsert($0, at: 0) }
+            bumpLoading(-1)
+            if !failures.isEmpty {
+                trayLog.error("load: \(failures.count) of \(urls.count) items failed")
+            }
+        }
+        if !failures.isEmpty, !succeeded.isEmpty {
+            // 部分失败也提示
+            DispatchQueue.main.async {
+                NSAlert.popError(NSError(domain: "NotchDrop", code: 6, userInfo: [NSLocalizedDescriptionKey: String(format: NSLocalizedString("%d of %d files failed to import", comment: ""), failures.count, urls.count)]))
             }
         }
     }
