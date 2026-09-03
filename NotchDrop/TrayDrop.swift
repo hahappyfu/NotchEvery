@@ -101,6 +101,14 @@ class TrayDrop: ObservableObject {
         }
         DispatchQueue.main.async {
             succeeded.forEach { self.items.updateOrInsert($0, at: 0) }
+            // ——— 修复 #18: 限容 100，最老优先淘汰 ———
+            let maxItems = 100
+            if self.items.count > maxItems {
+                let overflow = self.items.count - maxItems
+                let oldest = self.items.sorted(by: { $0.copiedDate < $1.copiedDate }).prefix(overflow)
+                for o in oldest { self.delete(item: o) }
+                trayLog.info("capacity trimmed \(overflow) items")
+            }
             bumpLoading(-1)
             if !failures.isEmpty {
                 trayLog.error("load: \(failures.count) of \(urls.count) items failed")
