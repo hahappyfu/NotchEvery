@@ -6,7 +6,6 @@
 //  Last Modified by 冷月 on 2025/5/5.
 //
 
-import ColorfulX
 import Pow
 import SwiftUI
 import UniformTypeIdentifiers
@@ -38,20 +37,6 @@ struct ShareView: View {
                 { urls in Share(files: urls) }
             }
         }
-
-        var colorfulPresetTargeting: ColorfulPreset {
-            switch self {
-            case .airdrop: .neon
-            case .generic: .sunset
-            }
-        }
-
-        var colorfulPresetNormal: ColorfulPreset {
-            switch self {
-            case .airdrop: .aurora
-            case .generic: .sunrise
-            }
-        }
     }
 
     @StateObject var vm: NotchViewModel
@@ -62,7 +47,11 @@ struct ShareView: View {
 
     var body: some View {
         dropArea
-            .onDrop(of: [.data], isTargeted: $targeting) { providers in
+            .onDrop(of: [.fileURL], isTargeted: $targeting) { providers in
+                guard providers.count <= 50 else {
+                    NSAlert.popError(NSError(domain: "NotchDrop", code: 7, userInfo: [NSLocalizedDescriptionKey: String(format: NSLocalizedString("Too many files (max %d)", comment: ""), 50)]))
+                    return false
+                }
                 trigger = .init()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                     vm.notchClose()
@@ -72,40 +61,50 @@ struct ShareView: View {
             }
     }
 
-    var dropAreaColors: [NSColor] {
-        if targeting {
-            type.colorfulPresetTargeting.colors
-        } else {
-            type.colorfulPresetNormal.colors
-        }
-    }
-
     var dropArea: some View {
-        ColorfulView(
-            color: .init(get: { dropAreaColors.map { Color($0) } }, set: { _ in }),
-            speed: .init(get: { targeting ? 1.5 : 0 }, set: { _ in }),
-            transitionSpeed: .constant(25)
-        )
-        .opacity(0.5)
-        .clipShape(RoundedRectangle(cornerRadius: vm.cornerRadius))
-        .overlay { dropLabel }
+        Group {
+            if #available(macOS 26.0, *) {
+                RoundedRectangle(cornerRadius: vm.cornerRadius)
+                    .fill(.clear)
+                    .glassEffect(.regular, in: .rect(cornerRadius: vm.cornerRadius))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: vm.cornerRadius)
+                            .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.2 : 0.5)
+                    }
+                    .overlay { dropLabel }
+                    .scaleEffect(targeting ? 1.04 : 1.0)
+            } else {
+                RoundedRectangle(cornerRadius: vm.cornerRadius)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: vm.cornerRadius)
+                            .strokeBorder(Color.white.opacity(targeting ? 0.35 : 0.15), lineWidth: targeting ? 1.2 : 0.5)
+                    }
+                    .overlay { dropLabel }
+                    .scaleEffect(targeting ? 1.04 : 1.0)
+            }
+        }
+        .animation(vm.animation, value: targeting)
         .aspectRatio(1, contentMode: .fit)
         .contentShape(Rectangle())
-        .changeEffect(
-            .spray(origin: UnitPoint(x: 0.5, y: 0.5)) {
-                Image(systemName: "paperplane")
-                    .foregroundStyle(.white)
-            },
-            value: trigger
-        )
+        .modifier(SprayEffectModifier(trigger: trigger))
     }
 
     var dropLabel: some View {
         VStack(spacing: 8) {
-            Image(systemName: type.imageName)
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(targeting ? 0.9 : 0.75))
+                    .frame(width: 40, height: 40)
+                    .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+                Image(systemName: type.imageName)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+            }
             Text(type.title)
+                .font(.system(.headline, design: .rounded))
+                .foregroundStyle(.primary)
         }
-        .font(.system(.headline, design: .rounded))
         .contentShape(Rectangle())
         .onTapGesture {
             trigger = .init()
@@ -133,6 +132,22 @@ struct ShareView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             let drop = type.service(urls)
             drop.begin()
+        }
+    }
+}
+
+private struct SprayEffectModifier: ViewModifier {
+    let trigger: UUID
+    func body(content: Content) -> some View {
+        if #available(macOS 14.0, *) {
+            content.changeEffect(
+                .spray(origin: UnitPoint(x: 0.5, y: 0.5)) {
+                    Image(systemName: "paperplane").foregroundStyle(.white)
+                },
+                value: trigger
+            )
+        } else {
+            content
         }
     }
 }
