@@ -69,6 +69,7 @@ class NotchViewModel: NSObject, ObservableObject {
         case click
         case drag
         case boot
+        case hover
         case unknown
     }
 
@@ -109,6 +110,24 @@ class NotchViewModel: NSObject, ObservableObject {
     var hapticFeedback: Bool
 
     let hapticSender = PassthroughSubject<Void, Never>()
+
+    /// hover 展开后的延迟收起任务（防刘海→面板路径单帧误判闪烁）
+    private var hoverCloseWorkItem: DispatchWorkItem?
+
+    func scheduleHoverClose() {
+        hoverCloseWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, status == .opened, openReason == .hover else { return }
+            notchClose()
+        }
+        hoverCloseWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
+    }
+
+    func cancelHoverClose() {
+        hoverCloseWorkItem?.cancel()
+        hoverCloseWorkItem = nil
+    }
 
     func notchOpen(_ reason: OpenReason) {
         openReason = reason

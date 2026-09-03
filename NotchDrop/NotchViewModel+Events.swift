@@ -57,8 +57,16 @@ extension NotchViewModel {
             .sink { [weak self] mouseLocation in
                 guard let self else { return }
                 let aboutToOpen = deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation)
-                if status == .closed, aboutToOpen { notchPop() }
+                if status == .closed, aboutToOpen { notchOpen(.hover) }
                 if status == .popping, !aboutToOpen { notchClose() }
+                // hover 展开态：离开面板区延迟收起，移回取消
+                if status == .opened, openReason == .hover {
+                    if notchOpenedRect.contains(mouseLocation) {
+                        cancelHoverClose()
+                    } else {
+                        scheduleHoverClose()
+                    }
+                }
             }
             .store(in: &cancellables)
 
