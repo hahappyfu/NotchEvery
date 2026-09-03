@@ -6,9 +6,7 @@
 //  Last Modified by 冷月 on 2025/5/5.
 //
 
-import ColorfulX
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct NotchContentView: View {
     @StateObject var vm: NotchViewModel
@@ -38,6 +36,5 @@ struct NotchContentView: View {
     NotchContentView(vm: .init())
         .padding()
         .frame(width: 600, height: 150, alignment: .center)
-        .background(.black)
-        .preferredColorScheme(.dark)
+        .background(.ultraThinMaterial)
 }

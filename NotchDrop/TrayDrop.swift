@@ -56,7 +56,7 @@ class TrayDrop: ObservableObject {
     var customStorageTime: Int
 
     @PublishedPersist(key: "customStorageTimeUnit", defaultValue: .days)
-    var customStorageTimeUnit: CustomstorageTimeUnit
+    var customStorageTimeUnit: CustomStorageTimeUnit
 
     @Published var isLoading: Int = 0
 
@@ -198,7 +198,7 @@ extension TrayDrop {
         }
     }
 
-    enum CustomstorageTimeUnit: String, CaseIterable, Identifiable, Codable {
+    enum CustomStorageTimeUnit: String, CaseIterable, Identifiable, Codable {
         case hours = "Hours"
         case days = "Days"
         case weeks = "Weeks"

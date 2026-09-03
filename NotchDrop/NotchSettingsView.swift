@@ -49,7 +49,7 @@ struct NotchSettingsView: View {
                         .frame(width: 50)
                         .padding(.leading, 10)
                     Picker("Time Unit", selection: $tvm.customStorageTimeUnit) {
-                        ForEach(TrayDrop.CustomstorageTimeUnit.allCases) { unit in
+                        ForEach(TrayDrop.CustomStorageTimeUnit.allCases) { unit in
                             Text(unit.localized).tag(unit)
                         }
                     }
@@ -68,6 +68,5 @@ struct NotchSettingsView: View {
     NotchSettingsView(vm: .init())
         .padding()
         .frame(width: 600, height: 150, alignment: .center)
-        .background(.black)
-        .preferredColorScheme(.dark)
+        .background(.ultraThinMaterial)
 }
