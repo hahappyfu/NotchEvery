@@ -17,7 +17,7 @@ struct NotchContentView: View {
             case .normal:
                 HStack(spacing: vm.spacing) {
                     QuotaCardView(vm: vm)
-                        .frame(width: 180)
+                        .frame(width: 196)
                     TrayView(vm: vm)
                 }
                 .transition(.scale(scale: 0.8).combined(with: .opacity))

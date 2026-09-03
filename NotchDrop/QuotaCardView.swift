@@ -40,11 +40,10 @@ struct QuotaCardView: View {
     }
 
     private func row(key: String, title: String) -> some View {
-        HStack {
+        HStack(spacing: 6) {
             Text(title)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-            Spacer()
             if let w = store.snapshot.window(key) {
                 Text("\(Int(w.percent))%")
                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
@@ -54,7 +53,19 @@ struct QuotaCardView: View {
                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.tertiary)
             }
+            Spacer()
         }
+    }
+
+    /// 分钟精度倒计时（秒级跳动在状态栏是噪音，且 8 字符必换行）。
+    /// 随 30s 额度刷新自然更新，无需每秒定时器。
+    private var resetCountdownText: String? {
+        guard let resetAt = store.snapshot.window("5h")?.resetAt else { return nil }
+        let secs = Int(resetAt.timeIntervalSince(Date()))
+        guard secs > 0 else { return nil }
+        let h = secs / 3600, m = (secs % 3600) / 60
+        if h > 0 { return "\(h)时\(m)分后重置" }
+        return "\(m)分后重置"
     }
 
     private var statusLine: some View {
@@ -66,11 +77,8 @@ struct QuotaCardView: View {
                 Text(store.snapshot.available ? "已过期" : "暂无数据")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
-            } else if let resetAt = store.snapshot.window("5h")?.resetAt {
-                Text(resetAt, style: .timer)
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                Text("后重置")
+            } else if let countdown = resetCountdownText {
+                Text(countdown)
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             } else if let at = store.snapshot.fetchedAt {
