@@ -46,39 +46,22 @@ struct TrayView: View {
     }
 
     var panel: some View {
-        Group {
-            if #available(macOS 26.0, *) {
+        RoundedRectangle(cornerRadius: vm.cornerRadius)
+            .fill(.clear)
+            .glassCard(cornerRadius: vm.cornerRadius)
+            .overlay {
                 RoundedRectangle(cornerRadius: vm.cornerRadius)
-                    .fill(.clear)
-                    .glassEffect(.regular, in: .rect(cornerRadius: vm.cornerRadius))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: vm.cornerRadius)
-                            .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.5 : 0.5)
-                    }
-                    .overlay {
-                        content
-                            .padding()
-                    }
-                    .scaleEffect(targeting ? 1.02 : 1.0)
-                    .animation(vm.animation, value: targeting)
-            } else {
-                RoundedRectangle(cornerRadius: vm.cornerRadius)
-                    .fill(.ultraThinMaterial)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: vm.cornerRadius)
-                            .strokeBorder(Color.white.opacity(targeting ? 0.4 : 0.15), lineWidth: targeting ? 1.5 : 0.5)
-                    }
-                    .overlay {
-                        content
-                            .padding()
-                    }
-                    .scaleEffect(targeting ? 1.02 : 1.0)
-                    .animation(vm.animation, value: targeting)
+                    .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.5 : 0.5)
             }
-        }
-        .overlay(loadingIndicator)
-        .animation(vm.animation, value: tvm.items)
-        .animation(vm.animation, value: tvm.isLoading)
+            .overlay {
+                content
+                    .padding()
+            }
+            .overlay(loadingIndicator)
+            .scaleEffect(targeting ? 1.02 : 1.0)
+            .animation(vm.animation, value: targeting)
+            .animation(vm.animation, value: tvm.items)
+            .animation(vm.animation, value: tvm.isLoading)
     }
 
     @ViewBuilder

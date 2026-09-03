@@ -65,25 +65,31 @@ struct NotchView: View {
                     with: .offset(y: -vm.notchOpenedSize.height / 2)
                 ).animation(vm.animation)
             )
+            .animation(vm.animation, value: vm.status)
         }
         .background(dragDetector)
-        .animation(vm.animation, value: vm.status)
-        .preferredColorScheme(.dark)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     var notch: some View {
-        Rectangle()
-            .foregroundStyle(.black)
+        glassNotchBackground
             .mask(notchBackgroundMaskGroup)
             .frame(
                 width: notchSize.width + notchCornerRadius * 2,
                 height: notchSize.height
             )
             .shadow(
-                color: .black.opacity(([.opened, .popping].contains(vm.status)) ? 1 : 0),
-                radius: 16
+                color: .black.opacity(([.opened, .popping].contains(vm.status)) ? 0.3 : 0),
+                radius: 20,
+                y: 8
             )
+    }
+
+    /// 玻璃刘海背景：统一走 Glass 封装
+    private var glassNotchBackground: some View {
+        Rectangle()
+            .fill(.clear)
+            .glassCard(cornerRadius: notchCornerRadius)
     }
 
     var notchBackgroundMaskGroup: some View {

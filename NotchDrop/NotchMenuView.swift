@@ -5,7 +5,6 @@
 //  Created by 秋星桥 on 2024/7/11.
 //
 
-import ColorfulX
 import SwiftUI
 
 struct NotchMenuView: View {
@@ -21,10 +20,11 @@ struct NotchMenuView: View {
     }
 
     var close: some View {
-        ColorButton(
-            color: [.red],
+        GlassButton(
             image: Image(systemName: "xmark"),
-            title: "Exit"
+            title: "Exit",
+            tint: .red,
+            cornerRadius: vm.cornerRadius
         )
         .onTapGesture {
             vm.notchClose()
@@ -32,70 +32,75 @@ struct NotchMenuView: View {
                 NSApp.terminate(nil)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: vm.cornerRadius))
     }
 
     var clear: some View {
-        ColorButton(
-            color: [.red],
+        GlassButton(
             image: Image(systemName: "trash"),
-            title: "Clear"
+            title: "Clear",
+            tint: .red,
+            cornerRadius: vm.cornerRadius
         )
         .onTapGesture {
             tvm.removeAll()
             vm.notchClose()
         }
-        .clipShape(RoundedRectangle(cornerRadius: vm.cornerRadius))
     }
 
     var settings: some View {
-        ColorButton(
-            color: ColorfulPreset.colorful.colors.map { .init($0) },
+        GlassButton(
             image: Image(systemName: "gear"),
-            title: LocalizedStringKey("Settings")
+            title: LocalizedStringKey("Settings"),
+            tint: .accentColor,
+            cornerRadius: vm.cornerRadius
         )
         .onTapGesture {
             vm.showSettings()
         }
-        .clipShape(RoundedRectangle(cornerRadius: vm.cornerRadius))
     }
 }
 
-private struct ColorButton: View {
-    let color: [Color]
+private struct GlassButton: View {
     let image: Image
     let title: LocalizedStringKey
+    let tint: Color
+    let cornerRadius: CGFloat
 
     @State var hover: Bool = false
 
     var body: some View {
-        Color.white
-            .opacity(0.1)
-            .overlay(
-                ColorfulView(
-                    color: .constant(color),
-                    speed: .constant(0)
-                )
-                .mask {
-                    VStack(spacing: 8) {
-                        Text("888888")
-                            .hidden()
-                            .overlay {
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                            }
-                        Text(title)
-                    }
-                    .font(.system(.headline, design: .rounded))
-                }
-                .contentShape(Rectangle())
-                .scaleEffect(hover ? 1.05 : 1)
-                .animation(.spring, value: hover)
-                .onHover { hover = $0 }
-            )
-            .aspectRatio(1, contentMode: .fit)
-            .contentShape(Rectangle())
+        RoundedRectangle(cornerRadius: cornerRadius)
+            .fill(.clear)
+            .glassCard(cornerRadius: cornerRadius)
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .strokeBorder(Color.white.opacity(hover ? 0.25 : 0.12), lineWidth: hover ? 1 : 0.5)
+            }
+            .overlay { label }
+        .aspectRatio(1, contentMode: .fit)
+        .contentShape(Rectangle())
+        .scaleEffect(hover ? 1.04 : 1)
+        .animation(.spring(duration: 0.3), value: hover)
+        .onHover { hover = $0 }
+    }
+
+    var label: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.85))
+                    .frame(width: 36, height: 36)
+                    .shadow(color: .black.opacity(0.1), radius: 3, y: 1)
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 16, height: 16)
+                    .foregroundStyle(tint)
+            }
+            Text(title)
+                .font(.system(.headline, design: .rounded))
+                .foregroundStyle(.primary)
+        }
     }
 }
 
@@ -103,6 +108,5 @@ private struct ColorButton: View {
     NotchMenuView(vm: .init())
         .padding()
         .frame(width: 600, height: 150, alignment: .center)
-        .background(.black)
-        .preferredColorScheme(.dark)
+        .background(.ultraThinMaterial)
 }

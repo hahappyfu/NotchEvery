@@ -18,24 +18,26 @@ struct DropItemView: View {
     @State var hover = false
 
     var body: some View {
-        VStack {
+        VStack(spacing: 6) {
             Image(nsImage: item.workspacePreviewImage)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(maxWidth: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
             Text(item.fileName)
                 .multilineTextAlignment(.center)
                 .font(.system(.footnote, design: .rounded))
+                .foregroundStyle(.primary)
                 .frame(maxWidth: 64)
+                .lineLimit(2)
         }
+        .padding(8)
+        .background(cardBackground)
         .contentShape(Rectangle())
-        .transition(.asymmetric(
-            insertion: .opacity.combined(with: .scale),
-            removal: .movingParts.poof
-        ))
-        .contentShape(Rectangle())
+        .transition(Self.itemTransition)
         .onHover { hover = $0 }
-        .scaleEffect(hover ? 1.05 : 1.0)
+        .scaleEffect(hover ? 1.06 : 1.0)
         .animation(vm.animation, value: hover)
         .draggable(item)
         .onTapGesture {
@@ -59,5 +61,26 @@ struct DropItemView: View {
                 .offset(x: vm.spacing / 2, y: -vm.spacing / 2)
                 .onTapGesture { tvm.delete(item.id) }
         }
+    }
+
+    static var itemTransition: AnyTransition {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            return .opacity
+        } else {
+            return .asymmetric(
+                insertion: .opacity.combined(with: .scale),
+                removal: .movingParts.poof
+            )
+        }
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(.clear)
+            .glassCard(cornerRadius: 12)
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Color.white.opacity(hover ? 0.25 : 0.1), lineWidth: hover ? 0.8 : 0.4)
+            }
     }
 }

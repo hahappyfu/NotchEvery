@@ -62,28 +62,15 @@ struct ShareView: View {
     }
 
     var dropArea: some View {
-        Group {
-            if #available(macOS 26.0, *) {
+        RoundedRectangle(cornerRadius: vm.cornerRadius)
+            .fill(.clear)
+            .glassCard(cornerRadius: vm.cornerRadius)
+            .overlay {
                 RoundedRectangle(cornerRadius: vm.cornerRadius)
-                    .fill(.clear)
-                    .glassEffect(.regular, in: .rect(cornerRadius: vm.cornerRadius))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: vm.cornerRadius)
-                            .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.2 : 0.5)
-                    }
-                    .overlay { dropLabel }
-                    .scaleEffect(targeting ? 1.04 : 1.0)
-            } else {
-                RoundedRectangle(cornerRadius: vm.cornerRadius)
-                    .fill(.ultraThinMaterial)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: vm.cornerRadius)
-                            .strokeBorder(Color.white.opacity(targeting ? 0.35 : 0.15), lineWidth: targeting ? 1.2 : 0.5)
-                    }
-                    .overlay { dropLabel }
-                    .scaleEffect(targeting ? 1.04 : 1.0)
+                    .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.2 : 0.5)
             }
-        }
+            .overlay { dropLabel }
+            .scaleEffect(targeting ? 1.04 : 1.0)
         .animation(vm.animation, value: targeting)
         .aspectRatio(1, contentMode: .fit)
         .contentShape(Rectangle())
@@ -139,7 +126,9 @@ struct ShareView: View {
 private struct SprayEffectModifier: ViewModifier {
     let trigger: UUID
     func body(content: Content) -> some View {
-        if #available(macOS 14.0, *) {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            content
+        } else if #available(macOS 14.0, *) {
             content.changeEffect(
                 .spray(origin: UnitPoint(x: 0.5, y: 0.5)) {
                     Image(systemName: "paperplane").foregroundStyle(.white)
