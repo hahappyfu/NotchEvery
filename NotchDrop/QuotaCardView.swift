@@ -40,21 +40,42 @@ struct QuotaCardView: View {
     }
 
     private func row(key: String, title: String) -> some View {
-        HStack(spacing: 6) {
+        let percent = store.snapshot.window(key)?.percent
+        return HStack(spacing: 6) {
             Text(title)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-            if let w = store.snapshot.window(key) {
-                Text("\(Int(w.percent))%")
+            miniBar(percent: percent)
+                .frame(minWidth: 40)
+            if let percent {
+                Text("\(Int(percent))%")
                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.primary)
+                    .frame(width: 40, alignment: .trailing)
             } else {
                 Text("--%")
                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.tertiary)
+                    .frame(width: 40, alignment: .trailing)
             }
-            Spacer()
         }
+    }
+
+    /// 行内小进度条：阈值配色与大环一致（无数据时只显示轨道）
+    private func miniBar(percent: Double?) -> some View {
+        let fraction = percent.map { min(1, max(0, $0 / 100)) } ?? 0
+        let fill: Color = percent.map(Self.ringColor) ?? .clear
+        return GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2.5)
+                    .fill(Color.white.opacity(0.18))
+                    .frame(height: 5)
+                RoundedRectangle(cornerRadius: 2.5)
+                    .fill(fill)
+                    .frame(width: geo.size.width * fraction, height: 5)
+            }
+        }
+        .frame(height: 5)
     }
 
     /// 分钟精度倒计时（秒级跳动在状态栏是噪音，且 8 字符必换行）。
