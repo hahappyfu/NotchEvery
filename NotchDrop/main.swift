@@ -14,35 +14,21 @@ let sponsorPage = URL(string: "https://github.com/sponsors/Lakr233")!
 let bundleIdentifier = Bundle.main.bundleIdentifier!
 let appVersion = "\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"
 
-// ——— 修复 #3: 空数组越界保护 ———
-private let availableDirectories = FileManager
-    .default
-    .urls(for: .documentDirectory, in: .userDomainMask)
-let documentsDirectory: URL = {
-    guard let first = availableDirectories.first else {
-        // 回退到 Application Support，避免启动即崩溃
-        let fallback = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSTemporaryDirectory())
-        return fallback.appendingPathComponent("NotchDrop")
-    }
-    return first.appendingPathComponent("NotchDrop")
-}()
-
-let temporaryDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
-    .appendingPathComponent(bundleIdentifier)
-try? FileManager.default.removeItem(at: temporaryDirectory)
+// 路径统一走 AppPaths（#26），定义见 AppPaths.swift
+// documentsDirectory 同步创建（PID/TrayDrop 依赖），temporary 清理异步（#20）
 try? FileManager.default.createDirectory(
-    at: documentsDirectory,
+    at: AppPaths.documentsDirectory,
     withIntermediateDirectories: true,
     attributes: [.posixPermissions: 0o700]
 )
-try? FileManager.default.createDirectory(
-    at: temporaryDirectory,
-    withIntermediateDirectories: true,
-    attributes: [.posixPermissions: 0o700]
-)
-
-let pidFile = documentsDirectory.appendingPathComponent("ProcessIdentifier")
+DispatchQueue.global(qos: .userInitiated).async {
+    try? FileManager.default.removeItem(at: AppPaths.temporaryDirectory)
+    try? FileManager.default.createDirectory(
+        at: AppPaths.temporaryDirectory,
+        withIntermediateDirectories: true,
+        attributes: [.posixPermissions: 0o700]
+    )
+}
 
 // ——— 修复 #11: PID 单例文件加 O_EXCL/O_NOFOLLOW/文件锁 + 修复 #15 权限校验 ———
 func secureWritePID() {

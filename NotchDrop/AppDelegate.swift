@@ -14,8 +14,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var isLaunchedAtLogin = false
     var mainWindowController: NotchWindowController?
 
-    var timer: Timer?
-
     func applicationDidFinishLaunching(_: Notification) {
         NotificationCenter.default.addObserver(
             self,
@@ -23,21 +21,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+        // PID 单例改为一次性校验 + didBecomeActive 校验（#9/#16 干掉 1s 轮询）
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(checkSingletonOnActive),
+            name: NSApplication.didBecomeActiveNotification,
+            object: nil
+        )
         NSApp.setActivationPolicy(.accessory)
 
         isLaunchedAtLogin = LaunchAtLogin.wasLaunchedAtLogin
 
         _ = EventMonitors.shared
-        let timer = Timer.scheduledTimer(
-            withTimeInterval: 1,
-            repeats: true
-        ) { [weak self] _ in
-            self?.determineIfProcessIdentifierMatches()
-            self?.makeKeyAndVisibleIfNeeded()
-        }
-        self.timer = timer
+        determineIfProcessIdentifierMatches()
 
         rebuildApplicationWindows()
+    }
+
+    @objc func checkSingletonOnActive() {
+        determineIfProcessIdentifierMatches()
+        makeKeyAndVisibleIfNeeded()
     }
 
     func applicationWillTerminate(_: Notification) {
