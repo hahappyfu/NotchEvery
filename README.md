@@ -58,7 +58,10 @@ xcodebuild -project NotchDrop.xcodeproj \
 
 3. Copy the built app to your Applications folder:
 ```bash
-cp -R ~/Library/Developer/Xcode/DerivedData/NotchDrop-*/Build/Products/Release/NotchDrop.app ~/Applications/
+xcodebuild -project NotchDrop.xcodeproj -scheme NotchDrop -configuration Release \
+  -derivedDataPath /tmp/NotchDrop-build \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+cp -R /tmp/NotchDrop-build/Build/Products/Release/NotchDrop.app ~/Applications/
 ```
 
 4. Launch the app:
