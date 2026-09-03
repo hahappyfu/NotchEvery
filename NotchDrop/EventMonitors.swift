@@ -8,7 +8,15 @@
 import Cocoa
 import Combine
 
-class EventMonitors {
+// ——— 修复 #25: 协议化以便注入与测试 ———
+protocol EventMonitorsProtocol: AnyObject {
+    var mouseLocation: CurrentValueSubject<NSPoint, Never> { get }
+    var mouseDown: PassthroughSubject<Void, Never> { get }
+    var mouseDraggingFile: PassthroughSubject<Void, Never> { get }
+    var optionKeyPress: CurrentValueSubject<Bool, Never> { get }
+}
+
+class EventMonitors: EventMonitorsProtocol {
     static let shared = EventMonitors()
 
     private var mouseMoveEvent: EventMonitor!
@@ -51,4 +59,12 @@ class EventMonitors {
         }
         optionKeyPressEvent.start()
     }
+}
+
+// ——— Preview/测试用 Mock ———
+final class MockEventMonitors: EventMonitorsProtocol {
+    let mouseLocation: CurrentValueSubject<NSPoint, Never> = .init(.zero)
+    let mouseDown: PassthroughSubject<Void, Never> = .init()
+    let mouseDraggingFile: PassthroughSubject<Void, Never> = .init()
+    let optionKeyPress: CurrentValueSubject<Bool, Never> = .init(false)
 }

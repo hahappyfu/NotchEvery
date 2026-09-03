@@ -4,14 +4,47 @@ import Foundation
 import LaunchAtLogin
 import SwiftUI
 
+// MARK: - NotchGeometry（#24 拆分：纯几何计算）
+
+struct NotchGeometry {
+    var deviceNotchRect: CGRect
+    var screenRect: CGRect
+    var notchOpenedSize: CGSize
+    let inset: CGFloat
+
+    var notchOpenedRect: CGRect {
+        .init(
+            x: screenRect.origin.x + (screenRect.width - notchOpenedSize.width) / 2,
+            y: screenRect.origin.y + screenRect.height - notchOpenedSize.height,
+            width: notchOpenedSize.width,
+            height: notchOpenedSize.height
+        )
+    }
+
+    var headlineOpenedRect: CGRect {
+        .init(
+            x: screenRect.origin.x + (screenRect.width - notchOpenedSize.width) / 2,
+            y: screenRect.origin.y + screenRect.height - deviceNotchRect.height,
+            width: notchOpenedSize.width,
+            height: deviceNotchRect.height
+        )
+    }
+
+    func insetDeviceRect() -> CGRect {
+        deviceNotchRect.insetBy(dx: inset, dy: inset)
+    }
+}
+
+// MARK: - ViewModel 门面（保持外部 vm.* 调用零改）
+
 class NotchViewModel: NSObject, ObservableObject {
     var cancellables: Set<AnyCancellable> = []
     let inset: CGFloat
 
-    init(inset: CGFloat = -4) {
+    init(inset: CGFloat = -4, events: (any EventMonitorsProtocol)? = nil) {
         self.inset = inset
         super.init()
-        setupCancellables()
+        setupCancellables(events: events ?? EventMonitors.shared)
     }
 
     deinit {
@@ -45,23 +78,18 @@ class NotchViewModel: NSObject, ObservableObject {
         case settings
     }
 
-    var notchOpenedRect: CGRect {
-        .init(
-            x: screenRect.origin.x + (screenRect.width - notchOpenedSize.width) / 2,
-            y: screenRect.origin.y + screenRect.height - notchOpenedSize.height,
-            width: notchOpenedSize.width,
-            height: notchOpenedSize.height
+    // ——— 几何经由 NotchGeometry 计算，Published 仍在门面以保持绑定 ———
+    var geometry: NotchGeometry {
+        NotchGeometry(
+            deviceNotchRect: deviceNotchRect,
+            screenRect: screenRect,
+            notchOpenedSize: notchOpenedSize,
+            inset: inset
         )
     }
 
-    var headlineOpenedRect: CGRect {
-        .init(
-            x: screenRect.origin.x + (screenRect.width - notchOpenedSize.width) / 2,
-            y: screenRect.origin.y + screenRect.height - deviceNotchRect.height,
-            width: notchOpenedSize.width,
-            height: deviceNotchRect.height
-        )
-    }
+    var notchOpenedRect: CGRect { geometry.notchOpenedRect }
+    var headlineOpenedRect: CGRect { geometry.headlineOpenedRect }
 
     @Published private(set) var status: Status = .closed
     @Published var openReason: OpenReason = .unknown

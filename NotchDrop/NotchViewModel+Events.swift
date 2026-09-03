@@ -11,8 +11,7 @@ import Foundation
 import SwiftUI
 
 extension NotchViewModel {
-    func setupCancellables() {
-        let events = EventMonitors.shared
+    func setupCancellables(events: any EventMonitorsProtocol = EventMonitors.shared) {
         events.mouseDown
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
