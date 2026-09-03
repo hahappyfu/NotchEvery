@@ -16,6 +16,7 @@ struct NotchMenuView: View {
             close
             settings
             clear
+            ShareView(vm: vm, type: .airdrop)
         }
     }
 
