@@ -8,8 +8,8 @@
 import AppKit
 import Darwin
 
-let productPage = URL(string: "https://github.com/Lakr233/NotchDrop")!
-let sponsorPage = URL(string: "https://github.com/sponsors/Lakr233")!
+let productPage = URL(string: "https://github.com/hahappyfu/NotchEvery")!
+let sponsorPage = URL(string: "https://github.com/sponsors/hahappyfu")!
 
 let bundleIdentifier = Bundle.main.bundleIdentifier!
 let appVersion = "\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"

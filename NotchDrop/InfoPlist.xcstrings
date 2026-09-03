@@ -7,31 +7,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "NotchDrop"
+            "value": "NotchEvery"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "NotchDrop"
+            "value": "NotchEvery"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Notch Drop"
+            "value": "NotchEvery"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "简放岛"
+            "value": "NotchEvery"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "簡放島"
+            "value": "NotchEvery"
           }
         }
       }
@@ -43,31 +43,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "NotchDrop"
+            "value": "NotchEvery"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "NotchDrop"
+            "value": "NotchEvery"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Notch Drop"
+            "value": "NotchEvery"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "简放岛"
+            "value": "NotchEvery"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "簡放島"
+            "value": "NotchEvery"
           }
         }
       }
@@ -79,31 +79,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copyright © 2024 Lakr Aream. All rights reserved."
+            "value": "Copyright © 2026 hahappyfu. All rights reserved."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copyright © 2024 Lakr Aream. All rights reserved."
+            "value": "Copyright © 2026 hahappyfu. All rights reserved."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copyright © 2024 Lakr Aream. All rights reserved."
+            "value": "Copyright © 2026 hahappyfu. All rights reserved."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "© 2024 砍砍@标准件厂长 版权所有"
+            "value": "© 2026 hahappyfu 版权所有"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "© 2024 砍砍@標準件廠長 版權所有"
+            "value": "© 2026 hahappyfu 版權所有"
           }
         }
       }

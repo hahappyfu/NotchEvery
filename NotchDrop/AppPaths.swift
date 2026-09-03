@@ -13,14 +13,14 @@ enum AppPaths {
         guard let first = urls.first else {
             let fallback = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
                 ?? URL(fileURLWithPath: NSTemporaryDirectory())
-            return fallback.appendingPathComponent("NotchDrop")
+            return fallback.appendingPathComponent("NotchEvery")
         }
-        return first.appendingPathComponent("NotchDrop")
+        return first.appendingPathComponent("NotchEvery")
     }
 
     static var temporaryDirectory: URL {
         URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "NotchDrop")
+            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "NotchEvery")
     }
 
     static var pidFile: URL {

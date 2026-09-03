@@ -1,12 +1,10 @@
-# NotchDrop
+# NotchEvery
 
 Transform your MacBook's notch into a convenient file drop zone.
 
 [简体中文 🇨🇳](./Resources/i18n/zh-Hans/README.md)
 
-[![App Store Icon](./Resources/Download_on_the_App_Store_Badge_US-UK_RGB_blk_092917.svg)](https://apps.apple.com/app/notchdrop/id6529528324)
-
-For Developers: You can use [NotchNotification](https://github.com/Lakr233/NotchNotification) in your app, powered by NotchDrop.
+For Developers: You can use [NotchNotification](https://github.com/Lakr233/NotchNotification) in your app.
 
 ## 👀 Preview
 
@@ -25,7 +23,7 @@ For Developers: You can use [NotchNotification](https://github.com/Lakr233/Notch
 
 ## 🚀 Usage
 
-Download the latest version from [Releases](https://github.com/Lakr233/NotchDrop/releases).
+Download the latest version from [Releases](https://github.com/hahappyfu/NotchEvery/releases).
 
 ## 🔨 Building from Source
 
@@ -41,8 +39,8 @@ This creates a production-optimized build that you can use daily on your Mac.
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/Lakr233/NotchDrop.git
-cd NotchDrop
+git clone https://github.com/hahappyfu/NotchEvery.git
+cd NotchEvery
 ```
 
 2. Build the app in Release configuration:
@@ -107,4 +105,4 @@ Special thanks to [NotchNook](https://lo.cafe/notchnook) for providing the initi
 
 ---
 
-Copyright © 2024 Lakr Aream. All Rights Reserved.
+Copyright © 2026 hahappyfu. All Rights Reserved.

@@ -18,7 +18,7 @@ struct NotchHeaderView: View {
 
     var body: some View {
         HStack {
-            Text(vm.contentType == .settings ? versionText : "Notch Drop")
+            Text(vm.contentType == .settings ? versionText : "NotchEvery")
                 .contentTransition(.numericText())
                 .foregroundStyle(.primary)
             Spacer()
