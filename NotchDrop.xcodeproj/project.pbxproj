@@ -48,6 +48,8 @@
 		60AD62872C579F4400299297 /* NotchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60AD62862C579F4400299297 /* NotchSettingsView.swift */; };
 		A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071829304050 /* Glass.swift */; };
 		B1C2D3E4F506172839404153 /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F506172839404152 /* AppPaths.swift */; };
+		C1D2E3F4A506172839404153 /* QuotaSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404152 /* QuotaSnapshot.swift */; };
+		C1D2E3F4A506172839404155 /* QuotaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404154 /* QuotaStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -86,6 +88,8 @@
 		60AD62862C579F4400299297 /* NotchSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchSettingsView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6071829304050 /* Glass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glass.swift; sourceTree = "<group>"; };
 		B1C2D3E4F506172839404152 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
+		C1D2E3F4A506172839404152 /* QuotaSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaSnapshot.swift; sourceTree = "<group>"; };
+		C1D2E3F4A506172839404154 /* QuotaStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -141,6 +145,8 @@
 				504381982C3A8893000ED325 /* NotchWindow.swift */,
 				504381A32C3A8C7E000ED325 /* NotchWindowController.swift */,
 				5043819F2C3A8BA1000ED325 /* NotchView.swift */,
+				C1D2E3F4A506172839404154 /* QuotaStore.swift */,
+				C1D2E3F4A506172839404152 /* QuotaSnapshot.swift */,
 				B1C2D3E4F506172839404152 /* AppPaths.swift */,
 				A1B2C3D4E5F6071829304050 /* Glass.swift */,
 				504381B02C3AE0B6000ED325 /* NotchHeaderView.swift */,
@@ -294,6 +300,8 @@
 				60AD62872C579F4400299297 /* NotchSettingsView.swift in Sources */,
 				504381A82C3A926E000ED325 /* NotchViewModel.swift in Sources */,
 				5044EEA02C3B116000071C5C /* PublishedPersist.swift in Sources */,
+				C1D2E3F4A506172839404155 /* QuotaStore.swift in Sources */,
+				C1D2E3F4A506172839404153 /* QuotaSnapshot.swift in Sources */,
 				B1C2D3E4F506172839404153 /* AppPaths.swift in Sources */,
 				A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */,
 			);
