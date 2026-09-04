@@ -34,12 +34,14 @@ Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.75)   // rgba(20,20,24,0.75)
 - 触发：hover 进入热区（`.hover` openReason）。**点击与拖拽触发不加菊花**（点击是确定性意图，拖拽讲究即时反馈）。
 - 表现：刘海热区视觉微扩（180→190 等效 +5pt），刘海内中心偏下出现 **8 叶放射菊花**（每叶 1.5×4pt 圆角条，逐叶 -22.5° 旋转 + 0.8s 渐隐循环），转 180ms。
 - 新增 ViewModel 状态：`Status` 保持三态不动，菊花可见性由新 `@Published var preloading: Bool` 驱动（`notchOpen(.hover)` 时先置 true，180ms 后置 false 并进 `.opened`）。
+- **边界防御 A（快速划过取消）**：`preloading = true` 时挂 `DispatchWorkItem`（复用现有 `hoverCloseWorkItem` 模式），180ms 后执行 `preloading = false; notchOpen(.hover)`。`mouseLocation` sink 中若 `!aboutToOpen` 且 `preloading`，立即 cancel 该任务并重置 `preloading = false`，防幽灵展开。
 
 ### 节拍 2 · 弹性生长（380ms 主时长）
 
 - 参数真值：`spring(response: 0.32, dampingFraction: 0.86)`（对应 Framer stiffness 380 / damping 30 / mass 0.8 的换算结果，轻微过冲回稳）。
 - 替换点：`vm.animation` 用于外壳展开的部分换成新 `openAnimation` 常量；内容 transition 与外壳共用同一动画。
 - 预备微扩：展开起始帧外壳先 +5pt 再弹开（合并进 spring 首帧，无需独立动画）。
+- **边界防御 B（动画打断回打）**：分批入场用 `Task` 链驱动（每批一个 `try await Task.sleep`），ViewModel 持有 `entryTask: Task<Void, Never>?`；`notchClose()` 第一行 `entryTask?.cancel()`，Task 内每个 sleep 后检查 `Task.isCancelled` 即退出——收起动画可随时覆盖进行中的入场序列，无残留半透明层。SwiftUI 侧动画用 `withAnimation` 状态驱动，新状态值天然打断旧插值，无需手动干预。
 
 ### 节拍 3 · 内容分批入场
 
@@ -52,6 +54,7 @@ Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.75)   // rgba(20,20,24,0.75)
 | 托盘 | +360ms | 同上 |
 
 实现：`NotchView` body 的内容 Group 拆出 `contentEntryDelay(_:)` 修饰符（按批次给 delay），`reduceMotion` 环境下全部跳过直接显示。
+- **边界防御 C（命中测试穿透）**：内容容器挂 `.allowsHitTesting(vm.status == .opened && !vm.preloading)`——预备拍菊花期间与入场未完成时按钮不可误触；菊花本身 `disabled(true)`，刘海中心点击不透传到 mouseDown 关闭逻辑。
 
 ### 节拍 4 · 收起（双曲线逆向）
 
@@ -77,3 +80,4 @@ Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.75)   // rgba(20,20,24,0.75)
 3. 展开带轻微过冲回稳，收起无过冲、内容先退外壳后收。
 4. reduceMotion 下全部直接显示无动画。
 5. 每节拍独立 commit，可单独 revert。
+6. 边界防御三项实测：光标快速划过顶部（<180ms）无任何展开；展开中途移出鼠标能立即收起且无残留半透明层；预备拍期间点击刘海内区域不会误关面板。
