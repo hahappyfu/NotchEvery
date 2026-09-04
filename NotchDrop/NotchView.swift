@@ -13,11 +13,17 @@ struct NotchView: View {
     @State var dropTargeting: Bool = false
 
     var notchSize: CGSize {
+        let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {
         case .closed:
+            if isGhost {
+                // 舌头形虚影：宽 = max(刘海宽×1.3, 240)、高 60
+                let w = max(vm.deviceNotchRect.width * 1.3, 240)
+                return CGSize(width: w, height: 60)
+            }
             var ans = CGSize(
-                width: vm.deviceNotchRect.width - 4 + (vm.hoverGhosting ? 16 : 0),
-                height: vm.deviceNotchRect.height - 4 + (vm.hoverGhosting ? 6 : 0)
+                width: vm.deviceNotchRect.width - 4,
+                height: vm.deviceNotchRect.height - 4
             )
             if ans.width < 0 { ans.width = 0 }
             if ans.height < 0 { ans.height = 0 }
@@ -33,10 +39,11 @@ struct NotchView: View {
     }
 
     var notchCornerRadius: CGFloat {
+        let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {
-        case .closed: 8
-        case .opened: 32
-        case .popping: 10
+        case .closed: return isGhost ? 16 : 8
+        case .opened: return 32
+        case .popping: return 10
         }
     }
 
@@ -84,21 +91,39 @@ struct NotchView: View {
             )
             .shadow(
                 color: .black.opacity(
-                    ([.opened, .popping].contains(vm.status) || vm.hoverGhosting) ? 0.35 : 0
+                    ([.opened, .popping].contains(vm.status) || vm.hoverGhosting || vm.ghostFading) ? 0.35 : 0
                 ),
                 radius: 20,
                 y: 8
             )
+            // 过桥菊花：openFromGhost 后 150ms 短闪
+            .overlay {
+                if vm.bridgeSpinning {
+                    SpinnerView(size: 16, color: .white)
+                        .transition(.opacity)
+                }
+            }
+            // 右键菜单：虚影态与展开态均可右击
+            .contextMenu {
+                Button("打开设置") {
+                    vm.openFromGhost()
+                    vm.showSettings()
+                }
+                Divider()
+                Button("退出 NotchNook") {
+                    NSApp.terminate(nil)
+                }
+            }
     }
 
-    /// 玻璃刘海背景：深色沉浸玻璃，虚影态底色切 #16161a
+    /// 玻璃刘海背景：深色沉浸玻璃，虚影态底色切 #2a2c33
     private var glassNotchBackground: some View {
         Rectangle()
             .fill(.clear)
             .background(
                 RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
-                    .fill(vm.hoverGhosting
-                        ? Color(red: 0.086, green: 0.086, blue: 0.102)  // #16161a
+                    .fill((vm.hoverGhosting || vm.ghostFading)
+                        ? Color(red: 0.165, green: 0.173, blue: 0.2)  // #2a2c33
                         : Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.75)
                     )
             )
@@ -185,7 +210,7 @@ struct NotchView: View {
     }
 }
 
-/// 分批入场修饰符：延迟后 opacity 0→1 + 下移入场；reduceMotion 直接显示
+/// 分批入场修饰符：延迟后 blur 4→0 + opacity 0→1 + 下移入场；reduceMotion 直接显示
 struct StaggeredEntry: ViewModifier {
     let delay: TimeInterval
     @State private var shown = false
@@ -194,6 +219,7 @@ struct StaggeredEntry: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(shown || reduceMotion ? 1 : 0)
+            .blur(radius: shown || reduceMotion ? 0 : 4)
             .offset(y: shown || reduceMotion ? 0 : -6)
             .onAppear {
                 guard !reduceMotion else { return }

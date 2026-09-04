@@ -103,6 +103,10 @@ class NotchViewModel: NSObject, ObservableObject {
     @Published var optionKeyPressed: Bool = false
     @Published var notchVisible: Bool = true
     @Published var hoverGhosting: Bool = false
+    /// 两段收起中间态：保持虚影视觉 200ms 再清态
+    @Published private(set) var ghostFading: Bool = false
+    /// 过桥菊花：openFromGhost 后短闪 150ms
+    @Published private(set) var bridgeSpinning: Bool = false
 
     /// 展开弹簧（380/30/0.8 换算真值，轻微过冲）
     let openAnimation: Animation = .spring(response: 0.32, dampingFraction: 0.86)
@@ -123,8 +127,13 @@ class NotchViewModel: NSObject, ObservableObject {
     func scheduleHoverClose() {
         hoverCloseWorkItem?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            guard let self, status == .opened, openReason == .hover else { return }
-            notchClose()
+            guard let self else { return }
+            // 两段收起：展开态走 closeToGhost()，虚影态走 notchClose()
+            if status == .opened, openReason == .hover {
+                closeToGhost()
+            } else if hoverGhosting {
+                notchClose()
+            }
         }
         hoverCloseWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
@@ -135,11 +144,30 @@ class NotchViewModel: NSObject, ObservableObject {
         hoverCloseWorkItem = nil
     }
 
-    /// 虚影态→展开态（点击/拖拽调用）
+    /// 虚影态→展开态（点击/拖拽调用），触发过桥菊花 150ms
     func openFromGhost() {
         hoverGhosting = false
+        ghostFading = false
+        bridgeSpinning = true
         status = .opened
         NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            self?.bridgeSpinning = false
+        }
+    }
+
+    /// 两段收起：先缩回虚影尺寸 200ms，再清态回刘海
+    func closeToGhost() {
+        openReason = .unknown
+        contentType = .normal
+        // stage 1: status→closed 触发布局动画，ghostFading 保持虚影视觉
+        status = .closed
+        ghostFading = true
+        // stage 2: 200ms 后清虚影，回到常态刘海
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            self?.ghostFading = false
+            self?.hoverGhosting = false
+        }
     }
 
     func notchOpen(_ reason: OpenReason) {
@@ -157,6 +185,7 @@ class NotchViewModel: NSObject, ObservableObject {
 
     func notchClose() {
         hoverGhosting = false
+        ghostFading = false
         openReason = .unknown
         status = .closed
         contentType = .normal
