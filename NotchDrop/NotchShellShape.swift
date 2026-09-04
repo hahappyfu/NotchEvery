@@ -1,13 +1,22 @@
 import SwiftUI
 
 // 自定义刘海外壳几何：一笔画出顶部微圆角 + 底部大圆角，无飞檐。
-struct NotchShellShape: Shape {
+struct NotchShellShape: InsettableShape {
     // 顶部微圆角半径
     var topMicroRadius: CGFloat = 6
     // 底部大圆角半径
     var bottomRadius: CGFloat = 26
+    // 内描边 inset 量（strokeBorder 用）
+    var insetAmount: CGFloat = 0
+
+    func inset(by amount: CGFloat) -> some InsettableShape {
+        var copy = self
+        copy.insetAmount += amount
+        return copy
+    }
 
     func path(in rect: CGRect) -> Path {
+        let rect = rect.insetBy(dx: insetAmount, dy: insetAmount)
         var path = Path()
         // 顶部微圆角与底部大圆角，取整避免负值
         let tr = max(topMicroRadius, 0)
