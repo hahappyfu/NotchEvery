@@ -35,7 +35,7 @@ struct NotchView: View {
     var notchCornerRadius: CGFloat {
         switch vm.status {
         case .closed: 8
-        case .opened: 32
+        case .opened: 28
         case .popping: 10
         }
     }
@@ -47,25 +47,36 @@ struct NotchView: View {
                 .disabled(true)
                 .opacity(vm.notchVisible ? 1 : 0.3)
             Group {
-                if vm.status == .opened {
+                if vm.isExpanded {
                     VStack(spacing: vm.spacing) {
                         NotchHeaderView(vm: vm)
                         NotchContentView(vm: vm)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            // 内容层：等容器基本撑开后再淡入，避免拉伸过程中的文字/图标形变
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.96, anchor: .top))
+                                    .animation(.easeOut(duration: 0.22).delay(0.12)),
+                                removal: .opacity.animation(.easeOut(duration: 0.12))
+                            ))
                     }
-                    .padding(vm.spacing)
-                    .frame(maxWidth: vm.notchOpenedSize.width, maxHeight: vm.notchOpenedSize.height)
+                    // 顶部 24pt 镜头避让区，其余沿用常规间距
+                    .padding(.horizontal, vm.spacing)
+                    .padding(.bottom, vm.spacing)
+                    .padding(.top, 24)
+                    .frame(maxWidth: vm.notchOpenedSize.width, maxHeight: vm.notchOpenedSize.height, alignment: .top)
+                    .clipped()
                     .zIndex(1)
                 }
             }
-            .transition(
-                .scale.combined(
-                    with: .opacity
-                ).combined(
-                    with: .offset(y: -vm.notchOpenedSize.height / 2)
-                ).animation(vm.animation)
-            )
-            .animation(vm.animation, value: vm.status)
+            .transition(.asymmetric(
+                insertion: .scale(scale: 0.9, anchor: .top).combined(with: .opacity)
+                    .combined(with: .offset(y: -vm.notchOpenedSize.height / 2))
+                    .animation(vm.animation),
+                // 收起：展开内容立即淡出，不做位移/回弹，容器跟随收缩
+                removal: .opacity.animation(.easeOut(duration: 0.12))
+            ))
+            // 展开用弹性曲线软着陆，收起用快曲线干脆利落
+            .animation(vm.isExpanded ? vm.animation : vm.closeAnimation, value: vm.isExpanded)
         }
         .background(dragDetector)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -83,13 +94,21 @@ struct NotchView: View {
                 radius: 20,
                 y: 8
             )
+            // 尺寸与底部圆角跟随展开/收起平滑过渡（展开 8→28，收起贴回默认圆角）
+            .animation(vm.isExpanded ? vm.animation : vm.closeAnimation, value: vm.isExpanded)
     }
 
-    /// 玻璃刘海背景：统一走 Glass 封装
+    /// 玻璃刘海背景：统一走 Glass 封装，底色锁定暗黑（浅色模式也不穿帮）
     private var glassNotchBackground: some View {
         Rectangle()
-            .fill(.clear)
+            .fill(Color.black.opacity(0.88))
+            .background(.ultraThinMaterial)
             .glassCard(cornerRadius: notchCornerRadius)
+            // 0.8px 高光内描边：用 strokeBorder 让整圈线宽留在 mask 内
+            .overlay {
+                RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.8)
+            }
     }
 
     var notchBackgroundMaskGroup: some View {
@@ -99,45 +118,55 @@ struct NotchView: View {
                 width: notchSize.width,
                 height: notchSize.height
             )
-            .clipShape(.rect(
+            // 顶部平直贴合屏幕上沿，底部连续平滑倒角
+            .clipShape(UnevenRoundedRectangle(
+                topLeadingRadius: 0,
                 bottomLeadingRadius: notchCornerRadius,
-                bottomTrailingRadius: notchCornerRadius
+                bottomTrailingRadius: notchCornerRadius,
+                topTrailingRadius: 0,
+                style: .continuous
             ))
             .overlay {
-                ZStack(alignment: .topTrailing) {
-                    Rectangle()
-                        .frame(width: notchCornerRadius, height: notchCornerRadius)
-                        .foregroundStyle(.black)
-                    Rectangle()
-                        .clipShape(.rect(topTrailingRadius: notchCornerRadius))
-                        .foregroundStyle(.white)
-                        .frame(
-                            width: notchCornerRadius + vm.spacing,
-                            height: notchCornerRadius + vm.spacing
-                        )
-                        .blendMode(.destinationOut)
+                // 展开态去掉大反角飞檐：顶部平齐垂直向下（收起态保留小耳贴边）
+                if !vm.isExpanded {
+                    ZStack(alignment: .topTrailing) {
+                        Rectangle()
+                            .frame(width: notchCornerRadius, height: notchCornerRadius)
+                            .foregroundStyle(.black)
+                        Rectangle()
+                            .clipShape(.rect(topTrailingRadius: notchCornerRadius))
+                            .foregroundStyle(.white)
+                            .frame(
+                                width: notchCornerRadius + vm.spacing,
+                                height: notchCornerRadius + vm.spacing
+                            )
+                            .blendMode(.destinationOut)
+                    }
+                    .compositingGroup()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .offset(x: -notchCornerRadius - vm.spacing + 0.5, y: -0.5)
                 }
-                .compositingGroup()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .offset(x: -notchCornerRadius - vm.spacing + 0.5, y: -0.5)
             }
             .overlay {
-                ZStack(alignment: .topLeading) {
-                    Rectangle()
-                        .frame(width: notchCornerRadius, height: notchCornerRadius)
-                        .foregroundStyle(.black)
-                    Rectangle()
-                        .clipShape(.rect(topLeadingRadius: notchCornerRadius))
-                        .foregroundStyle(.white)
-                        .frame(
-                            width: notchCornerRadius + vm.spacing,
-                            height: notchCornerRadius + vm.spacing
-                        )
-                        .blendMode(.destinationOut)
+                // 展开态去掉大反角飞檐：顶部平齐垂直向下（收起态保留小耳贴边）
+                if !vm.isExpanded {
+                    ZStack(alignment: .topLeading) {
+                        Rectangle()
+                            .frame(width: notchCornerRadius, height: notchCornerRadius)
+                            .foregroundStyle(.black)
+                        Rectangle()
+                            .clipShape(.rect(topLeadingRadius: notchCornerRadius))
+                            .foregroundStyle(.white)
+                            .frame(
+                                width: notchCornerRadius + vm.spacing,
+                                height: notchCornerRadius + vm.spacing
+                            )
+                            .blendMode(.destinationOut)
+                    }
+                    .compositingGroup()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .offset(x: notchCornerRadius + vm.spacing - 0.5, y: -0.5)
                 }
-                .compositingGroup()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .offset(x: notchCornerRadius + vm.spacing - 0.5, y: -0.5)
             }
     }
 

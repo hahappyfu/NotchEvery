@@ -20,13 +20,13 @@ struct NotchContentView: View {
                         .frame(width: 196)
                     TrayView(vm: vm)
                 }
-                .transition(.scale(scale: 0.8).combined(with: .opacity))
+                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             case .menu:
                 NotchMenuView(vm: vm)
-                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             case .settings:
                 NotchSettingsView(vm: vm)
-                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             }
         }
         .animation(vm.animation, value: vm.contentType)

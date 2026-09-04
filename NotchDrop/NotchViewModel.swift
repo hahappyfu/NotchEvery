@@ -51,11 +51,13 @@ class NotchViewModel: NSObject, ObservableObject {
         destroy()
     }
 
-    let animation: Animation = .interactiveSpring(
-        duration: 0.5,
-        extraBounce: 0.25,
-        blendDuration: 0.125
-    )
+    /// 展开主曲线：Apple 质感弹性，软着陆微弹
+    let animation: Animation = .spring(response: 0.38, dampingFraction: 0.82, blendDuration: 0.1)
+    /// 收起曲线：响应更快、阻尼更高，干脆利落不回弹
+    let closeAnimation: Animation = .spring(response: 0.28, dampingFraction: 0.9, blendDuration: 0.1)
+
+    /// 展开态映射（等价于 status == .opened，供动画 value 使用）
+    var isExpanded: Bool { status == .opened }
     let notchOpenedSize: CGSize = .init(width: 600, height: 160)
     let dropDetectorRange: CGFloat = 32
 
@@ -97,7 +99,7 @@ class NotchViewModel: NSObject, ObservableObject {
     @Published var contentType: ContentType = .normal
 
     @Published var spacing: CGFloat = 16
-    @Published var cornerRadius: CGFloat = 16
+    @Published var cornerRadius: CGFloat = 18
     @Published var deviceNotchRect: CGRect = .zero
     @Published var screenRect: CGRect = .zero
     @Published var optionKeyPressed: Bool = false

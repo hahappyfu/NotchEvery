@@ -24,6 +24,8 @@ struct NotchHeaderView: View {
             Spacer()
             Image(systemName: "ellipsis")
                 .foregroundStyle(.secondary)
+                // 脱离外壳圆角挤压切线：尾部 14pt 安全内边距
+                .padding(.trailing, 14)
         }
         .animation(vm.animation, value: vm.contentType)
         .font(.system(.headline, design: .rounded))
