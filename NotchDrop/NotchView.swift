@@ -85,11 +85,11 @@ struct NotchView: View {
             )
     }
 
-    /// 玻璃刘海背景：统一走 Glass 封装
+    /// 玻璃刘海背景：深色沉浸玻璃
     private var glassNotchBackground: some View {
         Rectangle()
             .fill(.clear)
-            .glassCard(cornerRadius: notchCornerRadius)
+            .darkGlassCard(cornerRadius: notchCornerRadius)
     }
 
     var notchBackgroundMaskGroup: some View {

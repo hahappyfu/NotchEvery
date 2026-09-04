@@ -45,3 +45,24 @@ private struct GlassCardModifier: ViewModifier {
         }
     }
 }
+
+// MARK: - 深色沉浸玻璃（NotchNook 风外壳）
+
+extension View {
+    /// 深色高透背景 + 磨砂模糊 + 细内描边高光
+    func darkGlassCard(cornerRadius: CGFloat) -> some View {
+        self
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.75))
+            )
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+            )
+    }
+}
