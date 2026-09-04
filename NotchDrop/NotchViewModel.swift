@@ -121,8 +121,6 @@ class NotchViewModel: NSObject, ObservableObject {
     private var hoverCloseWorkItem: DispatchWorkItem?
     /// 预备拍任务（180ms 菊花期，快速划过时可取消）
     private var preloadWorkItem: DispatchWorkItem?
-    /// 内容分批入场任务链（收起时立即取消，防残留半透明层）
-    var entryTask: Task<Void, Never>?
 
     func scheduleHoverClose() {
         hoverCloseWorkItem?.cancel()
@@ -172,8 +170,6 @@ class NotchViewModel: NSObject, ObservableObject {
         preloadWorkItem?.cancel()
         preloadWorkItem = nil
         preloading = false
-        entryTask?.cancel()
-        entryTask = nil
         openReason = .unknown
         status = .closed
         contentType = .normal
