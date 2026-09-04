@@ -48,7 +48,8 @@ struct TrayView: View {
     var panel: some View {
         RoundedRectangle(cornerRadius: vm.cornerRadius)
             .fill(.clear)
-            .glassCard(cornerRadius: vm.cornerRadius)
+            // 内卡片统一黑曜石材质
+            .obsidianCard(cornerRadius: vm.cornerRadius)
             .overlay {
                 RoundedRectangle(cornerRadius: vm.cornerRadius)
                     .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.5 : 0.5)
