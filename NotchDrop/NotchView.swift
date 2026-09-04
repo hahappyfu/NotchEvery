@@ -103,14 +103,14 @@ struct NotchView: View {
                         .transition(.opacity)
                 }
             }
-            // 右键菜单：虚影态与展开态均可右击
+            // 右键菜单：虚影态与展开态均可右击（文案走既有本地化键）
             .contextMenu {
-                Button("打开设置") {
+                Button(LocalizedStringKey("Settings")) {
                     vm.openFromGhost()
                     vm.showSettings()
                 }
                 Divider()
-                Button("退出 NotchNook") {
+                Button(LocalizedStringKey("Exit")) {
                     NSApp.terminate(nil)
                 }
             }
