@@ -35,7 +35,7 @@ struct NotchView: View {
     var notchCornerRadius: CGFloat {
         switch vm.status {
         case .closed: 8
-        case .opened: 26
+        case .opened: 32
         case .popping: 10
         }
     }
@@ -53,7 +53,7 @@ struct NotchView: View {
                         NotchContentView(vm: vm)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                    .padding(.horizontal, 10).padding(.bottom, 10).padding(.top, 24)
+                    .padding(vm.spacing)
                     .frame(maxWidth: vm.notchOpenedSize.width, maxHeight: vm.notchOpenedSize.height)
                     .zIndex(1)
                 }
@@ -71,16 +71,11 @@ struct NotchView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    /// 自定义外壳：黑曜石材质直接画进一笔画 Shape，无飞檐
     var notch: some View {
-        Rectangle()
-            .fill(.clear)
-            .obsidian(in: NotchShellShape(
-                topMicroRadius: vm.status == .opened ? 6 : notchCornerRadius,
-                bottomRadius: notchCornerRadius
-            ))
+        glassNotchBackground
+            .mask(notchBackgroundMaskGroup)
             .frame(
-                width: notchSize.width,
+                width: notchSize.width + notchCornerRadius * 2,
                 height: notchSize.height
             )
             .shadow(
@@ -88,6 +83,62 @@ struct NotchView: View {
                 radius: 20,
                 y: 8
             )
+    }
+
+    /// 玻璃刘海背景：统一走 Glass 封装
+    private var glassNotchBackground: some View {
+        Rectangle()
+            .fill(.clear)
+            .glassCard(cornerRadius: notchCornerRadius)
+    }
+
+    var notchBackgroundMaskGroup: some View {
+        Rectangle()
+            .foregroundStyle(.black)
+            .frame(
+                width: notchSize.width,
+                height: notchSize.height
+            )
+            .clipShape(.rect(
+                bottomLeadingRadius: notchCornerRadius,
+                bottomTrailingRadius: notchCornerRadius
+            ))
+            .overlay {
+                ZStack(alignment: .topTrailing) {
+                    Rectangle()
+                        .frame(width: notchCornerRadius, height: notchCornerRadius)
+                        .foregroundStyle(.black)
+                    Rectangle()
+                        .clipShape(.rect(topTrailingRadius: notchCornerRadius))
+                        .foregroundStyle(.white)
+                        .frame(
+                            width: notchCornerRadius + vm.spacing,
+                            height: notchCornerRadius + vm.spacing
+                        )
+                        .blendMode(.destinationOut)
+                }
+                .compositingGroup()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .offset(x: -notchCornerRadius - vm.spacing + 0.5, y: -0.5)
+            }
+            .overlay {
+                ZStack(alignment: .topLeading) {
+                    Rectangle()
+                        .frame(width: notchCornerRadius, height: notchCornerRadius)
+                        .foregroundStyle(.black)
+                    Rectangle()
+                        .clipShape(.rect(topLeadingRadius: notchCornerRadius))
+                        .foregroundStyle(.white)
+                        .frame(
+                            width: notchCornerRadius + vm.spacing,
+                            height: notchCornerRadius + vm.spacing
+                        )
+                        .blendMode(.destinationOut)
+                }
+                .compositingGroup()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .offset(x: notchCornerRadius + vm.spacing - 0.5, y: -0.5)
+            }
     }
 
     @ViewBuilder

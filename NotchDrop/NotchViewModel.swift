@@ -56,7 +56,7 @@ class NotchViewModel: NSObject, ObservableObject {
         extraBounce: 0.25,
         blendDuration: 0.125
     )
-    let notchOpenedSize: CGSize = .init(width: 600, height: 180)
+    let notchOpenedSize: CGSize = .init(width: 600, height: 160)
     let dropDetectorRange: CGFloat = 32
 
     enum Status: String, Codable, Hashable, Equatable {
