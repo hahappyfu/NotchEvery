@@ -54,11 +54,11 @@ extension View {
         obsidian(in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 
-    /// 泛型黑曜石材质：依次叠黑底、超薄材质、内描边
-    func obsidian<S: InsettableShape>(in shape: S) -> some View {
+    /// 泛型黑曜石材质：依次叠黑底、超薄材质、描边
+    func obsidian<S: Shape>(in shape: S) -> some View {
         self
             .background(shape.fill(Color.black.opacity(0.88)))
             .background(shape.fill(.ultraThinMaterial))
-            .overlay(shape.strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8))
+            .overlay(shape.stroke(Color.white.opacity(0.12), lineWidth: 0.8))
     }
 }
