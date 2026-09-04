@@ -58,6 +58,10 @@ extension NotchViewModel {
                 guard let self else { return }
                 let aboutToOpen = deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation)
                 if status == .closed, aboutToOpen { notchOpen(.hover) }
+                // 边界防御 A：预备拍期间光标离开热区，立即取消（防幽灵展开）
+                if preloading, !aboutToOpen {
+                    cancelPreload()
+                }
                 if status == .popping, !aboutToOpen { notchClose() }
                 // hover 展开态：离开面板区延迟收起，移回取消
                 if status == .opened, openReason == .hover {

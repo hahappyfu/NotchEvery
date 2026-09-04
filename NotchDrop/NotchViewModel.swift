@@ -139,6 +139,12 @@ class NotchViewModel: NSObject, ObservableObject {
         hoverCloseWorkItem = nil
     }
 
+    func cancelPreload() {
+        preloadWorkItem?.cancel()
+        preloadWorkItem = nil
+        preloading = false
+    }
+
     func notchOpen(_ reason: OpenReason) {
         openReason = reason
         contentType = .normal
