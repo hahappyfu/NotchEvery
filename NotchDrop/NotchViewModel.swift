@@ -102,6 +102,12 @@ class NotchViewModel: NSObject, ObservableObject {
     @Published var screenRect: CGRect = .zero
     @Published var optionKeyPressed: Bool = false
     @Published var notchVisible: Bool = true
+    @Published var preloading: Bool = false
+
+    /// 展开弹簧（380/30/0.8 换算真值，轻微过冲）
+    let openAnimation: Animation = .spring(response: 0.32, dampingFraction: 0.86)
+    /// 收起弹簧（无过冲快退）
+    let closeAnimation: Animation = .spring(response: 0.24, dampingFraction: 1.0)
 
     @PublishedPersist(key: "selectedLanguage", defaultValue: .system)
     var selectedLanguage: Language
@@ -113,6 +119,10 @@ class NotchViewModel: NSObject, ObservableObject {
 
     /// hover 展开后的延迟收起任务（防刘海→面板路径单帧误判闪烁）
     private var hoverCloseWorkItem: DispatchWorkItem?
+    /// 预备拍任务（180ms 菊花期，快速划过时可取消）
+    private var preloadWorkItem: DispatchWorkItem?
+    /// 内容分批入场任务链（收起时立即取消，防残留半透明层）
+    var entryTask: Task<Void, Never>?
 
     func scheduleHoverClose() {
         hoverCloseWorkItem?.cancel()
@@ -131,12 +141,33 @@ class NotchViewModel: NSObject, ObservableObject {
 
     func notchOpen(_ reason: OpenReason) {
         openReason = reason
-        status = .opened
         contentType = .normal
-        NSApp.activate(ignoringOtherApps: true)
+        if reason == .hover {
+            // 预备拍：菊花 180ms 后进展开态
+            preloading = true
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                preloading = false
+                status = .opened
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            preloadWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: work)
+        } else {
+            preloadWorkItem?.cancel()
+            preloadWorkItem = nil
+            preloading = false
+            status = .opened
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     func notchClose() {
+        preloadWorkItem?.cancel()
+        preloadWorkItem = nil
+        preloading = false
+        entryTask?.cancel()
+        entryTask = nil
         openReason = .unknown
         status = .closed
         contentType = .normal
