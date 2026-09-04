@@ -38,7 +38,12 @@ extension NotchViewModel {
                 case .closed, .popping:
                     // touch inside, open
                     if deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation) {
-                        notchOpen(.click)
+                        // 虚影态点击 → 展开；否则直接展开
+                        if hoverGhosting {
+                            openFromGhost()
+                        } else {
+                            notchOpen(.click)
+                        }
                     }
                 }
             }
@@ -58,9 +63,11 @@ extension NotchViewModel {
                 guard let self else { return }
                 let aboutToOpen = deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation)
                 if status == .closed, aboutToOpen { notchOpen(.hover) }
-                // 边界防御 A：预备拍期间光标离开热区，立即取消（防幽灵展开）
-                if preloading, !aboutToOpen {
-                    cancelPreload()
+                // 边界防御 A：虚影态期间光标离开热区，300ms 缓冲后清虚影（防幽灵展开）
+                if hoverGhosting, !aboutToOpen {
+                    scheduleHoverClose()
+                } else if hoverGhosting, aboutToOpen {
+                    cancelHoverClose()
                 }
                 if status == .popping, !aboutToOpen { notchClose() }
                 // hover 展开态：离开面板区延迟收起，移回取消

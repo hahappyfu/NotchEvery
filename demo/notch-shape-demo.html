@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NotchDrop 苹果原厂风形状与动效重塑 Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            macNotch: '#070709',
+            obsidianGlass: 'rgba(11, 12, 16, 0.88)',
+            macSurfaceLight: 'rgba(246, 248, 250, 0.94)'
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 苹果原生物理倒角与高精毛玻璃 */
+    .apple-glass-dark {
+      background: rgba(11, 12, 16, 0.88);
+      backdrop-filter: blur(40px) saturate(190%);
+      -webkit-backdrop-filter: blur(40px) saturate(190%);
+      box-shadow: 0 28px 60px -15px rgba(0, 0, 0, 0.85),
+                  0 4px 14px -2px rgba(0, 0, 0, 0.5),
+                  inset 0 1px 1.5px rgba(255, 255, 255, 0.16),
+                  inset 0 -1px 1px rgba(255, 255, 255, 0.03);
+    }
+
+    .flawed-glass-light {
+      background: rgba(246, 248, 250, 0.95);
+      backdrop-filter: blur(35px) saturate(160%);
+      -webkit-backdrop-filter: blur(35px) saturate(160%);
+      box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.28),
+                  0 4px 12px rgba(0, 0, 0, 0.08),
+                  inset 0 1px 1.5px rgba(255, 255, 255, 0.95);
+    }
+
+    /* 方案 C: 截图中的生硬蘑菇飞檐大反角 (24px 宽大飞檐) */
+    .ear-flawed-left {
+      position: absolute;
+      top: 0;
+      right: 100%;
+      width: 24px;
+      height: 24px;
+      background: radial-gradient(circle at 0 100%, transparent 24px, rgba(246, 248, 250, 0.95) 24px);
+    }
+    .ear-flawed-right {
+      position: absolute;
+      top: 0;
+      left: 100%;
+      width: 24px;
+      height: 24px;
+      background: radial-gradient(circle at 100% 100%, transparent 24px, rgba(246, 248, 250, 0.95) 24px);
+    }
+
+    /* 方案 A: 苹果灵动岛级微反角 (6px 极微衔接，贴合屏幕边框，杜绝展开展平时的翅膀突兀感) */
+    .ear-apple-left {
+      position: absolute;
+      top: 0;
+      right: 100%;
+      width: 6px;
+      height: 6px;
+      background: radial-gradient(circle at 0 100%, transparent 6px, #070709 6px);
+    }
+    .ear-apple-right {
+      position: absolute;
+      top: 0;
+      left: 100%;
+      width: 6px;
+      height: 6px;
+      background: radial-gradient(circle at 100% 100%, transparent 6px, #070709 6px);
+    }
+
+    /* 拖拽时的辉光与呼吸动画 */
+    @keyframes dropPulse {
+      0%, 100% { border-color: rgba(56, 189, 248, 0.5); box-shadow: 0 0 15px rgba(56, 189, 248, 0.15); }
+      50% { border-color: rgba(56, 189, 248, 0.9); box-shadow: 0 0 24px rgba(56, 189, 248, 0.35); }
+    }
+    .drop-highlight {
+      animation: dropPulse 1.6s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body id="desktopBackground" class="bg-gradient-to-br from-[#121c2d] via-[#0b131f] to-[#05080e] text-zinc-100 min-h-screen overflow-x-hidden select-none font-sans flex flex-col items-center transition-all duration-700">
+
+  <!-- macOS 顶部菜单栏 (全宽，置顶模拟) -->
+  <header class="w-full h-8 bg-black/45 backdrop-blur-2xl border-b border-white/10 flex items-center justify-between px-4 text-xs font-medium text-zinc-300 z-40 fixed top-0 left-0">
+    <div class="flex items-center space-x-4">
+      <span class="text-white font-semibold cursor-pointer text-sm"></span>
+      <span class="text-white font-bold text-xs tracking-tight">NotchEvery</span>
+      <span class="hover:text-white cursor-pointer opacity-70 hover:opacity-100 transition">文件</span>
+      <span class="hover:text-white cursor-pointer opacity-70 hover:opacity-100 transition">暂存仓</span>
+      <span class="hover:text-white cursor-pointer opacity-70 hover:opacity-100 transition">窗口</span>
+    </div>
+
+    <div class="flex items-center space-x-3.5 text-[11px] text-zinc-300">
+      <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/10 text-emerald-400 font-mono text-[10px]">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>HIG 规范生效中</span>
+      </div>
+      <span class="opacity-80">周五 11:38</span>
+      <button id="toggleWallpaperBtn" class="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white transition text-[10px] flex items-center gap-1">
+        <span>切换壁纸</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ======================== 核心刘海交互容器 ======================== -->
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
+
+    <!-- 刘海形状外壳容器 -->
+    <div id="notchPod"
+         class="relative apple-glass-dark border border-white/10 transition-all duration-300 ease-[cubic-bezier(0.32,1.25,0.6,1)]"
+         style="width: 530px; height: 184px; border-radius: 0 0 26px 26px; border-top: none;">
+
+      <!-- 左右反角部件插槽 (动态切换微反角或飞檐) -->
+      <div id="earLeftSlot"><div class="ear-apple-left"></div></div>
+      <div id="earRightSlot"><div class="ear-apple-right"></div></div>
+
+      <!-- 硬件物理摄像头与感光孔模拟 (用于直观检验浅色底穿帮) -->
+      <div class="absolute top-1.5 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30 pointer-events-none">
+        <div class="w-3 h-3 rounded-full bg-black border border-neutral-800/80 flex items-center justify-center shadow-inner">
+          <div class="w-1.5 h-1.5 rounded-full bg-cyan-950 flex items-center justify-center">
+            <div class="w-0.5 h-0.5 rounded-full bg-cyan-400/70"></div>
+          </div>
+        </div>
+        <div id="camIndicatorLed" class="w-1 h-1 rounded-full bg-emerald-400 opacity-90 animate-pulse"></div>
+      </div>
+
+      <!-- 硬件安全避让区提示 (仅在开启对齐标尺时显示) -->
+      <div id="cameraSafeZone" class="hidden absolute top-0 left-1/2 -translate-x-1/2 w-48 h-6 border-b border-dashed border-red-500/60 bg-red-500/10 z-20 flex items-center justify-center">
+        <span class="text-[9px] font-mono text-red-300">硬件刘海安全避让高度 (24pt)</span>
+      </div>
+
+      <!-- ================= 展开状态下的内容装配 ================= -->
+      <div id="notchContentBody" class="w-full h-full p-3.5 pt-6 flex flex-col justify-between transition-all duration-200">
+
+        <!-- Header 顶栏: 标题与操作按钮 -->
+        <div class="flex items-center justify-between px-1 mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="w-5 h-5 rounded-md bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center shadow-md">
+              <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+            </div>
+            <span id="notchTitleText" class="text-[13px] font-semibold tracking-tight text-white flex items-center gap-1.5">
+              NotchEvery 暂存仓
+            </span>
+            <span id="shapeTag" class="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-sky-300 font-mono">
+              Continuous G2 R:26
+            </span>
+          </div>
+
+          <!-- 右侧菜单按钮 (保证足够的安全内边距，解决截图贴边切角问题) -->
+          <div class="flex items-center space-x-1">
+            <span class="text-[10px] text-zinc-400 font-mono mr-1">3 项</span>
+            <button id="moreActionBtn" title="设置与操作" class="w-6 h-6 rounded-md hover:bg-white/10 flex items-center justify-center transition text-zinc-300 hover:text-white">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+              </svg>
+            </button>
+            <button id="quickCollapseBtn" title="折叠刘海" class="w-6 h-6 rounded-md hover:bg-white/10 flex items-center justify-center transition text-zinc-400 hover:text-zinc-200">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 内部左右双卡片区域 (严谨遵循同心嵌套圆角：外 R=26，内 R=16) -->
+        <div class="grid grid-cols-12 gap-2.5 flex-1">
+
+          <!-- 左侧卡片: Quota 用量统计 (4 列) -->
+          <div id="quotaBox" class="col-span-4 rounded-2xl p-3 flex flex-col justify-between border border-white/5 bg-white/[0.04] transition-all relative overflow-hidden">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> 就绪
+              </span>
+              <span class="text-[9px] text-zinc-400 font-mono uppercase">Quota</span>
+            </div>
+
+            <div class="my-0.5">
+              <div class="flex items-baseline space-x-1">
+                <span class="text-2xl font-bold font-mono tracking-tight text-white">0%</span>
+                <span class="text-[10px] text-zinc-400">已使用</span>
+              </div>
+
+              <!-- 胶囊双进度条 -->
+              <div class="space-y-1.5 mt-2">
+                <div class="flex items-center justify-between text-[10px] text-zinc-300">
+                  <span class="text-[10px] text-zinc-400">周</span>
+                  <div class="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden mx-1">
+                    <div class="w-[43%] h-full bg-emerald-400 rounded-full"></div>
+                  </div>
+                  <span class="font-mono text-[9px] text-zinc-400">43%</span>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-zinc-300">
+                  <span class="text-[10px] text-zinc-400">月</span>
+                  <div class="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden mx-1">
+                    <div class="w-[54%] h-full bg-emerald-400 rounded-full"></div>
+                  </div>
+                  <span class="font-mono text-[9px] text-zinc-400">54%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-[9px] text-zinc-400 flex items-center justify-between pt-1 border-t border-white/5">
+              <span>3 小时 17 分后重置</span>
+              <span class="font-mono text-sky-400/80">5h</span>
+            </div>
+          </div>
+
+          <!-- 右侧卡片: 主拖拽放置区 (8 列) -->
+          <div id="trayDropCard"
+               class="col-span-8 rounded-2xl border border-dashed border-sky-400/30 bg-sky-500/[0.03] hover:bg-sky-500/[0.06] hover:border-sky-400/60 p-3 flex flex-col items-center justify-center text-center transition-all cursor-pointer group relative overflow-hidden">
+
+            <div id="dropIconWrap" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-sky-400 mb-1.5 group-hover:scale-110 transition duration-200 shadow-inner">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+            </div>
+
+            <div id="dropTitle" class="text-xs font-semibold text-zinc-200 tracking-tight">
+              拖动文件到此处以暂存
+            </div>
+            <div id="dropSubTitle" class="text-[10px] text-zinc-400 mt-0.5">
+              保留一天 · 按住 <kbd class="px-1 py-0.5 bg-white/10 rounded text-[9px] font-mono text-zinc-300">⌥ Option</kbd> 快捷删除
+            </div>
+
+            <!-- 动态拖拽接收指示状态 -->
+            <div id="dropReceivedBanner" class="hidden absolute inset-0 bg-sky-500/20 backdrop-blur-sm flex items-center justify-center text-xs font-medium text-sky-200">
+              松开即可存入暂存盒 ✨
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======================== 可拖拽的测试文件小挂件 ======================== -->
+  <div id="draggableFile"
+       draggable="true"
+       class="fixed bottom-6 right-8 bg-zinc-900/90 border border-zinc-700/80 rounded-xl p-3 shadow-2xl backdrop-blur-xl flex items-center gap-3 cursor-grab active:cursor-grabbing hover:border-sky-400 transition-all duration-150 z-40 group">
+    <div class="w-10 h-10 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs group-hover:scale-105 transition">
+      DOC
+    </div>
+    <div>
+      <div class="text-xs font-semibold text-white group-hover:text-sky-300 transition">Design_Spec_v2.pdf</div>
+      <div class="text-[10px] text-zinc-400">4.2 MB · 拖拽我测试投递</div>
+    </div>
+    <span class="text-xs text-zinc-500 group-hover:text-zinc-300">⋮⋮</span>
+  </div>
+
+  <!-- ======================== 下方控制控制台与诊断面板 ======================== -->
+  <main class="mt-56 max-w-4xl w-full px-4 flex flex-col items-center z-10 pb-20">
+
+    <!-- 诊断卡片: 解读为什么原图不苹果 -->
+    <div class="w-full bg-zinc-900/70 border border-zinc-800/90 rounded-2xl p-5 shadow-2xl backdrop-blur-xl mb-6">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-3.5">
+        <h2 class="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> 视觉病理诊断：为什么截图里的刘海“一眼假”？
+        </h2>
+        <span class="text-xs text-zinc-500 font-mono">macOS Design Guidelines</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
+        <div class="p-3 rounded-xl bg-black/40 border border-zinc-800">
+          <div class="font-bold text-amber-300 mb-1 flex items-center gap-1.5">
+            <span>1. 物理摄像头穿帮</span>
+          </div>
+          <p class="text-zinc-400 leading-relaxed text-[11px]">
+            Mac 物理刘海是纯黑塑胶镜头区。做成浅亮色时，顶部的黑镜头会在白底上露出一大块黑斑，直接破坏了软硬件结合的连续感。
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-black/40 border border-zinc-800">
+          <div class="font-bold text-amber-300 mb-1 flex items-center gap-1.5">
+            <span>2. 蘑菇头飞檐倒角变形</span>
+          </div>
+          <p class="text-zinc-400 leading-relaxed text-[11px]">
+            刘海未展开时（宽200）有反角是贴边；展开到 500+ 时若仍做大反角，左右就会像长了“肩膀”或房顶飞檐，显得极度冗余突兀。
+          </p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-black/40 border border-zinc-800">
+          <div class="font-bold text-amber-300 mb-1 flex items-center gap-1.5">
+            <span>3. 切角破坏与非同心圆</span>
+          </div>
+          <p class="text-zinc-400 leading-relaxed text-[11px]">
+            右侧 <code>•••</code> 紧贴圆角被挤压；内部卡片圆角与外壳圆角没有满足公式：<code class="text-sky-300">R_inner = R_outer - padding</code>，失去同心韵律。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 形状与材质方案切换器 -->
+    <div class="w-full bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5 shadow-2xl backdrop-blur-xl mb-6">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-800 mb-4">
+        <span class="text-sm font-semibold flex items-center gap-2">
+          <span>🎨</span> 实时切换 3 种形状与材质方案
+        </span>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-zinc-400 flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="toggleGuideCheck" class="accent-sky-400 rounded">
+            <span>显示几何同心辅助线</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+
+        <!-- 方案 1 (官方推荐) -->
+        <button id="btnOptA" class="shape-btn active text-left p-3.5 rounded-xl border-2 border-sky-500 bg-sky-500/10 transition flex flex-col justify-between relative group">
+          <div class="absolute top-2.5 right-2.5 px-1.5 py-0.5 rounded bg-sky-500 text-[9px] font-bold text-white">Apple 推荐</div>
+          <div>
+            <div class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>💎 方案 A: 灵动岛一体黑曜石</span>
+            </div>
+            <div class="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+              全黑曜石玻璃底色，物理摄像头自然隐形。顶端平直贴合屏幕，微反角，底部采用 26pt G2 连续平滑圆角。
+            </div>
+          </div>
+          <div class="text-[10px] font-mono text-sky-400 mt-3 pt-2 border-t border-sky-500/20">
+            底 R:26pt · 微反角 R:6pt · 内 R:16pt
+          </div>
+        </button>
+
+        <!-- 方案 2 -->
+        <button id="btnOptB" class="shape-btn text-left p-3.5 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-800/40 transition flex flex-col justify-between group">
+          <div>
+            <div class="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+              <span>📐 方案 B: 极简平齐悬浮舱 (零飞檐)</span>
+            </div>
+            <div class="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+              彻底剔除左/右所有反角耳部，顶端纯平垂直下延，底部大圆角收尾。干净干脆，杜绝任何多余形变。
+            </div>
+          </div>
+          <div class="text-[10px] font-mono text-zinc-400 mt-3 pt-2 border-t border-zinc-700/40">
+            底 R:22pt · 无耳平齐 · 原生 Panel
+          </div>
+        </button>
+
+        <!-- 方案 3 (还原缺陷) -->
+        <button id="btnOptC" class="shape-btn text-left p-3.5 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-800/40 transition flex flex-col justify-between group">
+          <div>
+            <div class="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+              <span>⚠️ 方案 C: 还原截图缺陷状态</span>
+            </div>
+            <div class="text-[11px] text-zinc-500 mt-1 leading-relaxed">
+              还原浅白底色 + 两侧生硬外撇飞檐反角。用于切身体会摄像头露白与肩膀形变带来的不适感。
+            </div>
+          </div>
+          <div class="text-[10px] font-mono text-zinc-500 mt-3 pt-2 border-t border-zinc-700/40">
+            亮白底色 · 24px 大反角飞檐
+          </div>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- 同心圆角与数学规范面板 -->
+    <div id="concentricInfo" class="w-full bg-sky-950/20 border border-sky-500/20 rounded-2xl p-4 mb-6 text-xs text-sky-200 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-lg">📐</span>
+        <div>
+          <div class="font-bold text-sky-100">苹果同心圆角法则（Concentric Radii Formula）</div>
+          <div class="text-sky-300/80 text-[11px] mt-0.5">
+            外层外壳圆角 <code>26pt</code> - 外层内边距 <code>10pt</code> = 内部卡片圆角必须为 <code>16pt</code>，才能呈现同心同轴的视觉平静感。
+          </div>
+        </div>
+      </div>
+      <button id="toggleExpandCollapseBtn" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition text-xs font-medium">
+        展开 / 收拢刘海测试
+      </button>
+    </div>
+
+    <!-- 直接发给 Claude 进行文件修改的代码面板 -->
+    <div class="w-full bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5 shadow-2xl backdrop-blur-xl">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-800 mb-3">
+        <span class="text-xs font-semibold text-zinc-200 flex items-center gap-2">
+          <span>🛠️</span> 直接发给 Claude 的工程落地 Prompt
+        </span>
+        <button id="copyPromptCodeBtn" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-medium text-xs shadow-md shadow-sky-500/20 transition flex items-center gap-1.5">
+          <span>📋 一键复制 Prompt</span>
+        </button>
+      </div>
+
+      <!-- 复制成功的反馈条 -->
+      <div id="copyToast" class="hidden text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-lg mb-3">
+        ✓ 已成功复制到剪贴板！可以直接在对话框中发送给 Claude。
+      </div>
+
+      <div class="bg-black/70 rounded-xl p-3.5 border border-zinc-800 text-[11px] font-mono text-sky-200 overflow-x-auto leading-relaxed max-h-64">
+<pre id="promptTextContent">我对当前 NotchEvery 的刘海形状和材质进行苹果原厂风（HIG）优化，解决截图中的生硬感：
+
+1. 材质与基底重构（彻底解决物理镜头在浅色模式下穿帮的问题）：
+   - 不管是浅色模式还是深色模式，NotchView 的外层底色必须统一锁定为暗黑磨砂黑曜石质感：
+     .background(Color.black.opacity(0.88)) 配合 .ultraThinMaterial，让物理刘海的摄像头与屏幕边框浑然一体；
+   - 外层叠加 1px 细微内描边，带来纯正的 macOS 精致玻璃倒角感：
+     .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(Color.white.opacity(0.12), lineWidth: 0.8))
+
+2. 形状与圆角优化（消除截图左/右两侧生硬的蘑菇头飞檐）：
+   - 展开状态下，去掉顶部宽大的反角翅膀，采用顶部平齐屏幕边缘、底部采用 26pt 连续平滑圆角（.continuous）；
+   - 如需保留菜单栏微衔接，仅保留顶部两侧 r <= 6pt 的微型倒角，禁止大反角外撇。
+
+3. 布局与内部卡片安全边距（Padding & Alignment）：
+   - 顶栏保留出 24pt 的物理硬件镜头避让高度；
+   - 右上角 "•••" 按钮增加 trailing: 14pt 安全内边距，避免被圆角裁切；
+   - 内部卡片（QuotaCard 和 DropZone）采用同心嵌套圆角（cornerRadius: 16pt），与外壳 26pt 形成视觉同心圆。
+
+请直接定位到 NotchView.swift、NotchContentView.swift 及相关 Shape 绘制文件，提供修改后的 Diff 代码。</pre>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // 元素引用
+    const notchPod = document.getElementById('notchPod');
+    const earLeftSlot = document.getElementById('earLeftSlot');
+    const earRightSlot = document.getElementById('earRightSlot');
+    const notchContentBody = document.getElementById('notchContentBody');
+    const quotaBox = document.getElementById('quotaBox');
+    const trayDropCard = document.getElementById('trayDropCard');
+    const notchTitleText = document.getElementById('notchTitleText');
+    const shapeTag = document.getElementById('shapeTag');
+    const cameraSafeZone = document.getElementById('cameraSafeZone');
+    const desktopBackground = document.getElementById('desktopBackground');
+
+    const btnOptA = document.getElementById('btnOptA');
+    const btnOptB = document.getElementById('btnOptB');
+    const btnOptC = document.getElementById('btnOptC');
+    const toggleGuideCheck = document.getElementById('toggleGuideCheck');
+    const toggleWallpaperBtn = document.getElementById('toggleWallpaperBtn');
+    const toggleExpandCollapseBtn = document.getElementById('toggleExpandCollapseBtn');
+    const quickCollapseBtn = document.getElementById('quickCollapseBtn');
+    const draggableFile = document.getElementById('draggableFile');
+    const dropReceivedBanner = document.getElementById('dropReceivedBanner');
+    const copyPromptCodeBtn = document.getElementById('copyPromptCodeBtn');
+    const copyToast = document.getElementById('copyToast');
+
+    // 状态
+    let currentShape = 'apple-island';
+    let isLightWallpaper = false;
+    let isExpanded = true;
+
+    // 形状方案应用函数
+    function applyShapeMode(mode) {
+      currentShape = mode;
+
+      // 重置按钮外观
+      [btnOptA, btnOptB, btnOptC].forEach(b => {
+        b.classList.remove('border-sky-500', 'bg-sky-500/10', 'active');
+        b.classList.add('border-zinc-800', 'bg-zinc-800/40');
+      });
+
+      if (mode === 'apple-island') {
+        btnOptA.classList.add('border-sky-500', 'bg-sky-500/10', 'active');
+        btnOptA.classList.remove('border-zinc-800', 'bg-zinc-800/40');
+
+        // 苹果灵动岛规范
+        notchPod.className = 'relative apple-glass-dark border border-white/10 transition-all duration-300 ease-[cubic-bezier(0.32,1.25,0.6,1)]';
+        notchPod.style.background = 'rgba(11, 12, 16, 0.88)';
+        notchPod.style.borderRadius = isExpanded ? '0 0 26px 26px' : '0 0 16px 16px';
+        notchPod.style.boxShadow = '0 28px 60px -15px rgba(0, 0, 0, 0.85), inset 0 1px 1.5px rgba(255, 255, 255, 0.16)';
+
+        earLeftSlot.innerHTML = '<div class="ear-apple-left"></div>';
+        earRightSlot.innerHTML = '<div class="ear-apple-right"></div>';
+
+        notchTitleText.className = 'text-[13px] font-semibold tracking-tight text-white flex items-center gap-1.5';
+        shapeTag.textContent = 'Continuous G2 R:26';
+        shapeTag.className = 'text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-sky-300 font-mono';
+
+        quotaBox.className = 'col-span-4 rounded-2xl p-3 flex flex-col justify-between border border-white/5 bg-white/[0.04] text-white transition-all';
+        trayDropCard.className = 'col-span-8 rounded-2xl border border-dashed border-sky-400/30 bg-sky-500/[0.03] hover:bg-sky-500/[0.06] hover:border-sky-400/60 p-3 flex flex-col items-center justify-center text-center transition-all cursor-pointer group relative overflow-hidden text-white';
+        notchContentBody.className = 'w-full h-full p-3.5 pt-6 flex flex-col justify-between transition-all duration-200 text-white';
+      }
+      else if (mode === 'clean-flush') {
+        btnOptB.classList.add('border-sky-500', 'bg-sky-500/10', 'active');
+        btnOptB.classList.remove('border-zinc-800', 'bg-zinc-800/40');
+
+        // 极简平齐下延 (无耳)
+        notchPod.className = 'relative apple-glass-dark border border-white/10 transition-all duration-300 ease-[cubic-bezier(0.32,1.25,0.6,1)]';
+        notchPod.style.background = 'rgba(14, 15, 19, 0.94)';
+        notchPod.style.borderRadius = isExpanded ? '0 0 22px 22px' : '0 0 14px 14px';
+        notchPod.style.boxShadow = '0 24px 50px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.12)';
+
+        earLeftSlot.innerHTML = '';
+        earRightSlot.innerHTML = '';
+
+        notchTitleText.className = 'text-[13px] font-semibold tracking-tight text-white flex items-center gap-1.5';
+        shapeTag.textContent = 'Flush Top R:22';
+        shapeTag.className = 'text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-zinc-300 font-mono';
+
+        quotaBox.className = 'col-span-4 rounded-2xl p-3 flex flex-col justify-between border border-white/5 bg-white/[0.04] text-white transition-all';
+        trayDropCard.className = 'col-span-8 rounded-2xl border border-dashed border-sky-400/30 bg-sky-500/[0.03] hover:bg-sky-500/[0.06] hover:border-sky-400/60 p-3 flex flex-col items-center justify-center text-center transition-all cursor-pointer group relative overflow-hidden text-white';
+        notchContentBody.className = 'w-full h-full p-3.5 pt-6 flex flex-col justify-between transition-all duration-200 text-white';
+      }
+      else if (mode === 'flawed-screenshot') {
+        btnOptC.classList.add('border-sky-500', 'bg-sky-500/10', 'active');
+        btnOptC.classList.remove('border-zinc-800', 'bg-zinc-800/40');
+
+        // 还原截图缺陷：亮白底色 + 24px 夸张反角飞檐
+        notchPod.className = 'relative flawed-glass-light border border-black/10 transition-all duration-300 ease-[cubic-bezier(0.32,1.25,0.6,1)]';
+        notchPod.style.background = 'rgba(246, 248, 250, 0.95)';
+        notchPod.style.borderRadius = isExpanded ? '0 0 18px 18px' : '0 0 12px 12px';
+        notchPod.style.boxShadow = '0 24px 48px rgba(0, 0, 0, 0.25), inset 0 1px 1.5px rgba(255, 255, 255, 0.95)';
+
+        earLeftSlot.innerHTML = '<div class="ear-flawed-left"></div>';
+        earRightSlot.innerHTML = '<div class="ear-flawed-right"></div>';
+
+        notchTitleText.className = 'text-[13px] font-semibold tracking-tight text-zinc-900 flex items-center gap-1.5';
+        shapeTag.textContent = 'Flawed 24px Flare Ear';
+        shapeTag.className = 'text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 font-mono';
+
+        quotaBox.className = 'col-span-4 rounded-xl p-3 flex flex-col justify-between border border-black/5 bg-white text-zinc-800 shadow-sm transition-all';
+        trayDropCard.className = 'col-span-8 rounded-xl border border-dashed border-zinc-300 bg-white hover:border-sky-400 p-3 flex flex-col items-center justify-center text-center transition-all cursor-pointer group relative overflow-hidden text-zinc-800 shadow-sm';
+        notchContentBody.className = 'w-full h-full p-3.5 pt-6 flex flex-col justify-between transition-all duration-200 text-zinc-900';
+      }
+    }
+
+    // 展开/收拢动画控制
+    function setNotchExpanded(expanded) {
+      isExpanded = expanded;
+      if (isExpanded) {
+        notchPod.style.width = '530px';
+        notchPod.style.height = '184px';
+        notchContentBody.style.opacity = '1';
+        notchContentBody.style.pointerEvents = 'auto';
+      } else {
+        notchPod.style.width = '200px';
+        notchPod.style.height = '32px';
+        notchContentBody.style.opacity = '0';
+        notchContentBody.style.pointerEvents = 'none';
+      }
+      applyShapeMode(currentShape);
+    }
+
+    // 事件绑定
+    btnOptA.addEventListener('click', () => applyShapeMode('apple-island'));
+    btnOptB.addEventListener('click', () => applyShapeMode('clean-flush'));
+    btnOptC.addEventListener('click', () => applyShapeMode('flawed-screenshot'));
+
+    toggleExpandCollapseBtn.addEventListener('click', () => setNotchExpanded(!isExpanded));
+    quickCollapseBtn.addEventListener('click', () => setNotchExpanded(false));
+    notchPod.addEventListener('click', () => {
+      if (!isExpanded) setNotchExpanded(true);
+    });
+
+    // 几何标尺切换
+    toggleGuideCheck.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        cameraSafeZone.classList.remove('hidden');
+        quotaBox.classList.add('ring-2', 'ring-sky-400', 'ring-dashed');
+        trayDropCard.classList.add('ring-2', 'ring-sky-400', 'ring-dashed');
+      } else {
+        cameraSafeZone.classList.add('hidden');
+        quotaBox.classList.remove('ring-2', 'ring-sky-400', 'ring-dashed');
+        trayDropCard.classList.remove('ring-2', 'ring-sky-400', 'ring-dashed');
+      }
+    });
+
+    // 壁纸切换
+    toggleWallpaperBtn.addEventListener('click', () => {
+      isLightWallpaper = !isLightWallpaper;
+      if (isLightWallpaper) {
+        desktopBackground.className = 'bg-gradient-to-br from-[#8ec5fc] via-[#e0c3fc] to-[#e2ebf0] text-zinc-900 min-h-screen overflow-x-hidden select-none font-sans flex flex-col items-center transition-all duration-700';
+      } else {
+        desktopBackground.className = 'bg-gradient-to-br from-[#121c2d] via-[#0b131f] to-[#05080e] text-zinc-100 min-h-screen overflow-x-hidden select-none font-sans flex flex-col items-center transition-all duration-700';
+      }
+    });
+
+    // 拖拽仿真交互
+    trayDropCard.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      trayDropCard.classList.add('drop-highlight');
+      dropReceivedBanner.classList.remove('hidden');
+    });
+
+    trayDropCard.addEventListener('dragleave', () => {
+      trayDropCard.classList.remove('drop-highlight');
+      dropReceivedBanner.classList.add('hidden');
+    });
+
+    trayDropCard.addEventListener('drop', (e) => {
+      e.preventDefault();
+      trayDropCard.classList.remove('drop-highlight');
+      dropReceivedBanner.classList.add('hidden');
+
+      // 触发展开与轻微弹力震动反馈
+      notchPod.style.transform = 'translateX(-50%) scale(1.02)';
+      setTimeout(() => {
+        notchPod.style.transform = 'translateX(-50%) scale(1.0)';
+      }, 200);
+
+      // 显示成功文字
+      const prevTitle = document.getElementById('dropTitle').innerText;
+      document.getElementById('dropTitle').innerText = '✓ 文件 Design_Spec_v2.pdf 已吸纳！';
+      setTimeout(() => {
+        document.getElementById('dropTitle').innerText = prevTitle;
+      }, 2400);
+    });
+
+    // 复制 Prompt 到剪贴板
+    copyPromptCodeBtn.addEventListener('click', () => {
+      const code = document.getElementById('promptTextContent').innerText;
+      const textarea = document.createElement('textarea');
+      textarea.value = code;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+
+      copyToast.classList.remove('hidden');
+      setTimeout(() => {
+        copyToast.classList.add('hidden');
+      }, 3000);
+    });
+
+    // 页面初次初始化
+    applyShapeMode('apple-island');
+  </script>
+</body>
+</html>

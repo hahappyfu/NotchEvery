@@ -1,0 +1,1 @@
+{"configurations": [{"name": "demo-static", "port": 8099, "runtimeArgs": ["-m", "http.server", "8099", "--directory", "demo"], "runtimeExecutable": "python3"}], "version": "0.0.1"}

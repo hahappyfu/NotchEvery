@@ -50,7 +50,6 @@
 		C1D2E3F4A506172839404153 /* QuotaSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404152 /* QuotaSnapshot.swift */; };
 		C1D2E3F4A506172839404155 /* QuotaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404154 /* QuotaStore.swift */; };
 		C1D2E3F4A506172839404157 /* QuotaCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404156 /* QuotaCardView.swift */; };
-		A1B2C3D4E5F6071829304053 /* SpinnerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071829304052 /* SpinnerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -92,7 +91,6 @@
 		C1D2E3F4A506172839404152 /* QuotaSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaSnapshot.swift; sourceTree = "<group>"; };
 		C1D2E3F4A506172839404154 /* QuotaStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaStore.swift; sourceTree = "<group>"; };
 		C1D2E3F4A506172839404156 /* QuotaCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaCardView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6071829304052 /* SpinnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpinnerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -141,7 +139,6 @@
 				2700D8ED2C3CFD37005ACDDF /* Localizable.xcstrings */,
 				508C4DF12C631EF700642ADC /* InfoPlist.xcstrings */,
 				504381872C3A86EC000ED325 /* Assets.xcassets */,
-				A1B2C3D4E5F6071829304052 /* SpinnerView.swift */,
 				504381922C3A8755000ED325 /* main.swift */,
 				5043819A2C3A8A06000ED325 /* AppDelegate.swift */,
 				501F0E8B2C59E6BD00F0113C /* Language.swift */,
@@ -307,7 +304,6 @@
 				C1D2E3F4A506172839404153 /* QuotaSnapshot.swift in Sources */,
 				B1C2D3E4F506172839404153 /* AppPaths.swift in Sources */,
 				A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */,
-				A1B2C3D4E5F6071829304053 /* SpinnerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

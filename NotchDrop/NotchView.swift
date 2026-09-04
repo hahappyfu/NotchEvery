@@ -16,8 +16,8 @@ struct NotchView: View {
         switch vm.status {
         case .closed:
             var ans = CGSize(
-                width: vm.deviceNotchRect.width - 4,
-                height: vm.deviceNotchRect.height - 4
+                width: vm.deviceNotchRect.width - 4 + (vm.hoverGhosting ? 16 : 0),
+                height: vm.deviceNotchRect.height - 4 + (vm.hoverGhosting ? 6 : 0)
             )
             if ans.width < 0 { ans.width = 0 }
             if ans.height < 0 { ans.height = 0 }
@@ -46,15 +46,6 @@ struct NotchView: View {
                 .zIndex(0)
                 .disabled(true)
                 .opacity(vm.notchVisible ? 1 : 0.3)
-            if vm.preloading {
-                SpinnerView(size: 13)
-                    .frame(width: vm.deviceNotchRect.width, height: vm.deviceNotchRect.height)
-                    .offset(y: 6)
-                    .allowsHitTesting(false)
-                    .transition(.opacity)
-                    .animation(.easeInOut(duration: 0.12), value: vm.preloading)
-                    .zIndex(2)
-            }
             Group {
                 if vm.status == .opened {
                     VStack(spacing: vm.spacing) {
@@ -69,7 +60,7 @@ struct NotchView: View {
                     .zIndex(1)
                 }
             }
-            .allowsHitTesting(vm.status == .opened && !vm.preloading)
+            .allowsHitTesting(vm.status == .opened && !vm.hoverGhosting)
             .transition(
                 .scale.combined(
                     with: .opacity
@@ -92,17 +83,33 @@ struct NotchView: View {
                 height: notchSize.height
             )
             .shadow(
-                color: .black.opacity(([.opened, .popping].contains(vm.status)) ? 0.3 : 0),
+                color: .black.opacity(
+                    ([.opened, .popping].contains(vm.status) || vm.hoverGhosting) ? 0.35 : 0
+                ),
                 radius: 20,
                 y: 8
             )
     }
 
-    /// 玻璃刘海背景：深色沉浸玻璃
+    /// 玻璃刘海背景：深色沉浸玻璃，虚影态底色切 #16161a
     private var glassNotchBackground: some View {
         Rectangle()
             .fill(.clear)
-            .darkGlassCard(cornerRadius: notchCornerRadius)
+            .background(
+                RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                    .fill(vm.hoverGhosting
+                        ? Color(red: 0.086, green: 0.086, blue: 0.102)  // #16161a
+                        : Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.75)
+                    )
+            )
+            .background(
+                RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+            )
     }
 
     var notchBackgroundMaskGroup: some View {

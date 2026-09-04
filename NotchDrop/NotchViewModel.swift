@@ -102,7 +102,7 @@ class NotchViewModel: NSObject, ObservableObject {
     @Published var screenRect: CGRect = .zero
     @Published var optionKeyPressed: Bool = false
     @Published var notchVisible: Bool = true
-    @Published var preloading: Bool = false
+    @Published var hoverGhosting: Bool = false
 
     /// 展开弹簧（380/30/0.8 换算真值，轻微过冲）
     let openAnimation: Animation = .spring(response: 0.32, dampingFraction: 0.86)
@@ -119,8 +119,6 @@ class NotchViewModel: NSObject, ObservableObject {
 
     /// hover 展开后的延迟收起任务（防刘海→面板路径单帧误判闪烁）
     private var hoverCloseWorkItem: DispatchWorkItem?
-    /// 预备拍任务（180ms 菊花期，快速划过时可取消）
-    private var preloadWorkItem: DispatchWorkItem?
 
     func scheduleHoverClose() {
         hoverCloseWorkItem?.cancel()
@@ -137,39 +135,28 @@ class NotchViewModel: NSObject, ObservableObject {
         hoverCloseWorkItem = nil
     }
 
-    func cancelPreload() {
-        preloadWorkItem?.cancel()
-        preloadWorkItem = nil
-        preloading = false
+    /// 虚影态→展开态（点击/拖拽调用）
+    func openFromGhost() {
+        hoverGhosting = false
+        status = .opened
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     func notchOpen(_ reason: OpenReason) {
         openReason = reason
         contentType = .normal
         if reason == .hover {
-            // 预备拍：菊花 180ms 后进展开态
-            preloading = true
-            let work = DispatchWorkItem { [weak self] in
-                guard let self else { return }
-                preloading = false
-                status = .opened
-                NSApp.activate(ignoringOtherApps: true)
-            }
-            preloadWorkItem = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18, execute: work)
+            // 虚影态：只置标记，不展开（点击/拖拽时才调 openFromGhost()）
+            hoverGhosting = true
         } else {
-            preloadWorkItem?.cancel()
-            preloadWorkItem = nil
-            preloading = false
+            hoverGhosting = false
             status = .opened
             NSApp.activate(ignoringOtherApps: true)
         }
     }
 
     func notchClose() {
-        preloadWorkItem?.cancel()
-        preloadWorkItem = nil
-        preloading = false
+        hoverGhosting = false
         openReason = .unknown
         status = .closed
         contentType = .normal
