@@ -46,26 +46,38 @@ struct NotchView: View {
                 .zIndex(0)
                 .disabled(true)
                 .opacity(vm.notchVisible ? 1 : 0.3)
+            if vm.preloading {
+                SpinnerView(size: 13)
+                    .frame(width: vm.deviceNotchRect.width, height: vm.deviceNotchRect.height)
+                    .offset(y: 6)
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.12), value: vm.preloading)
+                    .zIndex(2)
+            }
             Group {
                 if vm.status == .opened {
                     VStack(spacing: vm.spacing) {
                         NotchHeaderView(vm: vm)
+                            .modifier(StaggeredEntry(delay: 0.12))
                         NotchContentView(vm: vm)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .modifier(StaggeredEntry(delay: 0.24))
                     }
                     .padding(vm.spacing)
                     .frame(maxWidth: vm.notchOpenedSize.width, maxHeight: vm.notchOpenedSize.height)
                     .zIndex(1)
                 }
             }
+            .allowsHitTesting(vm.status == .opened && !vm.preloading)
             .transition(
                 .scale.combined(
                     with: .opacity
                 ).combined(
                     with: .offset(y: -vm.notchOpenedSize.height / 2)
-                ).animation(vm.animation)
+                ).animation(vm.closeAnimation)
             )
-            .animation(vm.animation, value: vm.status)
+            .animation(vm.openAnimation, value: vm.status)
         }
         .background(dragDetector)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -162,5 +174,24 @@ struct NotchView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+}
+
+/// 分批入场修饰符：延迟后 opacity 0→1 + 下移入场；reduceMotion 直接显示
+struct StaggeredEntry: ViewModifier {
+    let delay: TimeInterval
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown || reduceMotion ? 1 : 0)
+            .offset(y: shown || reduceMotion ? 0 : -6)
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeOut(duration: 0.2).delay(delay)) {
+                    shown = true
+                }
+            }
     }
 }
