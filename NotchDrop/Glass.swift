@@ -45,20 +45,3 @@ private struct GlassCardModifier: ViewModifier {
         }
     }
 }
-
-// MARK: - 黑曜石材质
-
-extension View {
-    /// 黑曜石卡片：深黑底 + 超薄材质 + 细白边
-    func obsidianCard(cornerRadius: CGFloat) -> some View {
-        obsidian(in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-    }
-
-    /// 泛型黑曜石材质：依次叠黑底、超薄材质、描边
-    func obsidian<S: Shape>(in shape: S) -> some View {
-        self
-            .background(shape.fill(Color.black.opacity(0.88)))
-            .background(shape.fill(.ultraThinMaterial))
-            .overlay(shape.stroke(Color.white.opacity(0.12), lineWidth: 0.8))
-    }
-}
