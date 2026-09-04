@@ -15,21 +15,12 @@ struct NotchContentView: View {
         ZStack {
             switch vm.contentType {
             case .normal:
-                // 主面板按胶囊 Tab 二选一：状态页左对齐额度卡，托盘页全宽
-                Group {
-                    if vm.activeTab == .status {
-                        HStack {
-                            QuotaCardView(vm: vm)
-                                .frame(width: 196)
-                            Spacer()
-                        }
-                        .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
-                    } else {
-                        TrayView(vm: vm)
-                            .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
-                    }
+                HStack(spacing: vm.spacing) {
+                    QuotaCardView(vm: vm)
+                        .frame(width: 196)
+                    TrayView(vm: vm)
                 }
-                .animation(vm.animation, value: vm.activeTab)
+                .transition(.scale(scale: 0.8).combined(with: .opacity))
             case .menu:
                 NotchMenuView(vm: vm)
                     .transition(.scale(scale: 0.8).combined(with: .opacity))
