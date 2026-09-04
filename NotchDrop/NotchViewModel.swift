@@ -79,12 +79,6 @@ class NotchViewModel: NSObject, ObservableObject {
         case settings
     }
 
-    /// 主面板双 Tab：状态页与托盘页
-    enum PanelTab: String, Codable, Hashable, Equatable {
-        case status
-        case tray
-    }
-
     // ——— 几何经由 NotchGeometry 计算，Published 仍在门面以保持绑定 ———
     var geometry: NotchGeometry {
         NotchGeometry(
@@ -101,8 +95,6 @@ class NotchViewModel: NSObject, ObservableObject {
     @Published private(set) var status: Status = .closed
     @Published var openReason: OpenReason = .unknown
     @Published var contentType: ContentType = .normal
-    /// 当前主面板选中的 Tab，默认状态页
-    @Published var activeTab: PanelTab = .status
 
     @Published var spacing: CGFloat = 16
     @Published var cornerRadius: CGFloat = 16
@@ -141,8 +133,6 @@ class NotchViewModel: NSObject, ObservableObject {
         openReason = reason
         status = .opened
         contentType = .normal
-        // 每次展开回到状态页，避免停留在托盘页
-        activeTab = .status
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -150,8 +140,6 @@ class NotchViewModel: NSObject, ObservableObject {
         openReason = .unknown
         status = .closed
         contentType = .normal
-        // 收起时重置为状态页，下次展开默认状态页
-        activeTab = .status
     }
 
     func showSettings() {

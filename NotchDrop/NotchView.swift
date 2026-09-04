@@ -98,15 +98,9 @@ struct NotchView: View {
             .frame(width: notchSize.width + vm.dropDetectorRange, height: notchSize.height + vm.dropDetectorRange)
             .onDrop(of: [.data], isTargeted: $dropTargeting) { _ in true }
             .onChange(of: dropTargeting) { isTargeted in
-                if isTargeted {
-                    // 拖入时先展开（内部重置为状态页），再切到托盘页
-                    if vm.status == .closed {
-                        vm.notchOpen(.drag)
-                    }
-                    // 已在托盘页则不再重复切换，避免动画抖动
-                    if vm.activeTab != .tray {
-                        withAnimation(vm.animation) { vm.activeTab = .tray }
-                    }
+                if isTargeted, vm.status == .closed {
+                    // Open the notch when a file is dragged over it
+                    vm.notchOpen(.drag)
                     vm.hapticSender.send()
                 } else if !isTargeted {
                     // Close the notch when the dragged item leaves the area
