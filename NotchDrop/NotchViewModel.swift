@@ -131,7 +131,7 @@ class NotchViewModel: NSObject, ObservableObject {
             notchClose()
         }
         hoverCloseWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
     }
 
     func cancelHoverClose() {

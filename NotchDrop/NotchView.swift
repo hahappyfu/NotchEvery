@@ -79,6 +79,7 @@ struct NotchView: View {
             )
             .animation(vm.openAnimation, value: vm.status)
         }
+        .animation(vm.closeAnimation, value: vm.status)
         .background(dragDetector)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
