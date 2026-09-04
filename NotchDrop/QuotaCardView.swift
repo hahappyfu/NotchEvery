@@ -35,8 +35,7 @@ struct QuotaCardView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(12)
-        // 内卡片统一黑曜石材质
-        .obsidianCard(cornerRadius: vm.cornerRadius)
+        .glassCard(cornerRadius: vm.cornerRadius)
         .onAppear { store.start() }
     }
 
