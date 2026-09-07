@@ -35,6 +35,11 @@ struct NotchGeometry {
     }
 }
 
+enum SwipeDirection {
+    case next
+    case previous
+}
+
 // MARK: - ViewModel 门面（保持外部 vm.* 调用零改）
 
 class NotchViewModel: NSObject, ObservableObject {
@@ -215,6 +220,39 @@ class NotchViewModel: NSObject, ObservableObject {
 
     func showSettings() {
         contentType = .settings
+    }
+
+    /// 功能区固定顺序：左右滑按此循环
+    static let zoneOrder: [ContentType] = [.normal, .menu, .settings]
+
+    /// 最近一次切换方向：内容区不对称过渡用
+    @Published var lastSwipeDirection: SwipeDirection = .next
+
+    func jumpToZone(_ zone: ContentType) {
+        lastSwipeDirection = .next
+        contentType = zone
+    }
+
+    func nextZone() {
+        lastSwipeDirection = .next
+        let order = Self.zoneOrder
+        let idx = order.firstIndex(of: contentType) ?? 0
+        contentType = order[(idx + 1) % order.count]
+    }
+
+    func previousZone() {
+        lastSwipeDirection = .previous
+        let order = Self.zoneOrder
+        let idx = order.firstIndex(of: contentType) ?? 0
+        contentType = order[(idx + order.count - 1) % order.count]
+    }
+
+    /// 首次滑动提示是否已展示过：持久化，只打扰一次
+    @PublishedPersist(key: "hasSeenSwipeHint", defaultValue: false)
+    var hasSeenSwipeHint: Bool
+
+    func markSwipeHintSeen() {
+        hasSeenSwipeHint = true
     }
 
     func notchPop() {
