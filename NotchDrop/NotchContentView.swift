@@ -10,6 +10,7 @@ import SwiftUI
 
 struct NotchContentView: View {
     @StateObject var vm: NotchViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
@@ -20,13 +21,13 @@ struct NotchContentView: View {
                         .frame(width: 196)
                     TrayView(vm: vm)
                 }
-                .transition(.blurFade)
+                .transition(reduceMotion ? .opacity : .blurFade)
             case .menu:
                 NotchMenuView(vm: vm)
-                    .transition(.blurFade)
+                    .transition(reduceMotion ? .opacity : .blurFade)
             case .settings:
                 NotchSettingsView(vm: vm)
-                    .transition(.blurFade)
+                    .transition(reduceMotion ? .opacity : .blurFade)
             }
         }
         .animation(vm.animation, value: vm.contentType)
@@ -34,7 +35,7 @@ struct NotchContentView: View {
 }
 
 /// 模糊淡入过渡：出现时 blur 6→0 + 透明度 + 轻微放大，消失时反向快退
-struct BlurFadeModifier: ViewModifier, Animatable {
+private struct BlurFadeModifier: ViewModifier, Animatable {
     var amount: CGFloat
 
     var animatableData: CGFloat {
@@ -50,14 +51,13 @@ struct BlurFadeModifier: ViewModifier, Animatable {
     }
 }
 
-extension AnyTransition {
+private extension AnyTransition {
     static var blurFade: AnyTransition {
         .asymmetric(
             insertion: .modifier(active: BlurFadeModifier(amount: 1), identity: BlurFadeModifier(amount: 0)),
-            removal: .modifier(active: BlurFadeModifier(amount: 1), identity: BlurFadeModifier(amount: 0))
+            removal: .opacity
         )
     }
-}
 }
 
 #Preview {
