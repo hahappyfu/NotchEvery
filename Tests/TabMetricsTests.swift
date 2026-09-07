@@ -21,25 +21,18 @@ final class TabMetricsTests: XCTestCase {
         let vm = NotchViewModel(events: MockEventMonitors())
         for zone in NotchViewModel.zoneOrder {
             vm.jumpToZone(zone)
-            XCTAssertEqual(vm.zoneOpenedSize.width, NotchViewModel.zonePanelWidth[zone])
+            XCTAssertEqual(vm.zoneOpenedSize.width, 600, "分区 \(zone) 宽度必须全区一致，选项卡跨区不动")
             XCTAssertEqual(vm.zoneOpenedSize.height, NotchViewModel.zonePanelHeight[zone])
         }
     }
 
-    func testZoneWidthTableCoversAllZones() {
-        for zone in NotchViewModel.zoneOrder {
-            let width = NotchViewModel.zonePanelWidth[zone]
-            XCTAssertNotNil(width, "分区 \(zone) 缺少宽度表条目")
-            XCTAssertGreaterThan(width ?? 0, 0)
-        }
+    func testAllZonesShareWidthSoTabBarStaysPut() {
+        XCTAssertEqual(NotchViewModel.zonePanelWidth, 600, "宽度全区锁定，切换不得重居中平移选项卡")
     }
 
-    func testMenuZoneIsNarrowerThanOverview() {
-        XCTAssertLessThan(
-            NotchViewModel.zonePanelWidth[.menu] ?? 600,
-            NotchViewModel.zonePanelWidth[.normal] ?? 600,
-            "菜单区必须比概览窄"
-        )
+    func testMenuZoneHeightFitsCompactRow() {
+        // 明细：选项卡 28 + 间距 20 + 按钮行 88（64 方块 + 6 间隙 + 18 小字标题）+ 上下内边距 40 = 176，取 180 留舍入余量
+        XCTAssertEqual(NotchViewModel.zonePanelHeight[.menu], 180)
     }
 
     func testTabTitleKeysAreUnique() {

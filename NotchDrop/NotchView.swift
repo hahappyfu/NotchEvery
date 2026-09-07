@@ -62,6 +62,10 @@ struct NotchView: View {
                         NotchContentView(vm: vm)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .modifier(StaggeredEntry(delay: 0.16))
+                    }
+                    .padding(vm.spacing)
+                    .frame(maxWidth: vm.zoneOpenedSize.width, maxHeight: vm.zoneOpenedSize.height)
+                    .overlay(alignment: .bottom) {
                         if !vm.hasSeenSwipeHint {
                             Text("SwipeHint")
                                 .font(.system(size: 11))
@@ -73,8 +77,6 @@ struct NotchView: View {
                                 }
                         }
                     }
-                    .padding(vm.spacing)
-                    .frame(maxWidth: vm.zoneOpenedSize.width, maxHeight: vm.zoneOpenedSize.height)
                     .zIndex(1)
                 }
             }
