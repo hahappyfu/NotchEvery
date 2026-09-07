@@ -24,16 +24,14 @@ struct NotchContentView: View {
                 .transition(reduceMotion ? .opacity : .blurFade)
                 .onAppear { Probe.log("appear normal") }
                 .onDisappear { Probe.log("disappear normal") }
-            case .menu:
-                NotchMenuView(vm: vm)
-                    .transition(reduceMotion ? .opacity : .blurFade)
-                    .onAppear { Probe.log("appear menu") }
-                    .onDisappear { Probe.log("disappear menu") }
             case .settings:
-                NotchSettingsView(vm: vm)
-                    .transition(reduceMotion ? .opacity : .blurFade)
-                    .onAppear { Probe.log("appear settings") }
-                    .onDisappear { Probe.log("disappear settings") }
+                VStack(spacing: vm.spacing) {
+                    NotchMenuView(vm: vm)
+                    NotchSettingsView(vm: vm)
+                }
+                .transition(reduceMotion ? .opacity : .blurFade)
+                .onAppear { Probe.log("appear settings") }
+                .onDisappear { Probe.log("disappear settings") }
             }
         }
         .animation(vm.animation, value: vm.contentType)

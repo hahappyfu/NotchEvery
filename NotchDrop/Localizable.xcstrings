@@ -1849,29 +1849,6 @@
         }
       }
     },
-    "TabMenu": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Menu"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "菜单"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "菜單"
-          }
-        }
-      }
-    },
     "TabOverview": {
       "extractionState": "manual",
       "localizations": {

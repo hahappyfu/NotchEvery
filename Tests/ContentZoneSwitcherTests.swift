@@ -20,7 +20,7 @@ final class ContentZoneSwitcherTests: XCTestCase {
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.normal)
         vm.nextZone()
-        XCTAssertEqual(vm.contentType, .menu)
+        XCTAssertEqual(vm.contentType, .settings)
     }
 
     func testMarkSwipeHintSeenSetsFlag() {

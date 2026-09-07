@@ -69,8 +69,7 @@ class NotchViewModel: NSObject, ObservableObject {
     static let zonePanelWidth: CGFloat = 600
     static let zonePanelHeight: [ContentType: CGFloat] = [
         .normal: 160,
-        .menu: 180,
-        .settings: 210,
+        .settings: 320,
     ]
 
     /// 当前区已打开尺寸：面板 frame 与几何计算都跟随它
@@ -95,13 +94,11 @@ class NotchViewModel: NSObject, ObservableObject {
 
     enum ContentType: Int, Codable, Hashable, Equatable {
         case normal
-        case menu
         case settings
 
         var tabTitleKey: LocalizedStringKey {
             switch self {
             case .normal: "TabOverview"
-            case .menu: "TabMenu"
             case .settings: "TabSettings"
             }
         }
@@ -122,7 +119,9 @@ class NotchViewModel: NSObject, ObservableObject {
 
     @Published private(set) var status: Status = .closed
     @Published var openReason: OpenReason = .unknown
-    @Published var contentType: ContentType = .normal
+    @Published var contentType: ContentType = .normal {
+        didSet { Probe.log("contentType \(oldValue) -> \(contentType)") }
+    }
 
     @Published var spacing: CGFloat = 20
     @Published var cornerRadius: CGFloat = 20
@@ -246,7 +245,7 @@ class NotchViewModel: NSObject, ObservableObject {
     }
 
     /// 功能区固定顺序：左右滑按此循环
-    static let zoneOrder: [ContentType] = [.normal, .menu, .settings]
+    static let zoneOrder: [ContentType] = [.normal, .settings]
 
     /// 最近一次切换方向：内容区不对称过渡用
     @Published var lastSwipeDirection: SwipeDirection = .next
