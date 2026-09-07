@@ -86,6 +86,14 @@ class NotchViewModel: NSObject, ObservableObject {
         case normal
         case menu
         case settings
+
+        var tabTitleKey: LocalizedStringKey {
+            switch self {
+            case .normal: "TabOverview"
+            case .menu: "TabMenu"
+            case .settings: "TabSettings"
+            }
+        }
     }
 
     // ——— 几何经由 NotchGeometry 计算，Published 仍在门面以保持绑定 ———
