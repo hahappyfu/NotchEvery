@@ -22,8 +22,7 @@ struct NotchHeaderView: View {
                 .contentTransition(.numericText())
                 .foregroundStyle(.primary)
             Spacer()
-            Image(systemName: "ellipsis")
-                .foregroundStyle(.secondary)
+            PageIndicator(current: vm.contentType, onJump: { vm.jumpToZone($0) })
         }
         .animation(vm.animation, value: vm.contentType)
         .font(.system(.headline, design: .rounded))
@@ -32,4 +31,22 @@ struct NotchHeaderView: View {
 
 #Preview {
     NotchHeaderView(vm: .init())
+}
+
+/// 小圆点指示器：当前位置实心高亮，可点直跳
+private struct PageIndicator: View {
+    let current: NotchViewModel.ContentType
+    let onJump: (NotchViewModel.ContentType) -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(NotchViewModel.zoneOrder, id: \.self) { zone in
+                Circle()
+                    .fill(zone == current ? Color.primary : Color.secondary.opacity(0.35))
+                    .frame(width: 6, height: 6)
+                    .contentShape(Rectangle().inset(by: -6))
+                    .onTapGesture { onJump(zone) }
+            }
+        }
+    }
 }
