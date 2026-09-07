@@ -20,16 +20,31 @@ struct NotchContentView: View {
                         .frame(width: 196)
                     TrayView(vm: vm)
                 }
-                .transition(.scale(scale: 0.8).combined(with: .opacity))
+                .transition(slideTransition)
             case .menu:
                 NotchMenuView(vm: vm)
-                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+                    .transition(slideTransition)
             case .settings:
                 NotchSettingsView(vm: vm)
-                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+                    .transition(slideTransition)
             }
         }
         .animation(vm.animation, value: vm.contentType)
+    }
+
+    /// 下一区从右侧滑入，上一区从左侧滑入，淡入淡出叠加
+    private var slideTransition: AnyTransition {
+        if vm.lastSwipeDirection == .next {
+            .asymmetric(
+                insertion: .move(edge: .trailing).combined(with: .opacity),
+                removal: .move(edge: .leading).combined(with: .opacity)
+            )
+        } else {
+            .asymmetric(
+                insertion: .move(edge: .leading).combined(with: .opacity),
+                removal: .move(edge: .trailing).combined(with: .opacity)
+            )
+        }
     }
 }
 
