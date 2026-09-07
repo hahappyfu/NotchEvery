@@ -52,6 +52,7 @@
 		C1D2E3F4A506172839404155 /* QuotaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404154 /* QuotaStore.swift */; };
 		C1D2E3F4A506172839404157 /* QuotaCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404156 /* QuotaCardView.swift */; };
 		D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */; };
+		E5F607182930405170000002 /* NotchTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F607182930405170000001 /* NotchTabBar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -95,6 +96,7 @@
 		C1D2E3F4A506172839404154 /* QuotaStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaStore.swift; sourceTree = "<group>"; };
 		C1D2E3F4A506172839404156 /* QuotaCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaCardView.swift; sourceTree = "<group>"; };
 		D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSwipeResolver.swift; sourceTree = "<group>"; };
+		E5F607182930405170000001 /* NotchTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchTabBar.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -156,6 +158,7 @@
 				A1B2C3D4E5F6071829304050 /* Glass.swift */,
 				A1B2C3D4E5F6071829304052 /* SpinnerView.swift */,
 				504381B02C3AE0B6000ED325 /* NotchHeaderView.swift */,
+				E5F607182930405170000001 /* NotchTabBar.swift */,
 				503D8EB92C3F838200E173FF /* NotchMenuView.swift */,
 				504381AE2C3ADFF2000ED325 /* NotchContentView.swift */,
 				60AD62862C579F4400299297 /* NotchSettingsView.swift */,
@@ -312,6 +315,7 @@
 				A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */,
 				A1B2C3D4E5F6071829304053 /* SpinnerView.swift in Sources */,
 				D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */,
+				E5F607182930405170000002 /* NotchTabBar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
