@@ -20,32 +20,44 @@ struct NotchContentView: View {
                         .frame(width: 196)
                     TrayView(vm: vm)
                 }
-                .transition(slideTransition)
+                .transition(.blurFade)
             case .menu:
                 NotchMenuView(vm: vm)
-                    .transition(slideTransition)
+                    .transition(.blurFade)
             case .settings:
                 NotchSettingsView(vm: vm)
-                    .transition(slideTransition)
+                    .transition(.blurFade)
             }
         }
         .animation(vm.animation, value: vm.contentType)
     }
+}
 
-    /// 下一区从右侧滑入，上一区从左侧滑入，淡入淡出叠加
-    private var slideTransition: AnyTransition {
-        if vm.lastSwipeDirection == .next {
-            .asymmetric(
-                insertion: .move(edge: .trailing).combined(with: .opacity),
-                removal: .move(edge: .leading).combined(with: .opacity)
-            )
-        } else {
-            .asymmetric(
-                insertion: .move(edge: .leading).combined(with: .opacity),
-                removal: .move(edge: .trailing).combined(with: .opacity)
-            )
-        }
+/// 模糊淡入过渡：出现时 blur 6→0 + 透明度 + 轻微放大，消失时反向快退
+struct BlurFadeModifier: ViewModifier, Animatable {
+    var amount: CGFloat
+
+    var animatableData: CGFloat {
+        get { amount }
+        set { amount = newValue }
     }
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(1 - amount)
+            .blur(radius: 6 * amount)
+            .scaleEffect(1 - 0.02 * amount)
+    }
+}
+
+extension AnyTransition {
+    static var blurFade: AnyTransition {
+        .asymmetric(
+            insertion: .modifier(active: BlurFadeModifier(amount: 1), identity: BlurFadeModifier(amount: 0)),
+            removal: .modifier(active: BlurFadeModifier(amount: 1), identity: BlurFadeModifier(amount: 0))
+        )
+    }
+}
 }
 
 #Preview {
