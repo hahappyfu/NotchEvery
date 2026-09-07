@@ -62,36 +62,26 @@ struct ShareView: View {
     }
 
     var dropArea: some View {
-        RoundedRectangle(cornerRadius: vm.cornerRadius)
-            .fill(.clear)
-            .glassCard(cornerRadius: vm.cornerRadius)
-            .overlay {
-                RoundedRectangle(cornerRadius: vm.cornerRadius)
-                    .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.2 : 0.5)
-            }
-            .overlay { dropLabel }
-            .scaleEffect(targeting ? 1.04 : 1.0)
-        .animation(vm.animation, value: targeting)
-        .aspectRatio(1, contentMode: .fit)
-        .contentShape(Rectangle())
-        .modifier(SprayEffectModifier(trigger: trigger))
-    }
-
-    var dropLabel: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(targeting ? 0.9 : 0.75))
-                    .frame(width: 40, height: 40)
-                    .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
-                Image(systemName: type.imageName)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(Color.accentColor)
-            }
+        VStack(spacing: 6) {
+            RoundedRectangle(cornerRadius: vm.cornerRadius)
+                .fill(.clear)
+                .glassCard(cornerRadius: vm.cornerRadius)
+                .overlay {
+                    RoundedRectangle(cornerRadius: vm.cornerRadius)
+                        .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.2 : 0.5)
+                }
+                .overlay { dropIcon }
+                .frame(width: 64, height: 64)
+                .contentShape(Rectangle())
+                .scaleEffect(targeting ? 1.04 : 1.0)
+                .animation(vm.animation, value: targeting)
+                .modifier(SprayEffectModifier(trigger: trigger))
             Text(type.title)
-                .font(.system(.headline, design: .rounded))
+                .font(.system(size: 12))
                 .foregroundStyle(.primary)
+                .lineLimit(1)
         }
+        .frame(width: 76)
         .contentShape(Rectangle())
         .onTapGesture {
             trigger = .init()
@@ -110,6 +100,18 @@ struct ShareView: View {
                     }
                 }
             }
+        }
+    }
+
+    var dropIcon: some View {
+        ZStack {
+            Circle()
+                .fill(Color.white.opacity(targeting ? 0.9 : 0.75))
+                .frame(width: 32, height: 32)
+                .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+            Image(systemName: type.imageName)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Color.accentColor)
         }
     }
 

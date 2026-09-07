@@ -70,37 +70,39 @@ private struct GlassButton: View {
     @State var hover: Bool = false
 
     var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius)
-            .fill(.clear)
-            .glassCard(cornerRadius: cornerRadius)
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .strokeBorder(Color.white.opacity(hover ? 0.25 : 0.12), lineWidth: hover ? 1 : 0.5)
-            }
-            .overlay { label }
-        .aspectRatio(1, contentMode: .fit)
-        .contentShape(Rectangle())
-        .scaleEffect(hover ? 1.04 : 1)
-        .animation(.spring(duration: 0.3), value: hover)
-        .onHover { hover = $0 }
+        VStack(spacing: 6) {
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .fill(.clear)
+                .glassCard(cornerRadius: cornerRadius)
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(Color.white.opacity(hover ? 0.25 : 0.12), lineWidth: hover ? 1 : 0.5)
+                }
+                .overlay { icon }
+                .frame(width: 64, height: 64)
+                .contentShape(Rectangle())
+                .scaleEffect(hover ? 1.04 : 1)
+                .animation(.spring(duration: 0.3), value: hover)
+                .onHover { hover = $0 }
+            Text(title)
+                .font(.system(size: 12))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+        }
+        .frame(width: 76)
     }
 
-    var label: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.85))
-                    .frame(width: 36, height: 36)
-                    .shadow(color: .black.opacity(0.1), radius: 3, y: 1)
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 16, height: 16)
-                    .foregroundStyle(tint)
-            }
-            Text(title)
-                .font(.system(.headline, design: .rounded))
-                .foregroundStyle(.primary)
+    var icon: some View {
+        ZStack {
+            Circle()
+                .fill(Color.white.opacity(0.85))
+                .frame(width: 32, height: 32)
+                .shadow(color: .black.opacity(0.1), radius: 3, y: 1)
+            image
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 15, height: 15)
+                .foregroundStyle(tint)
         }
     }
 }

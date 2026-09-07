@@ -65,17 +65,21 @@ class NotchViewModel: NSObject, ObservableObject {
         extraBounce: 0.25,
         blendDuration: 0.125
     )
-    /// 分区面板尺寸：宽锁定 600，高查表（概览 160 锁定；菜单/设置按内容估算，留余量防裁剪）
-    static let zonePanelWidth: CGFloat = 600
+    /// 分区面板尺寸：宽高都查表（概览 600x160 锁定；菜单紧凑按钮行 404x210；设置 600x210）
+    static let zonePanelWidth: [ContentType: CGFloat] = [
+        .normal: 600,
+        .menu: 404,
+        .settings: 600,
+    ]
     static let zonePanelHeight: [ContentType: CGFloat] = [
         .normal: 160,
-        .menu: 220,
+        .menu: 210,
         .settings: 210,
     ]
 
     /// 当前区已打开尺寸：面板 frame 与几何计算都跟随它
     var zoneOpenedSize: CGSize {
-        .init(width: Self.zonePanelWidth, height: Self.zonePanelHeight[contentType] ?? 160)
+        .init(width: Self.zonePanelWidth[contentType] ?? 600, height: Self.zonePanelHeight[contentType] ?? 160)
     }
     let dropDetectorRange: CGFloat = 32
 
