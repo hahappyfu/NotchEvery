@@ -46,9 +46,13 @@ class NotchViewModel: NSObject, ObservableObject {
     var cancellables: Set<AnyCancellable> = []
     let inset: CGFloat
 
+    private var eventsBox: (any EventMonitorsProtocol)!
+    var events: any EventMonitorsProtocol { eventsBox ?? EventMonitors.shared }
+
     init(inset: CGFloat = -4, events: (any EventMonitorsProtocol)? = nil) {
         self.inset = inset
         super.init()
+        self.eventsBox = events ?? EventMonitors.shared
         setupCancellables(events: events ?? EventMonitors.shared)
     }
 

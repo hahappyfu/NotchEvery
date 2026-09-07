@@ -27,13 +27,8 @@ extension NotchViewModel {
                         notchClose()
                         // for the same height as device notch, open the url of project
                     } else if headlineOpenedRect.contains(mouseLocation) {
-                        // for clicking headline which mouse event may handled by another app
-                        // open the menu
-                        if let nextValue = ContentType(rawValue: contentType.rawValue + 1) {
-                            contentType = nextValue
-                        } else {
-                            contentType = ContentType(rawValue: 0)!
-                        }
+                        // 顶栏点击：下一区，和右滑手势同一语义
+                        nextZone()
                     }
                 case .closed, .popping:
                     // touch inside, open

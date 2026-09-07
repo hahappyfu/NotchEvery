@@ -11,6 +11,7 @@ struct NotchView: View {
     @StateObject var vm: NotchViewModel
 
     @State var dropTargeting: Bool = false
+    @State private var swipeResolver = ScrollSwipeResolver()
 
     var notchSize: CGSize {
         let isGhost = vm.hoverGhosting || vm.ghostFading
@@ -68,6 +69,34 @@ struct NotchView: View {
                 }
             }
             .allowsHitTesting(vm.status == .opened && !vm.hoverGhosting)
+            .onReceive(vm.events.scrollDelta) { delta in
+                // 三重守卫：展开态、鼠标在面板内、未拖文件
+                guard vm.status == .opened else { return }
+                guard vm.notchOpenedRect.contains(NSEvent.mouseLocation) else { return }
+                guard !dropTargeting else { return }
+                guard let direction = swipeResolver.feed(
+                    deltaX: delta.deltaX,
+                    hasMomentum: delta.hasMomentum,
+                    now: delta.timestamp
+                ) else { return }
+                if direction == .next {
+                    vm.nextZone()
+                } else {
+                    vm.previousZone()
+                }
+                vm.markSwipeHintSeen()
+            }
+            .onReceive(vm.events.arrowKey) { key in
+                guard vm.status == .opened else { return }
+                guard vm.notchOpenedRect.contains(NSEvent.mouseLocation) else { return }
+                guard !dropTargeting else { return }
+                if key == .rightForward {
+                    vm.nextZone()
+                } else {
+                    vm.previousZone()
+                }
+                vm.markSwipeHintSeen()
+            }
             .transition(
                 .scale.combined(
                     with: .opacity

@@ -83,7 +83,7 @@ class EventMonitors: EventMonitorsProtocol {
             // 只收精确滚轮（触控板与横滚轮）；传统滚轮一格步进也带精确增量，直接收
             self.scrollDelta.send(ScrollDelta(
                 deltaX: event.scrollingDeltaX,
-                hasMomentum: event.momentumPhase != .none,
+                hasMomentum: !event.momentumPhase.isEmpty,
                 timestamp: event.timestamp
             ))
         }
