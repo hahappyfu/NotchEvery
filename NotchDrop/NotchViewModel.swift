@@ -136,10 +136,10 @@ class NotchViewModel: NSObject, ObservableObject {
     /// 过桥菊花：openFromGhost 后短闪 150ms
     @Published private(set) var bridgeSpinning: Bool = false
 
-    /// 展开弹簧（380/30/0.8 换算真值，轻微过冲）
-    let openAnimation: Animation = .spring(response: 0.32, dampingFraction: 0.86)
+    /// 展开弹簧（快长轻微过冲：response 收紧求快，damping 留轻微过冲）
+    let openAnimation: Animation = .spring(response: 0.28, dampingFraction: 0.82)
     /// 收起弹簧（无过冲快退）
-    let closeAnimation: Animation = .spring(response: 0.24, dampingFraction: 1.0)
+    let closeAnimation: Animation = .spring(response: 0.2, dampingFraction: 1.0)
 
     @PublishedPersist(key: "selectedLanguage", defaultValue: .system)
     var selectedLanguage: Language

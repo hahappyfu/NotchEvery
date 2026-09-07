@@ -58,10 +58,10 @@ struct NotchView: View {
                 if vm.status == .opened {
                     VStack(spacing: vm.spacing) {
                         NotchHeaderView(vm: vm)
-                            .modifier(StaggeredEntry(delay: 0.12))
+                            .modifier(StaggeredEntry(delay: 0.08))
                         NotchContentView(vm: vm)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .modifier(StaggeredEntry(delay: 0.24))
+                            .modifier(StaggeredEntry(delay: 0.16))
                         if !vm.hasSeenSwipeHint {
                             Text("SwipeHint")
                                 .font(.system(size: 11))
