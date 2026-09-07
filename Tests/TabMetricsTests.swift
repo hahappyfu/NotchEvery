@@ -31,8 +31,8 @@ final class TabMetricsTests: XCTestCase {
     }
 
     func testMergedSettingsZoneHeightFitsButtonsPlusRows() {
-        // 明细：选项卡 28 + 间距 20 + 按钮行 88 + 间距 20 + 设置行 120 + 上下内边距 40 = 316，取 320 留舍入余量
-        XCTAssertEqual(NotchViewModel.zonePanelHeight[.settings], 320)
+        // 明细：选项卡 28 + 间距 20 + 按钮行 86 + 间距 20 + 分隔线 1 + 间距 20 + 设置行 64（22+20+22，去内边距）+ 上下外边距 40 = 279，取 280
+        XCTAssertEqual(NotchViewModel.zonePanelHeight[.settings], 280)
     }
 
     func testTabTitleKeysAreUnique() {

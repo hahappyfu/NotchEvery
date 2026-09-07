@@ -27,6 +27,7 @@ struct NotchContentView: View {
             case .settings:
                 VStack(spacing: vm.spacing) {
                     NotchMenuView(vm: vm)
+                    Divider()
                     NotchSettingsView(vm: vm)
                 }
                 .transition(reduceMotion ? .opacity : .blurFade)

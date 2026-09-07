@@ -69,7 +69,7 @@ class NotchViewModel: NSObject, ObservableObject {
     static let zonePanelWidth: CGFloat = 600
     static let zonePanelHeight: [ContentType: CGFloat] = [
         .normal: 160,
-        .settings: 320,
+        .settings: 280,
     ]
 
     /// 当前区已打开尺寸：面板 frame 与几何计算都跟随它

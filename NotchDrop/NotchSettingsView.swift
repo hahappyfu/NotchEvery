@@ -30,8 +30,6 @@ struct NotchSettingsView: View {
 
                 Spacer()
                 Toggle("Haptic Feedback ", isOn: $vm.hapticFeedback)
-
-                Spacer()
             }
 
             HStack {
@@ -59,7 +57,6 @@ struct NotchSettingsView: View {
                 Spacer()
             }
         }
-        .padding()
         .transition(.scale(scale: 0.8).combined(with: .opacity))
     }
 }

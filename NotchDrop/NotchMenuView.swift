@@ -12,11 +12,13 @@ struct NotchMenuView: View {
     @StateObject var tvm = TrayDrop.shared
 
     var body: some View {
-        HStack(spacing: vm.spacing) {
+        HStack(spacing: 28) {
+            Spacer(minLength: 0)
             close
             settings
             clear
             ShareView(vm: vm, type: .airdrop)
+            Spacer(minLength: 0)
         }
     }
 
