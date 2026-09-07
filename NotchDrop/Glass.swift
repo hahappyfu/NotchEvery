@@ -42,6 +42,10 @@ private struct GlassCardModifier: ViewModifier {
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .fill(.ultraThinMaterial)
                 )
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                )
         }
     }
 }

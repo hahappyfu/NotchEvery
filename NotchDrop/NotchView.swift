@@ -17,9 +17,9 @@ struct NotchView: View {
         switch vm.status {
         case .closed:
             if isGhost {
-                // 舌头形虚影：宽 = max(刘海宽×1.3, 240)、高 60
-                let w = max(vm.deviceNotchRect.width * 1.3, 240)
-                return CGSize(width: w, height: 60)
+                // 舌头形虚影：宽 = max(刘海宽×1.1, 200)、高 52
+                let w = max(vm.deviceNotchRect.width * 1.1, 200)
+                return CGSize(width: w, height: 52)
             }
             var ans = CGSize(
                 width: vm.deviceNotchRect.width - 4,
@@ -73,13 +73,25 @@ struct NotchView: View {
                     with: .opacity
                 ).combined(
                     with: .offset(y: -vm.notchOpenedSize.height / 2)
-                ).animation(vm.closeAnimation)
+                )
             )
-            .animation(vm.openAnimation, value: vm.status)
         }
-        .animation(vm.closeAnimation, value: vm.status)
+        .animation(vm.status == .opened ? vm.openAnimation : vm.closeAnimation, value: vm.status)
         .background(dragDetector)
+        // 右键菜单挂根层级：外壳带 .disabled(true) 会把菜单按钮全置灰，根层级无禁用
+        .contextMenu {
+            Button(LocalizedStringKey("Settings")) {
+                vm.openFromGhost()
+                vm.showSettings()
+            }
+            Divider()
+            Button(LocalizedStringKey("Exit")) {
+                NSApp.terminate(nil)
+            }
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // 窗口压过菜单栏，安全区会把内容顶下去导致顶部留缝，直接无视（纯自绘 chrome，无系统控件要避让）
+        .ignoresSafeArea()
     }
 
     var notch: some View {
@@ -103,17 +115,6 @@ struct NotchView: View {
                         .transition(.opacity)
                 }
             }
-            // 右键菜单：虚影态与展开态均可右击（文案走既有本地化键）
-            .contextMenu {
-                Button(LocalizedStringKey("Settings")) {
-                    vm.openFromGhost()
-                    vm.showSettings()
-                }
-                Divider()
-                Button(LocalizedStringKey("Exit")) {
-                    NSApp.terminate(nil)
-                }
-            }
     }
 
     /// 玻璃刘海背景：深色沉浸玻璃，虚影态底色切 #2a2c33
@@ -121,19 +122,19 @@ struct NotchView: View {
         Rectangle()
             .fill(.clear)
             .background(
-                RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: notchCornerRadius, bottomTrailingRadius: notchCornerRadius, topTrailingRadius: 0, style: .continuous)
                     .fill((vm.hoverGhosting || vm.ghostFading)
-                        ? Color(red: 0.165, green: 0.173, blue: 0.2)  // #2a2c33
-                        : Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.75)
+                        ? Color(red: 0.165, green: 0.173, blue: 0.2).opacity(0.72)
+                        : Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.3)
                     )
             )
             .background(
-                RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
+                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: notchCornerRadius, bottomTrailingRadius: notchCornerRadius, topTrailingRadius: 0, style: .continuous)
                     .fill(.ultraThinMaterial)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: notchCornerRadius, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: notchCornerRadius, bottomTrailingRadius: notchCornerRadius, topTrailingRadius: 0, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
             )
     }
 
