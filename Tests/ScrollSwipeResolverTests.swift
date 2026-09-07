@@ -31,4 +31,11 @@ final class ScrollSwipeResolverTests: XCTestCase {
         XCTAssertNil(r.feed(deltaX: -5, hasMomentum: false, now: 0.01))
         XCTAssertEqual(r.feed(deltaX: -5, hasMomentum: false, now: 0.02), .next)
     }
+
+    func testEventMonitorsExposeScrollAndArrowSubjects() {
+        let mocks = MockEventMonitors()
+        // 编译即通过：原始增量与左右键必须存在
+        _ = mocks.scrollDelta
+        _ = mocks.arrowKey
+    }
 }
