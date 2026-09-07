@@ -62,7 +62,7 @@ extension NotchViewModel {
             .sink { [weak self] mouseLocation in
                 guard let self else { return }
                 let aboutToOpen = deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation)
-                if status == .closed, aboutToOpen { notchOpen(.hover) }
+                if status == .closed, aboutToOpen, !hoverGhosting { notchOpen(.hover) }
                 // 边界防御 A：虚影态期间光标离开热区，300ms 缓冲后清虚影（防幽灵展开）
                 if hoverGhosting, !aboutToOpen {
                     scheduleHoverClose()

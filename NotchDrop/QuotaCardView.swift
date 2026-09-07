@@ -68,7 +68,7 @@ struct QuotaCardView: View {
         return GeometryReader { geo in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 2.5)
-                    .fill(Color.white.opacity(0.18))
+                    .fill(Color(nsColor: .separatorColor))
                     .frame(height: 5)
                 RoundedRectangle(cornerRadius: 2.5)
                     .fill(fill)
@@ -92,7 +92,7 @@ struct QuotaCardView: View {
     private var statusLine: some View {
         HStack(spacing: 4) {
             Circle()
-                .fill(store.snapshot.expired ? .orange : .green)
+                .fill(!store.snapshot.available ? Color.secondary : (store.snapshot.expired ? Color.orange : Color.green))
                 .frame(width: 6, height: 6)
             if store.snapshot.expired || !store.snapshot.available {
                 Text(store.snapshot.available ? "已过期" : "暂无数据")
@@ -115,7 +115,7 @@ struct QuotaCardView: View {
             ZStack {
                 if let percent {
                     Circle()
-                        .stroke(Color.white.opacity(0.18), lineWidth: 7)
+                        .stroke(Color(nsColor: .separatorColor), lineWidth: 7)
                         .frame(width: size, height: size)
                     Circle()
                         .trim(from: 0, to: min(1, max(0, percent / 100)))
@@ -123,12 +123,12 @@ struct QuotaCardView: View {
                         .rotationEffect(.degrees(-90))
                         .frame(width: size, height: size)
                         .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: percent)
-                    Text("\(Int(percent))%")
+                    Text(String(format: "%.1f%%", percent))
                         .font(.system(size: 17, weight: .bold, design: .rounded))
                         .foregroundStyle(.primary)
                 } else {
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.18), style: StrokeStyle(lineWidth: 7, dash: [4, 4]))
+                        .strokeBorder(Color(nsColor: .separatorColor), style: StrokeStyle(lineWidth: 7, dash: [4, 4]))
                         .frame(width: size, height: size)
                     Text("--%")
                         .font(.system(size: 17, weight: .bold, design: .rounded))

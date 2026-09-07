@@ -16,8 +16,15 @@ final class QuotaStore: ObservableObject {
 
     @Published private(set) var snapshot: QuotaSnapshot = .empty
 
-    static let cacheURL = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent(".clawd/opencode-go-bridge-cache.json")
+    /// 用 libc 直取真实家目录（不经过沙盒重定向的 Foundation 家目录 API）
+    static let cacheURL: URL = {
+        if let pw = getpwuid(getuid()), let dir = pw.pointee.pw_dir {
+            return URL(fileURLWithPath: String(cString: dir))
+                .appendingPathComponent(".clawd/opencode-go-bridge-cache.json")
+        }
+        return FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".clawd/opencode-go-bridge-cache.json")
+    }()
 
     private let interval: TimeInterval
     private var timer: Timer?
