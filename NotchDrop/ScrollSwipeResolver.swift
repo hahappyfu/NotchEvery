@@ -17,8 +17,11 @@ struct ScrollSwipeResolver {
         guard !hasMomentum else { return nil }
         accumulated += deltaX
         guard abs(accumulated) >= threshold else { return nil }
-        // 冷却期内不接受第二次切换
-        guard now - lastAccepted >= cooldown else { return nil }
+        // 冷却期内不接受第二次切换，累积量清零避免污染下次手势
+        guard now - lastAccepted >= cooldown else {
+            accumulated = 0
+            return nil
+        }
         lastAccepted = now
         let direction: SwipeDirection = accumulated < 0 ? .next : .previous
         accumulated = 0

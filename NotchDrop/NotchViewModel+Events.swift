@@ -27,8 +27,13 @@ extension NotchViewModel {
                         notchClose()
                         // for the same height as device notch, open the url of project
                     } else if headlineOpenedRect.contains(mouseLocation) {
-                        // 顶栏点击：下一区，和右滑手势同一语义
-                        nextZone()
+                        // 顶栏点击：下一区，和右滑手势同一语义；
+                        // 圆点点击会先走这里再走 onTapGesture 直跳，消费一次避免双切
+                        if suppressHeadlineClickOnce {
+                            suppressHeadlineClickOnce = false
+                        } else {
+                            nextZone()
+                        }
                     }
                 case .closed, .popping:
                     // touch inside, open

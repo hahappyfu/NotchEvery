@@ -232,8 +232,21 @@ class NotchViewModel: NSObject, ObservableObject {
     /// 最近一次切换方向：内容区不对称过渡用
     @Published var lastSwipeDirection: SwipeDirection = .next
 
+    /// 圆点点击已通过 onTapGesture 直跳，消费掉随后到达的 mouseDown，避免一次点击两次切换
+    var suppressHeadlineClickOnce = false
+
     func jumpToZone(_ zone: ContentType) {
-        lastSwipeDirection = .next
+        let order = Self.zoneOrder
+        if let cur = order.firstIndex(of: contentType),
+           let dst = order.firstIndex(of: zone)
+        {
+            if dst > cur {
+                lastSwipeDirection = .next
+            } else if dst < cur {
+                lastSwipeDirection = .previous
+            }
+        }
+        suppressHeadlineClickOnce = true
         contentType = zone
     }
 

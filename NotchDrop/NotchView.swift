@@ -63,7 +63,7 @@ struct NotchView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .modifier(StaggeredEntry(delay: 0.24))
                         if !vm.hasSeenSwipeHint {
-                            Text("左右滑动切换功能区")
+                            Text("SwipeHint")
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                                 .transition(.opacity)
@@ -98,6 +98,7 @@ struct NotchView: View {
             }
             .onReceive(vm.events.arrowKey) { key in
                 guard vm.status == .opened else { return }
+                guard NSApp.keyWindow is NotchWindow else { return }
                 guard vm.notchOpenedRect.contains(NSEvent.mouseLocation) else { return }
                 guard !dropTargeting else { return }
                 if key == .rightForward {

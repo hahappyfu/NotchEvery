@@ -32,6 +32,15 @@ final class ScrollSwipeResolverTests: XCTestCase {
         XCTAssertEqual(r.feed(deltaX: -5, hasMomentum: false, now: 0.02), .next)
     }
 
+    func testCooldownDiscardsAccumulatedSoNextGestureStartsFresh() {
+        var r = ScrollSwipeResolver()
+        XCTAssertEqual(r.feed(deltaX: -14, hasMomentum: false, now: 0), .next)
+        // 冷却期内反向滑动被拦截，累积量需清零
+        XCTAssertNil(r.feed(deltaX: 14, hasMomentum: false, now: 0.1))
+        // 冷却过后小幅滑动不应触发（残留累积会被误触发）
+        XCTAssertNil(r.feed(deltaX: 5, hasMomentum: false, now: 0.5))
+    }
+
     func testEventMonitorsExposeScrollAndArrowSubjects() {
         let mocks = MockEventMonitors()
         // 编译即通过：原始增量与左右键必须存在

@@ -1826,6 +1826,29 @@
         }
       }
     },
+    "SwipeHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swipe left or right to switch sections"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "左右滑动切换功能区"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "左右滑動切換功能區"
+          }
+        }
+      }
+    },
     "The language has been changed. The app will restart for the changes to take effect.": {
       "extractionState": "manual",
       "localizations": {
