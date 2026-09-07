@@ -25,7 +25,7 @@ struct NotchContentView: View {
                 .onAppear { Probe.log("appear normal") }
                 .onDisappear { Probe.log("disappear normal") }
             case .settings:
-                VStack(spacing: vm.spacing) {
+                VStack(alignment: .leading, spacing: vm.spacing) {
                     NotchMenuView(vm: vm)
                     Divider()
                     NotchSettingsView(vm: vm)
