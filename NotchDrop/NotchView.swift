@@ -64,7 +64,7 @@ struct NotchView: View {
                             .modifier(StaggeredEntry(delay: 0.16))
                     }
                     .padding(vm.spacing)
-                    .frame(maxWidth: vm.zoneOpenedSize.width, maxHeight: vm.zoneOpenedSize.height)
+                    .frame(width: vm.zoneOpenedSize.width, height: vm.zoneOpenedSize.height)
                     .overlay(alignment: .bottom) {
                         if !vm.hasSeenSwipeHint {
                             Text("SwipeHint")
