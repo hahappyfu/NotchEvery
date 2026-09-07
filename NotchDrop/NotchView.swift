@@ -30,7 +30,7 @@ struct NotchView: View {
             if ans.height < 0 { ans.height = 0 }
             return ans
         case .opened:
-            return vm.notchOpenedSize
+            return vm.zoneOpenedSize
         case .popping:
             return .init(
                 width: vm.deviceNotchRect.width,
@@ -74,7 +74,7 @@ struct NotchView: View {
                         }
                     }
                     .padding(vm.spacing)
-                    .frame(maxWidth: vm.notchOpenedSize.width, maxHeight: vm.notchOpenedSize.height)
+                    .frame(maxWidth: vm.zoneOpenedSize.width, maxHeight: vm.zoneOpenedSize.height)
                     .zIndex(1)
                 }
             }
@@ -112,11 +112,13 @@ struct NotchView: View {
                 .scale.combined(
                     with: .opacity
                 ).combined(
-                    with: .offset(y: -vm.notchOpenedSize.height / 2)
+                    with: .offset(y: -vm.zoneOpenedSize.height / 2)
                 )
             )
         }
         .animation(vm.status == .opened ? vm.openAnimation : vm.closeAnimation, value: vm.status)
+        // 面板胀缩挂同一内容切换事务：背景与 frame 高度跟随当前区，无跳变
+        .animation(vm.animation, value: vm.contentType)
         .background(dragDetector)
         // 右键菜单挂根层级：外壳带 .disabled(true) 会把菜单按钮全置灰，根层级无禁用
         .contextMenu {

@@ -9,23 +9,23 @@ import SwiftUI
 struct NotchGeometry {
     var deviceNotchRect: CGRect
     var screenRect: CGRect
-    var notchOpenedSize: CGSize
+    var zoneOpenedSize: CGSize
     let inset: CGFloat
 
     var notchOpenedRect: CGRect {
         .init(
-            x: screenRect.origin.x + (screenRect.width - notchOpenedSize.width) / 2,
-            y: screenRect.origin.y + screenRect.height - notchOpenedSize.height,
-            width: notchOpenedSize.width,
-            height: notchOpenedSize.height
+            x: screenRect.origin.x + (screenRect.width - zoneOpenedSize.width) / 2,
+            y: screenRect.origin.y + screenRect.height - zoneOpenedSize.height,
+            width: zoneOpenedSize.width,
+            height: zoneOpenedSize.height
         )
     }
 
     var headlineOpenedRect: CGRect {
         .init(
-            x: screenRect.origin.x + (screenRect.width - notchOpenedSize.width) / 2,
+            x: screenRect.origin.x + (screenRect.width - zoneOpenedSize.width) / 2,
             y: screenRect.origin.y + screenRect.height - deviceNotchRect.height,
-            width: notchOpenedSize.width,
+            width: zoneOpenedSize.width,
             height: deviceNotchRect.height
         )
     }
@@ -65,7 +65,18 @@ class NotchViewModel: NSObject, ObservableObject {
         extraBounce: 0.25,
         blendDuration: 0.125
     )
-    let notchOpenedSize: CGSize = .init(width: 600, height: 160)
+    /// 分区面板尺寸：宽锁定 600，高查表（概览 160 锁定；菜单/设置按内容估算，留余量防裁剪）
+    static let zonePanelWidth: CGFloat = 600
+    static let zonePanelHeight: [ContentType: CGFloat] = [
+        .normal: 160,
+        .menu: 220,
+        .settings: 210,
+    ]
+
+    /// 当前区已打开尺寸：面板 frame 与几何计算都跟随它
+    var zoneOpenedSize: CGSize {
+        .init(width: Self.zonePanelWidth, height: Self.zonePanelHeight[contentType] ?? 160)
+    }
     let dropDetectorRange: CGFloat = 32
 
     enum Status: String, Codable, Hashable, Equatable {
@@ -101,7 +112,7 @@ class NotchViewModel: NSObject, ObservableObject {
         NotchGeometry(
             deviceNotchRect: deviceNotchRect,
             screenRect: screenRect,
-            notchOpenedSize: notchOpenedSize,
+            zoneOpenedSize: zoneOpenedSize,
             inset: inset
         )
     }
