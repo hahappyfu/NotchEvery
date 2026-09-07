@@ -47,3 +47,17 @@
 - `unowned` when guaranteed non-nil
 - Capture lists in closures
 - `deinit` for cleanup
+
+## Agent skills
+
+### Issue tracker
+
+本地 markdown，`.scratch/<feature>/` 下一功能一目录。见 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+默认五角色标签原样使用。见 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+单上下文：根 `CONTEXT.md` 加 `docs/adr/`。见 `docs/agents/domain.md`。
