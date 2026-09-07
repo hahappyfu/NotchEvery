@@ -13,7 +13,7 @@ struct NotchContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topLeading) {
             switch vm.contentType {
             case .normal:
                 HStack(spacing: vm.spacing) {
@@ -21,6 +21,7 @@ struct NotchContentView: View {
                         .frame(width: 196)
                     TrayView(vm: vm)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .transition(reduceMotion ? .opacity : .blurFade)
                 .onAppear { Probe.log("appear normal") }
                 .onDisappear { Probe.log("disappear normal") }
@@ -30,6 +31,7 @@ struct NotchContentView: View {
                     Divider()
                     NotchSettingsView(vm: vm)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .transition(reduceMotion ? .opacity : .blurFade)
                 .onAppear { Probe.log("appear settings") }
                 .onDisappear { Probe.log("disappear settings") }
