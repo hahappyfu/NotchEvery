@@ -24,6 +24,9 @@ final class ContentZoneSwitcherTests: XCTestCase {
     }
 
     func testMarkSwipeHintSeenSetsFlag() {
+        // hasSeenSwipeHint 经 PublishedPersist 落盘到应用配置目录，
+        // 先清掉残留文件再创建被测对象，保证首句断言稳定为默认 false。
+        try? FileManager.default.removeItem(at: FileStorage().pathForKey("hasSeenSwipeHint"))
         let vm = NotchViewModel(events: MockEventMonitors())
         XCTAssertFalse(vm.hasSeenSwipeHint)
         vm.markSwipeHintSeen()
