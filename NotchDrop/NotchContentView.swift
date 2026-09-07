@@ -22,12 +22,18 @@ struct NotchContentView: View {
                     TrayView(vm: vm)
                 }
                 .transition(reduceMotion ? .opacity : .blurFade)
+                .onAppear { Probe.log("appear normal") }
+                .onDisappear { Probe.log("disappear normal") }
             case .menu:
                 NotchMenuView(vm: vm)
                     .transition(reduceMotion ? .opacity : .blurFade)
+                    .onAppear { Probe.log("appear menu") }
+                    .onDisappear { Probe.log("disappear menu") }
             case .settings:
                 NotchSettingsView(vm: vm)
                     .transition(reduceMotion ? .opacity : .blurFade)
+                    .onAppear { Probe.log("appear settings") }
+                    .onDisappear { Probe.log("disappear settings") }
             }
         }
         .animation(vm.animation, value: vm.contentType)
@@ -55,8 +61,25 @@ private extension AnyTransition {
     static var blurFade: AnyTransition {
         .asymmetric(
             insertion: .modifier(active: BlurFadeModifier(amount: 1), identity: BlurFadeModifier(amount: 0)),
-            removal: .opacity
+            removal: .opacity.animation(.easeOut(duration: 0.18))
         )
+    }
+}
+
+/// 探针：过渡诊断专用，定案后删除
+enum Probe {
+    static func log(_ msg: String) {
+        let line = "\(Date().timeIntervalSince1970) \(msg)\n"
+        guard let data = line.data(using: .utf8) else { return }
+        let url = URL(fileURLWithPath: "/tmp/notch-transitions.log")
+        if FileManager.default.fileExists(atPath: url.path) {
+            guard let handle = try? FileHandle(forWritingTo: url) else { return }
+            try? handle.seekToEnd()
+            handle.write(data)
+            try? handle.close()
+        } else {
+            try? data.write(to: url)
+        }
     }
 }
 
