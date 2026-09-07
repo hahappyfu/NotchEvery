@@ -62,6 +62,16 @@ struct NotchView: View {
                         NotchContentView(vm: vm)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .modifier(StaggeredEntry(delay: 0.24))
+                        if !vm.hasSeenSwipeHint {
+                            Text("左右滑动切换功能区")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .transition(.opacity)
+                                .task {
+                                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                                    vm.markSwipeHintSeen()
+                                }
+                        }
                     }
                     .padding(vm.spacing)
                     .frame(maxWidth: vm.notchOpenedSize.width, maxHeight: vm.notchOpenedSize.height)
