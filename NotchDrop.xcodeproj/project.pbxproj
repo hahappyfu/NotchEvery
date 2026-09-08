@@ -54,6 +54,7 @@
 		D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */; };
 		E5F607182930405170000002 /* NotchTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F607182930405170000001 /* NotchTabBar.swift */; };
 		F1E2D3C4B5A6071829304101 /* TokenZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */; };
+		B7C8D3E4F5A6071829304101 /* iOSPageIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -99,6 +100,7 @@
 		D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSwipeResolver.swift; sourceTree = "<group>"; };
 		E5F607182930405170000001 /* NotchTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchTabBar.swift; sourceTree = "<group>"; };
 		F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenZoneView.swift; sourceTree = "<group>"; };
+		B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSPageIndicator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -161,6 +163,7 @@
 				A1B2C3D4E5F6071829304052 /* SpinnerView.swift */,
 				504381B02C3AE0B6000ED325 /* NotchHeaderView.swift */,
 				E5F607182930405170000001 /* NotchTabBar.swift */,
+				B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */,
 				F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */,
 				503D8EB92C3F838200E173FF /* NotchMenuView.swift */,
 				504381AE2C3ADFF2000ED325 /* NotchContentView.swift */,
@@ -287,6 +290,7 @@
 				504381992C3A8893000ED325 /* NotchWindow.swift in Sources */,
 				5044EEA22C3B126F00071C5C /* TrayDrop+DropItemView.swift in Sources */,
 				504381AF2C3ADFF2000ED325 /* NotchContentView.swift in Sources */,
+				B7C8D3E4F5A6071829304101 /* iOSPageIndicator.swift in Sources */,
 				504381A02C3A8BA1000ED325 /* NotchView.swift in Sources */,
 				503D8EBA2C3F838200E173FF /* NotchMenuView.swift in Sources */,
 				50EFDB522C3BF7B4002D3E0F /* Ext+NSImage.swift in Sources */,
