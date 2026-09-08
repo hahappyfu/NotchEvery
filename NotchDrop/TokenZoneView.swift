@@ -67,6 +67,10 @@ struct TokenZoneView: View {
                     Text(row.duration)
                         .frame(width: 48, alignment: .leading)
                         .foregroundStyle(.secondary)
+                        .background(alignment: .bottomLeading) {
+                            Capsule().fill(Color.accentColor.opacity(0.5))
+                                .frame(width: min(1, durationSeconds(row.duration) / 60) * 44, height: 3)
+                        }
                     Text(row.cost)
                         .frame(width: 56, alignment: .leading)
                         .foregroundStyle(.secondary)
@@ -79,6 +83,7 @@ struct TokenZoneView: View {
                         .frame(width: 48, alignment: .trailing)
                 }
                 .font(.system(size: 11, design: .monospaced))
+                .monospacedDigit()
                 .padding(.vertical, 3)
             }
         }
@@ -87,22 +92,33 @@ struct TokenZoneView: View {
     private var kpiRow: some View {
         HStack(spacing: 12) {
             kpiItem(label: "Tokens", value: summary.totalTokens)
-            kpiItem(label: "缓存率", value: summary.cacheRate, valueColor: .green)
+            kpiItem(label: "缓存率", value: summary.cacheRate, valueColor: .green, fraction: 0.946)
             kpiItem(label: "调用", value: summary.calls)
             Spacer()
             kpiItem(label: "成本", value: summary.cost)
         }
         .font(.system(size: 11, design: .monospaced))
+        .monospacedDigit()
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 10))
     }
 
-    private func kpiItem(label: String, value: String, valueColor: Color = .primary) -> some View {
+    private func kpiItem(label: String, value: String, valueColor: Color = .primary, fraction: Double? = nil) -> some View {
         HStack(spacing: 4) {
             Text(label).font(.system(size: 10)).foregroundStyle(.secondary)
             Text(value).fontWeight(.semibold).foregroundStyle(valueColor)
+                .monospacedDigit()
+            if let fraction {
+                Capsule()
+                    .fill(Color.green)
+                    .frame(width: 28 * fraction, height: 4)
+            }
         }
+    }
+
+    private func durationSeconds(_ duration: String) -> Double {
+        Double(duration.replacingOccurrences(of: "s", with: "")) ?? 0
     }
 
     private var header: some View {        HStack(spacing: 6) {
