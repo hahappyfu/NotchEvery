@@ -23,6 +23,17 @@ struct NotchRootView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(6)
+                .popover(isPresented: $showSettings, arrowEdge: .top) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        NotchMenuView(vm: vm)
+                        NotchSettingsView(vm: vm)
+                        Text("NotchEvery \(appVersion)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(12)
+                    .frame(minWidth: 300)
+                }
             }
             iOSPageIndicator(count: 2, current: NotchViewModel.pageIndex(for: vm.contentType)) {
                 vm.jumpToZone(NotchViewModel.zone(for: $0))
