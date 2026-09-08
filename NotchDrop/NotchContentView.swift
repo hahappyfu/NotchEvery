@@ -74,7 +74,7 @@ private struct BlurFadeModifier: ViewModifier, Animatable {
     }
 }
 
-private extension AnyTransition {
+extension AnyTransition {
     static var blurFade: AnyTransition {
         .asymmetric(
             insertion: .modifier(active: BlurFadeModifier(amount: 1), identity: BlurFadeModifier(amount: 0)),

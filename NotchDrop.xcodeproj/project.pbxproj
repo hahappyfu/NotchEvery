@@ -635,3 +635,7 @@
 	};
 	rootObject = 504381782C3A86EA000ED325 /* Project object */;
 }
+		C9D0E1F2A3B4071829304101 /* NotchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D0E1F2A3B4071829304100 /* NotchRootView.swift */; };
+		C9D0E1F2A3B4071829304100 /* NotchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchRootView.swift; sourceTree = "<group>"; };
+				C9D0E1F2A3B4071829304100 /* NotchRootView.swift */,
+				C9D0E1F2A3B4071829304101 /* NotchRootView.swift in Sources */,
