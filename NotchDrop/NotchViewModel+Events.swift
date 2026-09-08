@@ -27,8 +27,7 @@ extension NotchViewModel {
                         notchClose()
                         // for the same height as device notch, open the url of project
                     }
-                    // 顶栏点击已搬到 NotchHeaderView 的 onTapGesture（视图层 Button 优先，天然互斥），
-                    // 这里不再处理：否则 mouseDown 先切会跟 Button 的 mouseUp 打架
+                    // 顶栏点击切区已移除（两页只走滑动/分页指示器），这里不再处理
                 case .closed, .popping:
                     // touch inside, open
                     if deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation) {

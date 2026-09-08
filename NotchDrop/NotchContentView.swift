@@ -26,7 +26,7 @@ struct NotchContentView: View {
 }
 
 /// 模糊淡入过渡：出现时 blur 6→0 + 透明度 + 轻微放大，消失时反向快退
-private struct BlurFadeModifier: ViewModifier, Animatable {
+struct BlurFadeModifier: ViewModifier, Animatable {
     var amount: CGFloat
 
     var animatableData: CGFloat {

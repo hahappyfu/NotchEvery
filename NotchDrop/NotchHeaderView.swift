@@ -12,11 +12,7 @@ struct NotchHeaderView: View {
 
     var body: some View {
         HStack {
-            NotchTabBar(
-                zones: NotchViewModel.zoneOrder,
-                current: vm.contentType,
-                onJump: { vm.jumpToZone($0) }
-            )
+            EmptyView()
             Spacer()
             Button {
                 vm.jumpToZone(.settings)
@@ -27,10 +23,6 @@ struct NotchHeaderView: View {
             }
             .buttonStyle(.plain)
         }
-        // 空白顶栏点击 = 下一区（与右滑同语义）：tab/齿轮是 Button 会优先消费，落到这里的才是空白处；
-        // 此前在全局 mouseDown 里做会跟 Button 打架（先切走重建按钮再吞 mouseUp），故搬到视图层
-        .contentShape(Rectangle())
-        .onTapGesture { vm.nextZone() }
         .animation(vm.animation, value: vm.contentType)
         .font(.system(.headline, design: .rounded))
     }

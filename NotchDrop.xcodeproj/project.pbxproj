@@ -53,7 +53,6 @@
 		C1D2E3F4A506172839404155 /* QuotaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404154 /* QuotaStore.swift */; };
 		C1D2E3F4A506172839404157 /* QuotaCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404156 /* QuotaCardView.swift */; };
 		D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */; };
-		E5F607182930405170000002 /* NotchTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F607182930405170000001 /* NotchTabBar.swift */; };
 		F1E2D3C4B5A6071829304101 /* TokenZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */; };
 		B7C8D3E4F5A6071829304101 /* iOSPageIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */; };
 		D0E1F2A3B4C5071829304101 /* OverviewPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */; };
@@ -102,7 +101,6 @@
 		C1D2E3F4A506172839404154 /* QuotaStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaStore.swift; sourceTree = "<group>"; };
 		C1D2E3F4A506172839404156 /* QuotaCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaCardView.swift; sourceTree = "<group>"; };
 		D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSwipeResolver.swift; sourceTree = "<group>"; };
-		E5F607182930405170000001 /* NotchTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchTabBar.swift; sourceTree = "<group>"; };
 		F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenZoneView.swift; sourceTree = "<group>"; };
 		B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSPageIndicator.swift; sourceTree = "<group>"; };
 		D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewPageView.swift; sourceTree = "<group>"; };
@@ -168,7 +166,6 @@
 				A1B2C3D4E5F6071829304050 /* Glass.swift */,
 				A1B2C3D4E5F6071829304052 /* SpinnerView.swift */,
 				504381B02C3AE0B6000ED325 /* NotchHeaderView.swift */,
-				E5F607182930405170000001 /* NotchTabBar.swift */,
 				B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */,
 				D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */,
 				C9D0E1F2A3B4071829304100 /* NotchRootView.swift */,
@@ -334,7 +331,6 @@
 				A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */,
 				A1B2C3D4E5F6071829304053 /* SpinnerView.swift in Sources */,
 				D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */,
-				E5F607182930405170000002 /* NotchTabBar.swift in Sources */,
 				F1E2D3C4B5A6071829304101 /* TokenZoneView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

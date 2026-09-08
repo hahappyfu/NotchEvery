@@ -4,7 +4,7 @@ import XCTest
 final class ContentZoneSwitcherTests: XCTestCase {
     func testNextZoneWrapsAround() {
         let vm = NotchViewModel(events: MockEventMonitors())
-        vm.jumpToZone(.settings)
+        vm.jumpToZone(.token)
         vm.nextZone()
         XCTAssertEqual(vm.contentType, .normal)
     }
@@ -13,7 +13,7 @@ final class ContentZoneSwitcherTests: XCTestCase {
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.normal)
         vm.previousZone()
-        XCTAssertEqual(vm.contentType, .settings)
+        XCTAssertEqual(vm.contentType, .token)
     }
 
     func testNextZoneAdvancesInOrder() {
@@ -21,8 +21,6 @@ final class ContentZoneSwitcherTests: XCTestCase {
         vm.jumpToZone(.normal)
         vm.nextZone()
         XCTAssertEqual(vm.contentType, .token)
-        vm.nextZone()
-        XCTAssertEqual(vm.contentType, .settings)
     }
 
     func testMarkSwipeHintSeenSetsFlag() {

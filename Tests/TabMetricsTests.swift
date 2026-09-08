@@ -42,7 +42,7 @@ final class TabMetricsTests: XCTestCase {
 
     func testTabTitleKeysAreUnique() {
         let keys = NotchViewModel.zoneOrder.map { String(describing: $0.tabTitleKey) }
-        XCTAssertEqual(Set(keys).count, keys.count, "三区标题键重复")
+        XCTAssertEqual(Set(keys).count, keys.count, "两区标题键重复")
     }
 
     func testPageZoneMapping() {

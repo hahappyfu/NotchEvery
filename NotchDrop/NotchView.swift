@@ -113,16 +113,11 @@ struct NotchView: View {
                 }
                 vm.markSwipeHintSeen()
             }
-            .onReceive(vm.events.arrowKey) { key in
+            .onReceive(vm.events.arrowKey) { _ in
                 guard vm.status == .opened else { return }
                 guard NSApp.keyWindow is NotchWindow else { return }
                 guard vm.notchOpenedRect.contains(NSEvent.mouseLocation) else { return }
                 guard !dropTargeting else { return }
-                if key == .rightForward {
-                    vm.nextZone()
-                } else {
-                    vm.previousZone()
-                }
                 vm.markSwipeHintSeen()
             }
             .transition(
