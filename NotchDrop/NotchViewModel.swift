@@ -65,16 +65,33 @@ class NotchViewModel: NSObject, ObservableObject {
         extraBounce: 0.25,
         blendDuration: 0.125
     )
-    /// 分区面板尺寸：宽 600 全区锁定（切换不重居中，选项卡钉死不动）；高查表，概览 160 锁定，菜单 180 紧凑行
+    /// 分区面板尺寸：宽 600 全区锁定（切换不重居中，选项卡钉死不动）；高查表。
+    /// 概览 195：额度卡自然高 105（环 68+标签+内边距）+ 头部槽 28 + 间距 60，160 装不下（守卫实测）。
+    /// 设置 284：内容自然高 194（守卫实测，280 的算术差 2pt）+ 头部槽 28 + 间距 60。
     static let zonePanelWidth: CGFloat = 600
     static let zonePanelHeight: [ContentType: CGFloat] = [
-        .normal: 160,
-        .settings: 280,
+        .normal: 195,
+        .settings: 284,
     ]
+    /// 头部槽位固定高度：选项卡区，任何分区高度动画都不进入此槽（选项卡钉死的结构保证）。
+    /// 29 = 守卫实测（12pt 字 + 上下 padding 5×2 + 外层 padding 2×2 ≈ 29，原表注释写 28 差 1pt）
+    static let headerSlotHeight: CGFloat = 29
+
+    /// 宿主层排版高度 = 最大分区高：NSHostingView 对高于窗口 bounds 的内容垂直居中
+    /// （设置 284 > 窗口 200 时整个面板上溢 42pt，选项卡跑到屏幕外），
+    /// hosting view 必须以此高度 top 钉死，让面板永远顶对齐、向下溢出
+    static let hostedViewHeight: CGFloat = zonePanelHeight.values.max() ?? 284
 
     /// 当前区已打开尺寸：面板 frame 与几何计算都跟随它
     var zoneOpenedSize: CGSize {
-        .init(width: Self.zonePanelWidth, height: Self.zonePanelHeight[contentType] ?? 160)
+        .init(width: Self.zonePanelWidth, height: Self.zonePanelHeight[contentType] ?? Self.zonePanelHeight[.normal]!)
+    }
+
+    /// 内容区可用高度 = 分区高度 − 头部槽 − 上下 padding − 区间距；高度动画只作用于这一段。
+    /// 「间距×3」编码的是 NotchView 展开态布局（上下 padding 20×2 + 头部与内容区间距 20），改布局必须同步这里与高度表注释。
+    /// 概览 195−29−60 = 106 ≥ 卡片自然高 105；设置 284−29−60 = 195 ≥ 内容自然高 194（守卫实测，各留 1pt 余量）
+    var zoneContentHeight: CGFloat {
+        zoneOpenedSize.height - Self.headerSlotHeight - spacing * 3
     }
     let dropDetectorRange: CGFloat = 32
 
@@ -119,9 +136,7 @@ class NotchViewModel: NSObject, ObservableObject {
 
     @Published private(set) var status: Status = .closed
     @Published var openReason: OpenReason = .unknown
-    @Published var contentType: ContentType = .normal {
-        didSet { Probe.log("contentType \(oldValue) -> \(contentType)") }
-    }
+    @Published var contentType: ContentType = .normal
 
     @Published var spacing: CGFloat = 20
     @Published var cornerRadius: CGFloat = 20
@@ -136,7 +151,7 @@ class NotchViewModel: NSObject, ObservableObject {
     @Published private(set) var bridgeSpinning: Bool = false
 
     /// 展开弹簧（快长轻微过冲：response 收紧求快，damping 留轻微过冲）
-    let openAnimation: Animation = .spring(response: 0.28, dampingFraction: 0.82)
+    let openAnimation: Animation = .spring(response: 0.28, dampingFraction: 0.78)
     /// 收起弹簧（无过冲快退）
     let closeAnimation: Animation = .spring(response: 0.2, dampingFraction: 1.0)
 
@@ -250,9 +265,6 @@ class NotchViewModel: NSObject, ObservableObject {
     /// 最近一次切换方向：内容区不对称过渡用
     @Published var lastSwipeDirection: SwipeDirection = .next
 
-    /// 圆点点击已通过 onTapGesture 直跳，消费掉随后到达的 mouseDown，避免一次点击两次切换
-    var suppressHeadlineClickOnce = false
-
     func jumpToZone(_ zone: ContentType) {
         let order = Self.zoneOrder
         if let cur = order.firstIndex(of: contentType),
@@ -264,7 +276,6 @@ class NotchViewModel: NSObject, ObservableObject {
                 lastSwipeDirection = .previous
             }
         }
-        suppressHeadlineClickOnce = true
         contentType = zone
     }
 

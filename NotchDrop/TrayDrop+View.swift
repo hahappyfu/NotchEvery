@@ -48,10 +48,14 @@ struct TrayView: View {
     var panel: some View {
         RoundedRectangle(cornerRadius: vm.cornerRadius)
             .fill(.clear)
-            .glassCard(cornerRadius: vm.cornerRadius)
             .overlay {
-                RoundedRectangle(cornerRadius: vm.cornerRadius)
-                    .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.5 : 0.5)
+                if tvm.isEmpty {
+                    RoundedRectangle(cornerRadius: vm.cornerRadius)
+                        .stroke(Color.secondary.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [6, 6]))
+                } else {
+                    RoundedRectangle(cornerRadius: vm.cornerRadius)
+                        .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.5 : 0.5)
+                }
             }
             .overlay {
                 content
@@ -89,7 +93,7 @@ struct TrayView: View {
             if tvm.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "tray.and.arrow.down.fill")
-                        .font(.system(size: 20))
+                        .font(.system(size: 24))
                         .foregroundStyle(.secondary)
                     Text(text)
                         .multilineTextAlignment(.center)

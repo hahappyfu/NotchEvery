@@ -13,15 +13,20 @@ struct NotchTabBar: View {
                 Button {
                     onJump(zone)
                 } label: {
-                    Text(zone.tabTitleKey)
+                    Label {
+                        Text(zone.tabTitleKey)
+                    } icon: {
+                        Image(systemName: zone == .normal ? "chart.pie.fill" : "gearshape.fill")
+                            .font(.system(size: 11))
+                    }
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(zone == current ? .white : .secondary)
+                        .foregroundStyle(zone == current ? .white : .white.opacity(0.6))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
                         .background {
                             if zone == current {
                                 Capsule()
-                                    .fill(Color(nsColor: .separatorColor).opacity(0.9))
+                                    .fill(Color.black.opacity(0.55))
                                     .matchedGeometryEffect(id: "tabpill", in: pill)
                             }
                         }

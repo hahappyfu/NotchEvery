@@ -13,50 +13,71 @@ struct NotchSettingsView: View {
     @StateObject var tvm: TrayDrop = .shared
 
     var body: some View {
-        VStack(spacing: vm.spacing) {
+        VStack(spacing: 0) {
             HStack {
-                Picker("Language: ", selection: $vm.selectedLanguage) {
+                Text("Language: ")
+                    .font(.system(size: 13))
+                Spacer()
+                Picker("", selection: $vm.selectedLanguage) {
                     ForEach(Language.allCases) { language in
                         Text(language.localized).tag(language)
                     }
                 }
                 .pickerStyle(MenuPickerStyle())
-                .frame(width: vm.selectedLanguage == .simplifiedChinese || vm.selectedLanguage == .traditionalChinese ? 220 : 160)
-
-                Spacer()
-                LaunchAtLogin.Toggle {
-                    Text(NSLocalizedString("Launch at Login", comment: ""))
-                }
-
-                Spacer()
-                Toggle("Haptic Feedback ", isOn: $vm.hapticFeedback)
+                .controlSize(.small)
+                .frame(width: vm.selectedLanguage == .simplifiedChinese || vm.selectedLanguage == .traditionalChinese ? 150 : 120)
             }
-
+            .padding(.vertical, 2)
+            Divider()
+            LaunchAtLogin.Toggle {
+                Text(NSLocalizedString("Launch at Login", comment: ""))
+                    .font(.system(size: 13))
+            }
+            .padding(.vertical, 2)
+            Divider()
+            Toggle("Haptic Feedback ", isOn: $vm.hapticFeedback)
+                .font(.system(size: 13))
+                .padding(.vertical, 2)
+            Divider()
             HStack {
                 Text("File Storage Time: ")
+                    .font(.system(size: 13))
+                Spacer()
                 Picker(String(), selection: $tvm.selectedFileStorageTime) {
                     ForEach(TrayDrop.FileStorageTime.allCases) { time in
                         Text(time.localized).tag(time)
                     }
                 }
                 .pickerStyle(MenuPickerStyle())
-                .frame(width: 100)
+                .controlSize(.small)
+                .frame(width: 90)
                 if tvm.selectedFileStorageTime == .custom {
                     TextField("Days", value: $tvm.customStorageTime, formatter: NumberFormatter())
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(width: 50)
-                        .padding(.leading, 10)
+                        .controlSize(.small)
+                        .frame(width: 40)
                     Picker("Time Unit", selection: $tvm.customStorageTimeUnit) {
                         ForEach(TrayDrop.CustomStorageTimeUnit.allCases) { unit in
                             Text(unit.localized).tag(unit)
                         }
                     }
                     .pickerStyle(MenuPickerStyle())
-                    .frame(width: 200)
+                    .controlSize(.small)
+                    .frame(width: 110)
                 }
-                Spacer()
             }
+            .padding(.vertical, 2)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+        )
         .transition(.scale(scale: 0.8).combined(with: .opacity))
     }
 }

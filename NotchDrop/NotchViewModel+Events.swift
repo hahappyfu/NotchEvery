@@ -26,15 +26,9 @@ extension NotchViewModel {
                     } else if deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation) {
                         notchClose()
                         // for the same height as device notch, open the url of project
-                    } else if headlineOpenedRect.contains(mouseLocation) {
-                        // 顶栏点击：下一区，和右滑手势同一语义；
-                        // 圆点点击会先走这里再走 onTapGesture 直跳，消费一次避免双切
-                        if suppressHeadlineClickOnce {
-                            suppressHeadlineClickOnce = false
-                        } else {
-                            nextZone()
-                        }
                     }
+                    // 顶栏点击已搬到 NotchHeaderView 的 onTapGesture（视图层 Button 优先，天然互斥），
+                    // 这里不再处理：否则 mouseDown 先切会跟 Button 的 mouseUp 打架
                 case .closed, .popping:
                     // touch inside, open
                     if deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation) {

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct NotchView: View {
     @StateObject var vm: NotchViewModel
@@ -56,15 +57,29 @@ struct NotchView: View {
                 .opacity(vm.notchVisible ? 1 : 0.3)
             Group {
                 if vm.status == .opened {
+                    // 选项卡钉死结构：头部槽高度恒定，高度动画只作用于下方内容区；
+                    // 外层 frame 只锁宽（无高度可居中），选项卡垂直位置因此与分区无关
                     VStack(spacing: vm.spacing) {
                         NotchHeaderView(vm: vm)
+                            .zoneHeightReporter()
+                            .frame(height: NotchViewModel.headerSlotHeight)
+                            .background(HeaderProbe(label: "header"))
                             .modifier(StaggeredEntry(delay: 0.08))
+                            .onPreferenceChange(ZoneNaturalHeightKey.self) { natural in
+                                // 对称守卫：选项卡自然高若超过头部槽位，同样意味着排版脱节
+                                assert(
+                                    natural <= NotchViewModel.headerSlotHeight + 0.5,
+                                    "头部槽位脱节：选项卡回报高 \(natural) > 槽位 \(NotchViewModel.headerSlotHeight)"
+                                )
+                            }
                         NotchContentView(vm: vm)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: vm.zoneContentHeight)
+                            .clipped()
                             .modifier(StaggeredEntry(delay: 0.16))
                     }
                     .padding(vm.spacing)
-                    .frame(width: vm.zoneOpenedSize.width, height: vm.zoneOpenedSize.height)
+                    .frame(width: vm.zoneOpenedSize.width, alignment: .top)
                     .overlay(alignment: .bottom) {
                         if !vm.hasSeenSwipeHint {
                             Text("SwipeHint")
@@ -145,13 +160,7 @@ struct NotchView: View {
                 width: notchSize.width + notchCornerRadius * 2,
                 height: notchSize.height
             )
-            .shadow(
-                color: .black.opacity(
-                    ([.opened, .popping].contains(vm.status) || vm.hoverGhosting || vm.ghostFading) ? 0.35 : 0
-                ),
-                radius: 20,
-                y: 8
-            )
+            // 无外投影：悬浮感靠磨砂与描边，投影在浅底上显脏（2026-09-08 定稿）
             // 过桥菊花：openFromGhost 后 150ms 短闪
             .overlay {
                 if vm.bridgeSpinning {
@@ -161,7 +170,7 @@ struct NotchView: View {
             }
     }
 
-    /// 玻璃刘海背景：深色沉浸玻璃，虚影态底色切 #2a2c33
+    /// 玻璃刘海背景：控制中心式高透磨砂，浅底色 + 顶部折射高光
     private var glassNotchBackground: some View {
         Rectangle()
             .fill(.clear)
@@ -169,7 +178,7 @@ struct NotchView: View {
                 UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: notchCornerRadius, bottomTrailingRadius: notchCornerRadius, topTrailingRadius: 0, style: .continuous)
                     .fill((vm.hoverGhosting || vm.ghostFading)
                         ? Color(red: 0.165, green: 0.173, blue: 0.2).opacity(0.72)
-                        : Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.3)
+                        : Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.15)
                     )
             )
             .background(
@@ -178,7 +187,17 @@ struct NotchView: View {
             )
             .overlay(
                 UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: notchCornerRadius, bottomTrailingRadius: notchCornerRadius, topTrailingRadius: 0, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.10), Color.clear],
+                            startPoint: .top,
+                            endPoint: .center
+                        )
+                    )
+            )
+            .overlay(
+                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: notchCornerRadius, bottomTrailingRadius: notchCornerRadius, topTrailingRadius: 0, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
             )
     }
 
@@ -272,5 +291,29 @@ struct StaggeredEntry: ViewModifier {
                     shown = true
                 }
             }
+    }
+}
+
+/// 诊断埋点（FIXME(tab-pin): 定案后删）：头部槽在屏幕全局坐标里的真实 y，绕开 AX 读数
+private struct HeaderProbe: View {
+    let label: String
+    @State private var last: CGFloat = .nan
+
+    var body: some View {
+        GeometryReader { geo in
+            Color.clear
+                .onAppear { report(geo) }
+                .onChange(of: geo.frame(in: .global).minY) { _ in
+                    report(geo)
+                }
+        }
+    }
+
+    private func report(_ geo: GeometryProxy) {
+        let y = geo.frame(in: .global).minY
+        guard y != last else { return }
+        last = y
+        Logger(subsystem: "com.hahappyfu.NotchEvery", category: "header-probe")
+            .log("\(self.label, privacy: .public) headerY=\(y, format: .fixed(precision: 1))")
     }
 }

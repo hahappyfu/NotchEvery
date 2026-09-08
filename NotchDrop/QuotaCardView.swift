@@ -35,7 +35,6 @@ struct QuotaCardView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(12)
-        .glassCard(cornerRadius: vm.cornerRadius)
         .onAppear { store.start() }
     }
 

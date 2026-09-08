@@ -63,25 +63,25 @@ struct ShareView: View {
 
     var dropArea: some View {
         VStack(spacing: 6) {
-            RoundedRectangle(cornerRadius: vm.cornerRadius)
-                .fill(.clear)
-                .glassCard(cornerRadius: vm.cornerRadius)
-                .overlay {
-                    RoundedRectangle(cornerRadius: vm.cornerRadius)
-                        .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.2 : 0.5)
-                }
-                .overlay { dropIcon }
-                .frame(width: 64, height: 64)
-                .contentShape(Rectangle())
-                .scaleEffect(targeting ? 1.04 : 1.0)
-                .animation(vm.animation, value: targeting)
-                .modifier(SprayEffectModifier(trigger: trigger))
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(targeting ? 0.9 : 0.75))
+                    .frame(width: 34, height: 34)
+                    .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+                Image(systemName: type.imageName)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .contentShape(Circle())
+            .scaleEffect(targeting ? 1.06 : 1.0)
+            .animation(vm.animation, value: targeting)
+            .modifier(SprayEffectModifier(trigger: trigger))
             Text(type.title)
-                .font(.system(size: 12))
+                .font(.system(size: 11))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
         }
-        .frame(width: 76)
+        .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
         .onTapGesture {
             trigger = .init()
@@ -100,18 +100,6 @@ struct ShareView: View {
                     }
                 }
             }
-        }
-    }
-
-    var dropIcon: some View {
-        ZStack {
-            Circle()
-                .fill(Color.white.opacity(targeting ? 0.9 : 0.75))
-                .frame(width: 32, height: 32)
-                .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
-            Image(systemName: type.imageName)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Color.accentColor)
         }
     }
 
