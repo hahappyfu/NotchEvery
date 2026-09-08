@@ -51,8 +51,3 @@ struct NotchRootView: View {
         .animation(vm.animation, value: vm.contentType)
     }
 }
-
-struct OverviewPageView: View {
-    @StateObject var vm: NotchViewModel
-    var body: some View { Color.clear }
-}
