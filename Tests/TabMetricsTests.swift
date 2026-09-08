@@ -46,7 +46,7 @@ final class TabMetricsTests: XCTestCase {
         XCTAssertEqual(NotchViewModel.headerSlotHeight, 29)
     }
 
-    func testZoneContentHeightSubtractsSlotAndInsets() {
+    func testZoneContentHeightSubtractsInsets() {
         // 全字面量：与实现公式重算即恒真，无检出力；这里锁定的是数值契约本身
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.normal)

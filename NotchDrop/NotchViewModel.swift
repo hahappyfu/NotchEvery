@@ -77,7 +77,7 @@ class NotchViewModel: NSObject, ObservableObject {
         .token: 224,
         .settings: 284,
     ]
-    /// 头部槽位固定高度：选项卡区，任何分区高度动画都不进入此槽（选项卡钉死的结构保证）。
+    /// headerSlotHeight 常量保留，不作语义用途（头部行已删；测试锁定值 29）。
     /// 29 = 守卫实测（12pt 字 + 上下 padding 5×2 + 外层 padding 2×2 ≈ 29，原表注释写 28 差 1pt）
     static let headerSlotHeight: CGFloat = 29
 
