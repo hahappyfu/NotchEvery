@@ -66,13 +66,15 @@ class NotchViewModel: NSObject, ObservableObject {
         blendDuration: 0.125
     )
     /// 分区面板尺寸：宽 520 全区锁定（切换不重居中，选项卡钉死不动）；高查表。
-    /// 概览 195：额度卡自然高 105（环 68+标签+内边距）+ 头部槽 28 + 间距 60，160 装不下（守卫实测）。
-    /// 设置 284：内容自然高 194（守卫实测，280 的算术差 2pt）+ 头部槽 28 + 间距 60。
-    /// Token 254：内容自然高 164（探针实测，KPI 单行 + 表头 + 5 行）+ 头部槽 29 + 间距 60 = 253，取 254 留 1pt 余量。
+    /// 推导（任务 8 方案 C，无头部行）：H = natural + dots 行 19（dots 实高 13 + 间距 6）+ 上下 padding 40 + 1pt 余量。
+    /// 概览 165 = 105（配额卡环 68+标签+内边距，探针实测）+ 19 + 40 + 1。
+    /// Token 224 = 164（KPI 单行 + 表头 + 5 行，探针实测）+ 19 + 40 + 1，落在 210~230 区间内。
+    /// 概览 165 低于 210~230：内容就这么高，不加空白硬撑，如实记录（见 ADR-0006）。
+    /// 设置 284 不动：旧布局值保留（内容自然高 194 + 头部槽 29 + 间距 60 = 283，取 284）。
     static let zonePanelWidth: CGFloat = 520
     static let zonePanelHeight: [ContentType: CGFloat] = [
-        .normal: 195,
-        .token: 254,
+        .normal: 165,
+        .token: 224,
         .settings: 284,
     ]
     /// 头部槽位固定高度：选项卡区，任何分区高度动画都不进入此槽（选项卡钉死的结构保证）。
@@ -89,11 +91,11 @@ class NotchViewModel: NSObject, ObservableObject {
         .init(width: Self.zonePanelWidth, height: Self.zonePanelHeight[contentType] ?? Self.zonePanelHeight[.normal]!)
     }
 
-    /// 内容区可用高度 = 分区高度 − 头部槽 − 上下 padding − 区间距；高度动画只作用于这一段。
-    /// 「间距×3」编码的是 NotchView 展开态布局（上下 padding 20×2 + 头部与内容区间距 20），改布局必须同步这里与高度表注释。
-    /// 概览 195−29−60 = 106 ≥ 卡片自然高 105；设置 284−29−60 = 195 ≥ 内容自然高 194（守卫实测，各留 1pt 余量）
+    /// 内容区可用高度 = 分区高度 − 上下 padding；高度动画只作用于这一段。
+    /// 「间距×2」编码的是 NotchView 展开态布局（上下 padding 20×2，头部行已删），改布局必须同步这里与高度表注释。
+    /// 概览 165−40 = 125 ≥ 页自然高 105 + dots 行 19 = 124；Token 224−40 = 184 ≥ 164 + 19 = 183（各留 1pt 余量）
     var zoneContentHeight: CGFloat {
-        zoneOpenedSize.height - Self.headerSlotHeight - spacing * 3
+        zoneOpenedSize.height - spacing * 2
     }
     let dropDetectorRange: CGFloat = 32
 

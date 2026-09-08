@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import os
 
 struct NotchView: View {
     @StateObject var vm: NotchViewModel
@@ -57,21 +56,9 @@ struct NotchView: View {
                 .opacity(vm.notchVisible ? 1 : 0.3)
             Group {
                 if vm.status == .opened {
-                    // 选项卡钉死结构：头部槽高度恒定，高度动画只作用于下方内容区；
-                    // 外层 frame 只锁宽（无高度可居中），选项卡垂直位置因此与分区无关
+                    // 无头部行（任务 8 方案 C 定案）：TabBar 早删，gear 与根齿轮重复，挂载移除；
+                    // 外层 frame 只锁宽（无高度可居中），内容区高度动画与分区无关
                     VStack(spacing: vm.spacing) {
-                        NotchHeaderView(vm: vm)
-                            .zoneHeightReporter()
-                            .frame(height: NotchViewModel.headerSlotHeight)
-                            .background(HeaderProbe(label: "header"))
-                            .modifier(StaggeredEntry(delay: 0.08))
-                            .onPreferenceChange(ZoneNaturalHeightKey.self) { natural in
-                                // 对称守卫：选项卡自然高若超过头部槽位，同样意味着排版脱节
-                                assert(
-                                    natural <= NotchViewModel.headerSlotHeight + 0.5,
-                                    "头部槽位脱节：选项卡回报高 \(natural) > 槽位 \(NotchViewModel.headerSlotHeight)"
-                                )
-                            }
                         NotchContentView(vm: vm)
                             .frame(maxWidth: .infinity)
                             .frame(height: vm.zoneContentHeight)
@@ -286,29 +273,5 @@ struct StaggeredEntry: ViewModifier {
                     shown = true
                 }
             }
-    }
-}
-
-/// 诊断埋点（FIXME(tab-pin): 定案后删）：头部槽在屏幕全局坐标里的真实 y，绕开 AX 读数
-private struct HeaderProbe: View {
-    let label: String
-    @State private var last: CGFloat = .nan
-
-    var body: some View {
-        GeometryReader { geo in
-            Color.clear
-                .onAppear { report(geo) }
-                .onChange(of: geo.frame(in: .global).minY) { _ in
-                    report(geo)
-                }
-        }
-    }
-
-    private func report(_ geo: GeometryProxy) {
-        let y = geo.frame(in: .global).minY
-        guard y != last else { return }
-        last = y
-        Logger(subsystem: "com.hahappyfu.NotchEvery", category: "header-probe")
-            .log("\(self.label, privacy: .public) headerY=\(y, format: .fixed(precision: 1))")
     }
 }

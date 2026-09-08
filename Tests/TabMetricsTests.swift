@@ -11,10 +11,11 @@ final class TabMetricsTests: XCTestCase {
     }
 
     func testOverviewSizeLocked() {
+        // 概览 165：页自然高 105（探针实测）+ dots 行 19 + 上下 padding 40 + 1pt 余量（任务 8 方案 C，无头部行）
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.normal)
         XCTAssertEqual(vm.zoneOpenedSize.width, 520)
-        XCTAssertEqual(vm.zoneOpenedSize.height, 160)
+        XCTAssertEqual(vm.zoneOpenedSize.height, 165)
     }
 
     func testZoneOpenedSizeFollowsCurrentZone() {
@@ -31,13 +32,27 @@ final class TabMetricsTests: XCTestCase {
     }
 
     func testTokenZoneHeightIsSeeded() {
-        // 探针实测内容自然高 164（KPI 单行 + 表头 + 5 行）：164+29+60 = 253，取 254 留 1pt 余量
-        XCTAssertEqual(NotchViewModel.zonePanelHeight[.token], 254)
+        // 探针实测页自然高 164（KPI 单行 + 表头 + 5 行）：164 + dots 行 19 + 上下 padding 40 + 1pt 余量 = 224
+        XCTAssertEqual(NotchViewModel.zonePanelHeight[.token], 224)
     }
 
     func testMergedSettingsZoneHeightFitsButtonsPlusRows() {
-        // 明细：选项卡 28 + 间距 20 + 按钮行 86 + 间距 20 + 分隔线 1 + 间距 20 + 设置行 64（22+20+22，去内边距）+ 上下外边距 40 = 279，取 280
-        XCTAssertEqual(NotchViewModel.zonePanelHeight[.settings], 280)
+        // 明细（守卫实测内容自然高 194、选项卡槽 29）：20+29+20+194+20 = 283，取 284 留 1pt 余量
+        XCTAssertEqual(NotchViewModel.zonePanelHeight[.settings], 284)
+    }
+
+    func testHeaderSlotHeightMatchesHeightTableMath() {
+        // 高度表推算依赖「选项卡 29」（守卫实测，原注释 28 差 1pt）：槽位改动必须同步高度表
+        XCTAssertEqual(NotchViewModel.headerSlotHeight, 29)
+    }
+
+    func testZoneContentHeightSubtractsSlotAndInsets() {
+        // 全字面量：与实现公式重算即恒真，无检出力；这里锁定的是数值契约本身
+        let vm = NotchViewModel(events: MockEventMonitors())
+        vm.jumpToZone(.normal)
+        XCTAssertEqual(vm.zoneContentHeight, 125, "概览内容区可用高度必须锁定，额度卡排版以此为前提")
+        vm.jumpToZone(.settings)
+        XCTAssertEqual(vm.zoneContentHeight, 244, "设置内容区可用高度必须锁定，按钮行+设置行排版以此为前提")
     }
 
     func testTabTitleKeysAreUnique() {
