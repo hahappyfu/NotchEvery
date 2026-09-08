@@ -65,11 +65,11 @@ class NotchViewModel: NSObject, ObservableObject {
         extraBounce: 0.25,
         blendDuration: 0.125
     )
-    /// 分区面板尺寸：宽 600 全区锁定（切换不重居中，选项卡钉死不动）；高查表。
+    /// 分区面板尺寸：宽 520 全区锁定（切换不重居中，选项卡钉死不动）；高查表。
     /// 概览 195：额度卡自然高 105（环 68+标签+内边距）+ 头部槽 28 + 间距 60，160 装不下（守卫实测）。
     /// 设置 284：内容自然高 194（守卫实测，280 的算术差 2pt）+ 头部槽 28 + 间距 60。
     /// Token 254：内容自然高 164（探针实测，KPI 单行 + 表头 + 5 行）+ 头部槽 29 + 间距 60 = 253，取 254 留 1pt 余量。
-    static let zonePanelWidth: CGFloat = 600
+    static let zonePanelWidth: CGFloat = 520
     static let zonePanelHeight: [ContentType: CGFloat] = [
         .normal: 195,
         .token: 254,
@@ -271,8 +271,18 @@ class NotchViewModel: NSObject, ObservableObject {
         contentType = .settings
     }
 
-    /// 功能区固定顺序：左右滑按此循环（概览｜Token｜设置）
-    static let zoneOrder: [ContentType] = [.normal, .token, .settings]
+    /// 功能区固定顺序：左右滑按此循环（概览｜Token）
+    static let zoneOrder: [ContentType] = [.normal, .token]
+
+    /// 页—区分区双向映射（TabView 分页地基，越界回概览）
+    static func pageIndex(for zone: ContentType) -> Int {
+        zoneOrder.firstIndex(of: zone) ?? 0
+    }
+
+    static func zone(for page: Int) -> ContentType {
+        guard zoneOrder.indices.contains(page) else { return .normal }
+        return zoneOrder[page]
+    }
 
     /// 最近一次切换方向：内容区不对称过渡用
     @Published var lastSwipeDirection: SwipeDirection = .next

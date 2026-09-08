@@ -13,7 +13,7 @@ final class TabMetricsTests: XCTestCase {
     func testOverviewSizeLocked() {
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.normal)
-        XCTAssertEqual(vm.zoneOpenedSize.width, 600)
+        XCTAssertEqual(vm.zoneOpenedSize.width, 520)
         XCTAssertEqual(vm.zoneOpenedSize.height, 160)
     }
 
@@ -21,13 +21,13 @@ final class TabMetricsTests: XCTestCase {
         let vm = NotchViewModel(events: MockEventMonitors())
         for zone in NotchViewModel.zoneOrder {
             vm.jumpToZone(zone)
-            XCTAssertEqual(vm.zoneOpenedSize.width, 600, "分区 \(zone) 宽度必须全区一致，选项卡跨区不动")
+            XCTAssertEqual(vm.zoneOpenedSize.width, 520, "分区 \(zone) 宽度必须全区一致，选项卡跨区不动")
             XCTAssertEqual(vm.zoneOpenedSize.height, NotchViewModel.zonePanelHeight[zone])
         }
     }
 
     func testAllZonesShareWidthSoTabBarStaysPut() {
-        XCTAssertEqual(NotchViewModel.zonePanelWidth, 600, "宽度全区锁定，切换不得重居中平移选项卡")
+        XCTAssertEqual(NotchViewModel.zonePanelWidth, 520, "宽度全区锁定，切换不得重居中平移选项卡")
     }
 
     func testTokenZoneHeightIsSeeded() {
@@ -43,5 +43,13 @@ final class TabMetricsTests: XCTestCase {
     func testTabTitleKeysAreUnique() {
         let keys = NotchViewModel.zoneOrder.map { String(describing: $0.tabTitleKey) }
         XCTAssertEqual(Set(keys).count, keys.count, "三区标题键重复")
+    }
+
+    func testPageZoneMapping() {
+        XCTAssertEqual(NotchViewModel.zoneOrder, [.normal, .token])
+        XCTAssertEqual(NotchViewModel.pageIndex(for: .normal), 0)
+        XCTAssertEqual(NotchViewModel.pageIndex(for: .token), 1)
+        XCTAssertEqual(NotchViewModel.zone(for: 0), .normal)
+        XCTAssertEqual(NotchViewModel.zone(for: 1), .token)
     }
 }
