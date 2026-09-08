@@ -16,7 +16,7 @@ struct NotchTabBar: View {
                     Label {
                         Text(zone.tabTitleKey)
                     } icon: {
-                        Image(systemName: zone == .normal ? "chart.pie.fill" : "gearshape.fill")
+                        Image(systemName: zone.tabIconName)
                             .font(.system(size: 11))
                     }
                         .font(.system(size: 12, weight: .medium))

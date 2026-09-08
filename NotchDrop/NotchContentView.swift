@@ -25,6 +25,11 @@ struct NotchContentView: View {
                 .zoneHeightReporter(active: vm.contentType == .normal)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .transition(reduceMotion ? .opacity : .blurFade)
+            case .token:
+                TokenZoneView()
+                    .zoneHeightReporter(active: vm.contentType == .token)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .transition(reduceMotion ? .opacity : .blurFade)
             case .settings:
                 VStack(alignment: .leading, spacing: 8) {
                     NotchMenuView(vm: vm)

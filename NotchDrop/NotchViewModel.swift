@@ -68,9 +68,11 @@ class NotchViewModel: NSObject, ObservableObject {
     /// 分区面板尺寸：宽 600 全区锁定（切换不重居中，选项卡钉死不动）；高查表。
     /// 概览 195：额度卡自然高 105（环 68+标签+内边距）+ 头部槽 28 + 间距 60，160 装不下（守卫实测）。
     /// 设置 284：内容自然高 194（守卫实测，280 的算术差 2pt）+ 头部槽 28 + 间距 60。
+    /// Token 254：内容自然高 164（探针实测，KPI 单行 + 表头 + 5 行）+ 头部槽 29 + 间距 60 = 253，取 254 留 1pt 余量。
     static let zonePanelWidth: CGFloat = 600
     static let zonePanelHeight: [ContentType: CGFloat] = [
         .normal: 195,
+        .token: 254,
         .settings: 284,
     ]
     /// 头部槽位固定高度：选项卡区，任何分区高度动画都不进入此槽（选项卡钉死的结构保证）。
@@ -111,12 +113,22 @@ class NotchViewModel: NSObject, ObservableObject {
 
     enum ContentType: Int, Codable, Hashable, Equatable {
         case normal
+        case token
         case settings
 
         var tabTitleKey: LocalizedStringKey {
             switch self {
             case .normal: "TabOverview"
+            case .token: "TabToken"
             case .settings: "TabSettings"
+            }
+        }
+
+        var tabIconName: String {
+            switch self {
+            case .normal: "chart.pie.fill"
+            case .token: "bolt.fill"
+            case .settings: "gearshape.fill"
             }
         }
     }
@@ -259,8 +271,8 @@ class NotchViewModel: NSObject, ObservableObject {
         contentType = .settings
     }
 
-    /// 功能区固定顺序：左右滑按此循环
-    static let zoneOrder: [ContentType] = [.normal, .settings]
+    /// 功能区固定顺序：左右滑按此循环（概览｜Token｜设置）
+    static let zoneOrder: [ContentType] = [.normal, .token, .settings]
 
     /// 最近一次切换方向：内容区不对称过渡用
     @Published var lastSwipeDirection: SwipeDirection = .next

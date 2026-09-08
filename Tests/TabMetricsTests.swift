@@ -30,6 +30,11 @@ final class TabMetricsTests: XCTestCase {
         XCTAssertEqual(NotchViewModel.zonePanelWidth, 600, "宽度全区锁定，切换不得重居中平移选项卡")
     }
 
+    func testTokenZoneHeightIsSeeded() {
+        // 探针实测内容自然高 164（KPI 单行 + 表头 + 5 行）：164+29+60 = 253，取 254 留 1pt 余量
+        XCTAssertEqual(NotchViewModel.zonePanelHeight[.token], 254)
+    }
+
     func testMergedSettingsZoneHeightFitsButtonsPlusRows() {
         // 明细：选项卡 28 + 间距 20 + 按钮行 86 + 间距 20 + 分隔线 1 + 间距 20 + 设置行 64（22+20+22，去内边距）+ 上下外边距 40 = 279，取 280
         XCTAssertEqual(NotchViewModel.zonePanelHeight[.settings], 280)
@@ -37,6 +42,6 @@ final class TabMetricsTests: XCTestCase {
 
     func testTabTitleKeysAreUnique() {
         let keys = NotchViewModel.zoneOrder.map { String(describing: $0.tabTitleKey) }
-        XCTAssertEqual(Set(keys).count, keys.count, "两区标题键重复")
+        XCTAssertEqual(Set(keys).count, keys.count, "三区标题键重复")
     }
 }

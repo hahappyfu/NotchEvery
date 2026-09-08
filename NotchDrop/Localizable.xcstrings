@@ -1895,6 +1895,29 @@
         }
       }
     },
+    "TabToken": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Token"
+          }
+        }
+      }
+    },
     "The language has been changed. The app will restart for the changes to take effect.": {
       "extractionState": "manual",
       "localizations": {
