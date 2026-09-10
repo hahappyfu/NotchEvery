@@ -147,7 +147,7 @@ struct NotchView: View {
             .fill(Color.black)
             .frame(width: islandSize.width + islandFillet * 2, height: islandSize.height)
             .overlay(alignment: .bottom) {
-                if vm.hoverGhosting || vm.ghostFading {
+                if (vm.hoverGhosting || vm.ghostFading), usage.summary != TokenSummary.empty {
                     peekHint
                         .padding(.bottom, 16)
                         .transition(.opacity)
