@@ -199,10 +199,14 @@ struct TokenZoneView: View {
         .padding(.top, 10)
     }
 
-    private static var footerTime: String {
+    private static let footerFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
-        return f.string(from: Date())
+        return f
+    }()
+
+    private static var footerTime: String {
+        footerFormatter.string(from: Date())
     }
 }
 
