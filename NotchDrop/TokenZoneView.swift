@@ -43,6 +43,53 @@ private func tokenStatusColor(_ status: Int) -> Color {
     status >= 400 ? Color(red: 0.75, green: 0.20, blue: 0.18) : Color(red: 0.16, green: 0.55, blue: 0.32)
 }
 
+private struct TokenRowView: View {
+    let row: TokenRequest
+    let timeW: CGFloat
+    let modelW: CGFloat
+    let durationW: CGFloat
+    let statusW: CGFloat
+    @State private var hovering = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(row.time)
+                .frame(width: timeW, alignment: .leading)
+                .foregroundStyle(.secondary)
+            Text(row.model)
+                .fontWeight(.semibold)
+                .foregroundStyle(.primary)
+                .frame(width: modelW, alignment: .leading)
+            Text("\(row.inputTokens.formatted()) / \(row.outputTokens.formatted())")
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            Text(String(format: "%.1fs", row.durationSeconds))
+                .frame(width: durationW, alignment: .trailing)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(tokenStatusColor(row.status))
+                    .frame(width: 6, height: 6)
+                Text("\(row.status)")
+                    .foregroundStyle(row.status >= 400 ? tokenStatusColor(row.status) : .secondary)
+            }
+            .frame(width: statusW, alignment: .trailing)
+        }
+        .font(.system(size: 11))
+        .monospacedDigit()
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
+        .background(hovering ? Color.white.opacity(0.04) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+        .onHover { hovering = $0 }
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor).opacity(0.5))
+                .frame(height: 0.5)
+        }
+    }
+}
+
 struct TokenZoneView: View {
     var requests: [TokenRequest] = TokenRequest.mock
 
@@ -57,36 +104,7 @@ struct TokenZoneView: View {
             summaryBar
             header
             ForEach(requests.prefix(5)) { row in
-                HStack(spacing: 8) {
-                    Text(row.time)
-                        .frame(width: timeW, alignment: .leading)
-                        .foregroundStyle(.secondary)
-                    Text(row.model)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
-                        .frame(width: modelW, alignment: .leading)
-                    Text("\(row.inputTokens.formatted()) / \(row.outputTokens.formatted())")
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                    Text(String(format: "%.1fs", row.durationSeconds))
-                        .frame(width: durationW, alignment: .trailing)
-                        .foregroundStyle(.secondary)
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(tokenStatusColor(row.status))
-                            .frame(width: 6, height: 6)
-                        Text("\(row.status)")
-                            .foregroundStyle(row.status >= 400 ? tokenStatusColor(row.status) : .secondary)
-                    }
-                    .frame(width: statusW, alignment: .trailing)
-                }
-                .font(.system(size: 12))
-                .monospacedDigit()
-                .padding(.vertical, 6)
-                .overlay(alignment: .bottom) {
-                    Rectangle()
-                        .fill(Color(nsColor: .separatorColor).opacity(0.5))
-                        .frame(height: 0.5)
-                }
+                TokenRowView(row: row, timeW: timeW, modelW: modelW, durationW: durationW, statusW: statusW)
             }
         }
         .padding(.horizontal, 14)
@@ -152,7 +170,7 @@ struct TokenZoneView: View {
             Text("用时").frame(width: durationW, alignment: .trailing)
             Text("状态").frame(width: statusW, alignment: .trailing)
         }
-        .font(.system(size: 10, weight: .semibold))
+        .font(.system(size: 11, weight: .medium))
         .foregroundStyle(.secondary)
         .padding(.vertical, 5)
         .overlay(alignment: .bottom) {
