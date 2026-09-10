@@ -106,6 +106,7 @@ struct TokenZoneView: View {
             ForEach(requests.prefix(5)) { row in
                 TokenRowView(row: row, timeW: timeW, modelW: modelW, durationW: durationW, statusW: statusW)
             }
+            footer
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -179,6 +180,30 @@ struct TokenZoneView: View {
                 .frame(height: 0.5)
         }
         .padding(.bottom, 4)
+    }
+    private var footer: some View {
+        VStack(spacing: 10) {
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor).opacity(0.5))
+                .frame(height: 0.5)
+            HStack {
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 6, height: 6)
+                Text("上下文缓存命中已开启 (Prompt Cache 10%)")
+                Spacer()
+                Text("更新于 \(Self.footerTime)")
+            }
+            .font(.system(size: 10))
+            .foregroundStyle(.secondary)
+        }
+        .padding(.top, 10)
+    }
+
+    private static var footerTime: String {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f.string(from: Date())
     }
 }
 
