@@ -67,6 +67,7 @@
 		7AE10C0220260AB000000D6 /* TrayDropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C6 /* TrayDropTests.swift */; };
 		7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */; };
 		7AE10C0220260AB000000D8 /* UsageStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C8 /* UsageStoreTests.swift */; };
+		7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -135,6 +136,7 @@
 		7AE10C0220260AB000000C6 /* TrayDropTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayDropTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneSizeGuardTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C8 /* UsageStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStoreTests.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMetricsTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB0000000A7 /* NotchEveryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchEveryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -246,6 +248,7 @@
 				7AE10C0220260AB000000C5 /* TabMetricsTests.swift */,
 				7AE10C0220260AB000000C6 /* TrayDropTests.swift */,
 				7AE10C0220260AB000000C8 /* UsageStoreTests.swift */,
+				7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */,
 				7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */,
 			);
 			path = Tests;
@@ -420,6 +423,7 @@
 				7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D6 /* TrayDropTests.swift in Sources */,
 				7AE10C0220260AB000000D8 /* UsageStoreTests.swift in Sources */,
+				7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

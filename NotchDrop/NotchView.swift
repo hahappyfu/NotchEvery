@@ -159,6 +159,8 @@ struct NotchView: View {
                         .transition(.opacity)
                 }
             }
+            // 岛尺寸随数据变化走同款弹簧（与 TokenZoneView 列宽变化同步 morph）
+            .animation(reduceMotion ? nil : IslandMetrics.growSpring, value: islandSize)
     }
 
     /// 悬停 peek 提示：今日用量一行小字（真数据）

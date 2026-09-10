@@ -129,7 +129,10 @@ struct TokenZoneView: View {
 
     /// 列宽（header 与行共用同一组，保证对齐；文本列左对齐，数字列右对齐）
     private let timeW: CGFloat = 40
-    private let modelW: CGFloat = 100
+    /// 自适应列宽：随当前 5 行数据收敛（钳制见 IslandMetrics）
+    private var modelW: CGFloat {
+        IslandMetrics.modelColumnWidth(for: store.recentRequests.prefix(5).map(\.model))
+    }
     private let durationW: CGFloat = 48
     private let statusW: CGFloat = 38
 
@@ -163,6 +166,8 @@ struct TokenZoneView: View {
             .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: store.recentRequests)
             footer
         }
+        // 表格容器（header + 行）：列宽随数据变化走同款弹簧（岛宽同步 morph）
+        .animation(reduceMotion ? nil : IslandMetrics.growSpring, value: modelW)
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .onChange(of: store.recentRequests) { rows in
