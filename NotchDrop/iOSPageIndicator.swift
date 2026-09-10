@@ -32,8 +32,9 @@ struct SmoothPageIndicator: View {
         }
         .padding(.horizontal, 8)
         .frame(height: 18)
-        .background(Color.white.opacity(0.06), in: Capsule())
+        .background(Color.white.opacity(0.08), in: Capsule())
         .overlay(Capsule().strokeBorder(Color.white.opacity(0.15), lineWidth: 1))
+        .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
     }
 }
 
