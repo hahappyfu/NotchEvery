@@ -52,19 +52,19 @@ struct QuotaCardView: View {
         return HStack(spacing: 8) {
             Text(title)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.55))
                 .frame(width: 20, alignment: .leading)
             miniBar(percent: percent)
                 .frame(minWidth: 50)
             if let percent {
                 Text("\(Int(percent))%")
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.white.opacity(0.92))
                     .frame(width: 42, alignment: .trailing)
             } else {
                 Text("--%")
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color.white.opacity(0.35))
                     .frame(width: 42, alignment: .trailing)
             }
         }
@@ -77,7 +77,7 @@ struct QuotaCardView: View {
         return GeometryReader { geo in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color(nsColor: .separatorColor).opacity(0.5))
+                    .fill(Color.white.opacity(0.12))
                     .frame(height: 6)
                 RoundedRectangle(cornerRadius: 3)
                     .fill(fill)
@@ -102,20 +102,20 @@ struct QuotaCardView: View {
     private var statusLine: some View {
         HStack(spacing: 4) {
             Circle()
-                .fill(!store.snapshot.available ? Color.secondary : (store.snapshot.expired ? Color.orange : Color.green))
+                .fill(!store.snapshot.available ? Color.white.opacity(0.4) : (store.snapshot.expired ? Color.orange : Color.green))
                 .frame(width: 6, height: 6)
             if store.snapshot.expired || !store.snapshot.available {
                 Text(store.snapshot.available ? "已过期" : "暂无数据")
                     .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.55))
             } else if let countdown = resetCountdownText {
                 Text(countdown)
                     .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.55))
             } else if let at = store.snapshot.fetchedAt {
                 Text(at, style: .relative)
                     .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.55))
             }
         }
     }
@@ -125,7 +125,7 @@ struct QuotaCardView: View {
             ZStack {
                 if let percent {
                     Circle()
-                        .stroke(Color(nsColor: .separatorColor).opacity(0.4), lineWidth: 8)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 8)
                         .frame(width: size, height: size)
                     Circle()
                         .trim(from: 0, to: min(1, max(0, percent / 100)))
@@ -143,25 +143,25 @@ struct QuotaCardView: View {
                         .animation(reduceMotion ? nil : .easeInOut(duration: 0.4), value: percent)
                     Text(String(format: "%.1f%%", percent))
                         .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.white.opacity(0.92))
                         .frame(width: size - 16)
                         .minimumScaleFactor(0.6)
                         .lineLimit(1)
                 } else {
                     Circle()
                         .strokeBorder(
-                            Color(nsColor: .separatorColor).opacity(0.4),
+                            Color.white.opacity(0.12),
                             style: StrokeStyle(lineWidth: 8, dash: [6, 6])
                         )
                         .frame(width: size, height: size)
                     Text("--%")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.white.opacity(0.35))
                 }
             }
             Text(label)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.55))
         }
     }
 

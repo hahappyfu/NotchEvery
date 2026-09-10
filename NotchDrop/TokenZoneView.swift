@@ -35,7 +35,7 @@ struct TokenSummary: Equatable {
 struct RollupText: View {
     let text: String
     var font: Font = .system(size: 14, weight: .bold)
-    var color: Color = .primary
+    var color: Color = Color.white.opacity(0.92)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -75,26 +75,26 @@ private struct TokenRowView: View {
         HStack(spacing: 8) {
             Text(row.time)
                 .frame(width: timeW, alignment: .leading)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.55))
             Text(row.model)
                 .fontWeight(.semibold)
-                .foregroundStyle(.primary)
+                .foregroundStyle(Color.white.opacity(0.92))
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
                 .frame(width: modelW, alignment: .leading)
             Text("\(row.inputTokens.formatted()) / \(row.outputTokens.formatted())")
                 .font(.system(size: 10))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.55))
                 .frame(maxWidth: .infinity, alignment: .trailing)
             Text(String(format: "%.1fs", row.durationSeconds))
                 .frame(width: durationW, alignment: .trailing)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.55))
             HStack(spacing: 4) {
                 Circle()
                     .fill(tokenStatusColor(row.status))
                     .frame(width: 6, height: 6)
                 Text("\(row.status)")
-                    .foregroundStyle(row.status >= 400 ? tokenStatusColor(row.status) : .secondary)
+                    .foregroundStyle(row.status >= 400 ? tokenStatusColor(row.status) : Color.white.opacity(0.55))
             }
             .frame(width: statusW, alignment: .trailing)
         }
@@ -102,7 +102,7 @@ private struct TokenRowView: View {
         .monospacedDigit()
         .padding(.vertical, 6)
         .contentShape(Rectangle())
-        .background(hovering ? Color.white.opacity(0.04) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+        .background(hovering ? Color.white.opacity(0.06) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
         .background(Color.green.opacity(flashOpacity), in: RoundedRectangle(cornerRadius: 6))
         .onHover { hovering = $0 }
         .onAppear {
@@ -115,7 +115,7 @@ private struct TokenRowView: View {
         }
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(Color(nsColor: .separatorColor).opacity(0.5))
+                .fill(Color.white.opacity(0.08))
                 .frame(height: 0.5)
         }
     }
@@ -175,7 +175,7 @@ struct TokenZoneView: View {
             HStack(spacing: 6) {
                 Text("Tokens")
                     .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.55))
                 RollupText(text: store.summary.totalTokens)
             }
             Spacer()
@@ -203,8 +203,8 @@ struct TokenZoneView: View {
         .minimumScaleFactor(0.85)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 1))
+        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
         .padding(.bottom, 10)
     }
 
@@ -217,11 +217,11 @@ struct TokenZoneView: View {
             Text("状态").frame(width: statusW, alignment: .trailing)
         }
         .font(.system(size: 11, weight: .medium))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(Color.white.opacity(0.55))
         .padding(.vertical, 5)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(Color(nsColor: .separatorColor).opacity(0.5))
+                .fill(Color.white.opacity(0.08))
                 .frame(height: 0.5)
         }
         .padding(.bottom, 4)
@@ -229,18 +229,18 @@ struct TokenZoneView: View {
     private var footer: some View {
         VStack(spacing: 10) {
             Rectangle()
-                .fill(Color(nsColor: .separatorColor).opacity(0.5))
+                .fill(Color.white.opacity(0.08))
                 .frame(height: 0.5)
             HStack {
                 Circle()
-                    .fill(store.footer.cacheReadTotal > 0 ? Color.green : Color.secondary)
+                    .fill(store.footer.cacheReadTotal > 0 ? Color.green : Color.white.opacity(0.4))
                     .frame(width: 6, height: 6)
                 Text("缓存命中 \(UsageStore.formatTokens(store.footer.cacheReadTotal)) · 省 \(UsageStore.formatCost(usd: store.footer.savedUSD, priced: true))")
                 Spacer()
                 Text("更新于 \(footerTimeText)")
             }
             .font(.system(size: 10))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.white.opacity(0.55))
         }
         .padding(.top, 10)
     }

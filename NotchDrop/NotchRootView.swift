@@ -79,7 +79,7 @@ struct NotchRootView: View {
                     .frame(width: 8, height: 8)
                 Text(provider)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.white.opacity(0.92))
             }
             .monospacedDigit()
             .lineLimit(1)
@@ -92,7 +92,7 @@ struct NotchRootView: View {
     private var rightEarPill: some View {
         // 右耳：今日调用次数
         if vm.contentType == .token {
-            RollupText(text: usage.summary.calls, font: .system(size: 11, weight: .medium), color: .secondary)
+            RollupText(text: usage.summary.calls, font: .system(size: 11, weight: .medium), color: Color.white.opacity(0.55))
         }
     }
 
