@@ -195,7 +195,6 @@ class NotchViewModel: NSObject, ObservableObject {
     /// 两段收起：先缩回虚影尺寸 200ms，再清态回刘海
     func closeToGhost() {
         openReason = .unknown
-        contentType = .normal
         // stage 1: status→closed 触发布局动画，ghostFading 保持虚影视觉（走肉曲线）
         withAnimation(openAnimation) {
             status = .closed
@@ -215,7 +214,6 @@ class NotchViewModel: NSObject, ObservableObject {
 
     func notchOpen(_ reason: OpenReason) {
         openReason = reason
-        contentType = .normal
         if reason == .hover {
             // 虚影态：只置标记，不展开（点击/拖拽时才调 openFromGhost()）
             // 代际 +1 让挂起的 closeToGhost 清零失效，避免吞新鲜 hover（走肉曲线）
@@ -241,7 +239,6 @@ class NotchViewModel: NSObject, ObservableObject {
             ghostFading = false
             openReason = .unknown
             status = .closed
-            contentType = .normal
         }
     }
 

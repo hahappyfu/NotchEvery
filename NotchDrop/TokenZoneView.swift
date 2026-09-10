@@ -45,12 +45,9 @@ private func tokenStatusColor(_ status: Int) -> Color {
 
 struct TokenZoneView: View {
     var requests: [TokenRequest] = TokenRequest.mock
-    var summary: TokenSummary = .mock
 
     var body: some View {
         VStack(spacing: 0) {
-            kpiRow
-                .padding(.bottom, 10)
             header
             ForEach(requests.prefix(5)) { row in
                 HStack(spacing: 8) {
@@ -97,33 +94,6 @@ struct TokenZoneView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-    }
-
-    private var kpiRow: some View {
-        HStack(spacing: 16) {
-            kpiItem(label: "Tokens", value: summary.totalTokens)
-            kpiItem(label: "缓存命中率", value: summary.cacheRate, valueColor: .green, fraction: 0.946)
-            kpiItem(label: "调用", value: summary.calls)
-        }
-        .font(.system(size: 11, design: .monospaced))
-        .monospacedDigit()
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .padding(.trailing, 28)
-        .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
-    }
-
-    private func kpiItem(label: String, value: String, valueColor: Color = .primary, fraction: Double? = nil) -> some View {
-        HStack(spacing: 5) {
-            Text(label).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
-            Text(value).fontWeight(.semibold).foregroundStyle(valueColor)
-                .monospacedDigit()
-            if let fraction {
-                Capsule()
-                    .fill(Color.green.opacity(0.8))
-                    .frame(width: 30 * fraction, height: 4)
-            }
-        }
     }
 
     private var header: some View {
