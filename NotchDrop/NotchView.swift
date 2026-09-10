@@ -57,10 +57,15 @@ struct NotchView: View {
             Group {
                 if vm.status == .opened {
                     // 内容自适应（ADR-0008）：内容自然高，不锁死、不裁剪
-                    VStack(spacing: vm.spacing) {
+                    // dots 收进面板：与内容间距 10（原外层节奏），不再体外漂浮
+                    VStack(spacing: 10) {
                         NotchContentView(vm: vm)
                             .frame(maxWidth: .infinity)
                             .modifier(StaggeredEntry(delay: 0.16))
+                        SmoothPageIndicator(pageCount: 2, currentPage: Binding(
+                            get: { NotchViewModel.pageIndex(for: vm.contentType) },
+                            set: { vm.jumpToZone(NotchViewModel.zone(for: $0)) }
+                        ))
                     }
                     .padding(.horizontal, vm.spacing)
                     .padding(.bottom, vm.spacing)
