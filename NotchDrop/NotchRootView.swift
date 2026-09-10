@@ -12,7 +12,8 @@ struct NotchRootView: View {
     private let deadZoneMargin: CGFloat = 8
 
     var body: some View {
-        // dots 独立悬浮 dock：与内容留 12 缝隙，投影卖出漂浮感（样式稿 dock 式样）
+        // 自绘面板玻璃：blur 窗后桌面成霜化面板（圆角 20 同 vm.cornerRadius）；
+        // dots 落在玻璃内、底边留 10 缝隙 = 镶嵌感（诊断兼修复：若截出双层玻璃即照出旧玻璃真身）
         VStack(spacing: 0) {
             pages
             SmoothPageIndicator(pageCount: 2, currentPage: Binding(
@@ -22,6 +23,7 @@ struct NotchRootView: View {
             .padding(.top, 8)
         }
         .padding(.bottom, 10)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
         // 刘海安全区垫在测量区内：测量含安全区，面板才够高（03 工单）
         .padding(.top, vm.notchSafeAreaTop)
         // 耳区贴顶叠在禁放区两侧；中央禁放区留空只画背景（ADR-0009）
