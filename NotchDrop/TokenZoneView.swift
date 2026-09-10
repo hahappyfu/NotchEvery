@@ -7,9 +7,10 @@
 
 import SwiftUI
 
-/// 单条模型请求（mock 同构截图数据；接数据源时替换构造处）。
-struct TokenRequest: Identifiable {
-    let id = UUID()
+/// 单条模型请求（真数据来自 cc-switch 使用统计；mock 仅供预览）。
+struct TokenRequest: Identifiable, Equatable {
+    /// cc-switch 的 request_id（稳定标识，滚动动画依赖）
+    let id: String
     let time: String
     let model: String
     let inputTokens: Int
@@ -20,20 +21,22 @@ struct TokenRequest: Identifiable {
     let status: Int
 
     static let mock: [TokenRequest] = [
-        .init(time: "14:46", model: "opus-5", inputTokens: 524, outputTokens: 283, durationSeconds: 26.8, cost: "未定价", status: 200),
-        .init(time: "14:45", model: "opus-5", inputTokens: 538, outputTokens: 185, durationSeconds: 19.3, cost: "未定价", status: 200),
-        .init(time: "14:44", model: "opus-5", inputTokens: 2977, outputTokens: 638, durationSeconds: 40.1, cost: "未定价", status: 200),
-        .init(time: "14:39", model: "opus-5", inputTokens: 0, outputTokens: 0, durationSeconds: 6.1, cost: "$0.00", status: 429),
-        .init(time: "14:37", model: "opus-5", inputTokens: 1126, outputTokens: 372, durationSeconds: 63.2, cost: "未定价", status: 200),
+        .init(id: "mock-01", time: "14:46", model: "opus-5", inputTokens: 524, outputTokens: 283, durationSeconds: 26.8, cost: "未定价", status: 200),
+        .init(id: "mock-02", time: "14:45", model: "opus-5", inputTokens: 538, outputTokens: 185, durationSeconds: 19.3, cost: "未定价", status: 200),
+        .init(id: "mock-03", time: "14:44", model: "opus-5", inputTokens: 2977, outputTokens: 638, durationSeconds: 40.1, cost: "未定价", status: 200),
+        .init(id: "mock-04", time: "14:39", model: "opus-5", inputTokens: 0, outputTokens: 0, durationSeconds: 6.1, cost: "$0.00", status: 429),
+        .init(id: "mock-05", time: "14:37", model: "opus-5", inputTokens: 1126, outputTokens: 372, durationSeconds: 63.2, cost: "未定价", status: 200),
     ]
 }
 
-/// KPI 聚合（mock 与表格自洽；接数据源时替换构造处）。
-struct TokenSummary {
+/// KPI 聚合（真数据来自 UsageStore；mock 仅供预览）。
+struct TokenSummary: Equatable {
     let totalTokens: String
     let cacheRate: String
     let calls: String
     let cost: String
+
+    static let empty = TokenSummary(totalTokens: "0", cacheRate: "0.0%", calls: "0次", cost: "$0.00")
 
     static let mock = TokenSummary(totalTokens: "38.8M", cacheRate: "94.6%", calls: "527次", cost: "$0.00")
 }
@@ -90,7 +93,7 @@ private struct TokenRowView: View {
 }
 
 struct TokenZoneView: View {
-    var requests: [TokenRequest] = TokenRequest.mock
+    @StateObject private var store = UsageStore.shared
 
     /// 列宽（header 与行共用同一组，保证对齐；文本列左对齐，数字列右对齐）
     private let timeW: CGFloat = 44
@@ -102,7 +105,7 @@ struct TokenZoneView: View {
         VStack(spacing: 0) {
             summaryBar
             header
-            ForEach(requests.prefix(5)) { row in
+            ForEach(store.recentRequests.prefix(5)) { row in
                 TokenRowView(row: row, timeW: timeW, modelW: modelW, durationW: durationW, statusW: statusW)
             }
             footer

@@ -43,6 +43,15 @@ struct NotchRootView: View {
         // 整体上报：含安全区+内容（dots 已收进面板内，随内容一起量）
         .zoneSizeReporter(active: true)
         .frame(width: vm.zoneOpenedSize.width)
+        // 用量轮询随面板开合（与额度卡同节奏，收起即停）
+        .onAppear { UsageStore.shared.start() }
+        .onChange(of: vm.status) { status in
+            if status == .closed {
+                UsageStore.shared.stop()
+            } else {
+                UsageStore.shared.start()
+            }
+        }
     }
 
     private var earsRow: some View {
