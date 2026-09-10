@@ -29,7 +29,7 @@ struct TokenRequest: Identifiable, Equatable {
     ]
 }
 
-/// KPI 聚合（真数据来自 UsageStore；mock 仅供预览）。
+/// KPI 聚合（真数据来自 UsageStore）。
 struct TokenSummary: Equatable {
     let totalTokens: String
     let cacheRate: String
@@ -37,8 +37,6 @@ struct TokenSummary: Equatable {
     let cost: String
 
     static let empty = TokenSummary(totalTokens: "0", cacheRate: "0.0%", calls: "0次", cost: "$0.00")
-
-    static let mock = TokenSummary(totalTokens: "38.8M", cacheRate: "94.6%", calls: "527次", cost: "$0.00")
 }
 private func tokenStatusColor(_ status: Int) -> Color {
     // 状态色：圆点 + 文字用色（白字实心 pill 已删）
@@ -120,7 +118,7 @@ struct TokenZoneView: View {
                 Text("Tokens")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                Text(TokenSummary.mock.totalTokens)
+                Text(store.summary.totalTokens)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.primary)
             }
@@ -129,7 +127,7 @@ struct TokenZoneView: View {
                 Text("缓存命中率")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.green)
-                Text(TokenSummary.mock.cacheRate)
+                Text(store.summary.cacheRate)
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.green)
                 ZStack(alignment: .leading) {
@@ -138,7 +136,7 @@ struct TokenZoneView: View {
                         .frame(width: 64, height: 6)
                     Capsule()
                         .fill(Color.green)
-                        .frame(width: 64 * 0.946, height: 6)
+                        .frame(width: 64 * min(1, max(0, store.cacheRateFraction)), height: 6)
                 }
             }
             .padding(.horizontal, 12)
@@ -150,7 +148,7 @@ struct TokenZoneView: View {
                 Text("调用量")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                Text(TokenSummary.mock.calls)
+                Text(store.summary.calls)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.primary)
             }
@@ -190,11 +188,11 @@ struct TokenZoneView: View {
                 .frame(height: 0.5)
             HStack {
                 Circle()
-                    .fill(Color.green)
+                    .fill(store.footer.cacheReadTotal > 0 ? Color.green : Color.secondary)
                     .frame(width: 6, height: 6)
-                Text("上下文缓存命中已开启 (Prompt Cache 10%)")
+                Text("缓存命中 \(UsageStore.formatTokens(store.footer.cacheReadTotal)) · 省 \(UsageStore.formatCost(usd: store.footer.savedUSD, priced: true))")
                 Spacer()
-                Text("更新于 \(Self.footerTime)")
+                Text("更新于 \(footerTimeText)")
             }
             .font(.system(size: 10))
             .foregroundStyle(.secondary)
@@ -202,15 +200,16 @@ struct TokenZoneView: View {
         .padding(.top, 10)
     }
 
+    private var footerTimeText: String {
+        guard let at = store.footer.lastRequestAt else { return "--:--" }
+        return Self.footerFormatter.string(from: at)
+    }
+
     private static let footerFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         return f
     }()
-
-    private static var footerTime: String {
-        footerFormatter.string(from: Date())
-    }
 }
 
 #Preview {

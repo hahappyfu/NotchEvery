@@ -167,6 +167,7 @@ final class UsageStoreTests: XCTestCase {
         XCTAssertEqual(s.totalTokens, "57.5K")
         // 55000 / (2200 + 55000) = 96.2%
         XCTAssertEqual(s.cacheRate, "96.2%")
+        XCTAssertEqual(data.cacheRateFraction, 55000.0 / 57200.0, accuracy: 0.0005)
         XCTAssertEqual(s.calls, "4次")
         // 0 + 0.005 + 0 + 0（<$0.01 → 四位）
         XCTAssertEqual(s.cost, "$0.0050")

@@ -24,6 +24,8 @@ struct UsageFooter: Equatable {
 struct UsageData: Equatable {
     var recentRequests: [TokenRequest] = []
     var summary: TokenSummary = .empty
+    /// 缓存命中率数值形式（进度条填充用，0.0–1.0）
+    var cacheRateFraction: Double = 0
     var footer = UsageFooter()
     var providerName: String?
 
@@ -35,6 +37,7 @@ final class UsageStore: ObservableObject {
 
     @Published private(set) var recentRequests: [TokenRequest] = []
     @Published private(set) var summary: TokenSummary = .empty
+    @Published private(set) var cacheRateFraction: Double = 0
     @Published private(set) var footer = UsageFooter()
     @Published private(set) var providerName: String?
 
@@ -87,6 +90,7 @@ final class UsageStore: ObservableObject {
                 // 值级去重：无变化不发布，避免轮询空刷 UI
                 if self.recentRequests != data.recentRequests { self.recentRequests = data.recentRequests }
                 if self.summary != data.summary { self.summary = data.summary }
+                if self.cacheRateFraction != data.cacheRateFraction { self.cacheRateFraction = data.cacheRateFraction }
                 if self.footer != data.footer { self.footer = data.footer }
                 if self.providerName != data.providerName { self.providerName = data.providerName }
             }
@@ -105,7 +109,9 @@ extension UsageStore {
         let startOfDay = Calendar.current.startOfDay(for: now)
         var data = UsageData()
         data.recentRequests = queryRecent(db)
-        data.summary = queryTodaySummary(db, since: startOfDay)
+        let (summary, fraction) = queryTodaySummary(db, since: startOfDay)
+        data.summary = summary
+        data.cacheRateFraction = fraction
         data.footer.cacheReadTotal = todayCacheReadTotal(db, since: startOfDay)
         data.footer.savedUSD = todayCacheSaved(db, since: startOfDay)
         data.footer.lastRequestAt = queryLatestCreatedAt(db)
@@ -202,7 +208,7 @@ extension UsageStore {
         return rows
     }
 
-    private static func queryTodaySummary(_ db: OpaquePointer, since: Date) -> TokenSummary {
+    private static func queryTodaySummary(_ db: OpaquePointer, since: Date) -> (TokenSummary, Double) {
         let sql = """
             SELECT COUNT(*),
                    COALESCE(SUM(\(freshInputSQL)), 0),
@@ -213,10 +219,10 @@ extension UsageStore {
             FROM proxy_request_logs l
             WHERE \(baseFilter) AND l.created_at >= ?
             """
-        guard let stmt = prepare(db, sql) else { return .empty }
+        guard let stmt = prepare(db, sql) else { return (.empty, 0) }
         defer { sqlite3_finalize(stmt) }
         sqlite3_bind_int64(stmt, 1, Int64(since.timeIntervalSince1970))
-        guard sqlite3_step(stmt) == SQLITE_ROW else { return .empty }
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return (.empty, 0) }
 
         let calls = sqlite3_column_int64(stmt, 0)
         let fresh = sqlite3_column_int64(stmt, 1)
@@ -227,13 +233,14 @@ extension UsageStore {
 
         let total = fresh + output + cacheRead + cacheCreate
         let cacheable = fresh + cacheRead + cacheCreate
-        let rate = cacheable > 0 ? Double(cacheRead) / Double(cacheable) * 100 : 0
-        return TokenSummary(
+        let fraction = cacheable > 0 ? Double(cacheRead) / Double(cacheable) : 0
+        let summary = TokenSummary(
             totalTokens: formatTokens(Int(total)),
-            cacheRate: String(format: "%.1f%%", rate),
+            cacheRate: String(format: "%.1f%%", fraction * 100),
             calls: "\(Int(calls).formatted())次",
             cost: formatCost(usd: costUSD, priced: true)
         )
+        return (summary, fraction)
     }
 
     private static func todayCacheReadTotal(_ db: OpaquePointer, since: Date) -> Int {
