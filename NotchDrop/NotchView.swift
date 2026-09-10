@@ -20,7 +20,7 @@ struct NotchView: View {
         let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {
         case .closed:
-            if isGhost { return IslandMetrics.peekSize }
+            if isGhost { return IslandMetrics.peekSize(for: vm.deviceNotchRect.size) }
             return CGSize(
                 width: max(vm.deviceNotchRect.width - 4, 0),
                 height: max(vm.deviceNotchRect.height - 4, 0)
@@ -36,8 +36,8 @@ struct NotchView: View {
     var islandFillet: CGFloat {
         let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {
-        case .closed: return isGhost ? IslandMetrics.filletRadius : 0
-        case .opened: return IslandMetrics.filletRadius
+        case .closed: return isGhost ? IslandMetrics.filletRadius(for: vm.deviceNotchRect.size) : 0
+        case .opened: return IslandMetrics.filletRadius(for: vm.deviceNotchRect.size)
         case .popping: return 0
         }
     }
@@ -46,8 +46,8 @@ struct NotchView: View {
     var islandBottomRadius: CGFloat {
         let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {
-        case .closed: return isGhost ? 20 : 12
-        case .opened: return 26
+        case .closed: return isGhost ? IslandMetrics.peekBottomRadius(for: vm.deviceNotchRect.size) : 12
+        case .opened: return IslandMetrics.openBottomRadius(for: vm.deviceNotchRect.size)
         case .popping: return 10
         }
     }
@@ -149,7 +149,7 @@ struct NotchView: View {
             .overlay(alignment: .bottom) {
                 if (vm.hoverGhosting || vm.ghostFading), usage.summary != TokenSummary.empty {
                     peekHint
-                        .padding(.bottom, 16)
+                        .padding(.bottom, 8)
                         .transition(.opacity)
                 }
             }

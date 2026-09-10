@@ -40,4 +40,20 @@ final class IslandMetricsTests: XCTestCase {
             XCTAssertLessThanOrEqual(w, IslandMetrics.modelColumnMax)
         }
     }
+
+    func testShapeMetricsIdentityAtPrototypeScale() {
+        let proto = CGSize(width: 285, height: 46)
+        XCTAssertEqual(IslandMetrics.filletRadius(for: proto), 15)
+        XCTAssertEqual(IslandMetrics.peekSize(for: proto), CGSize(width: 350, height: 82))
+        XCTAssertEqual(IslandMetrics.peekBottomRadius(for: proto), 20)
+        XCTAssertEqual(IslandMetrics.openBottomRadius(for: proto), 26)
+    }
+
+    func testShapeMetricsScaleWithRealNotch() {
+        let real = CGSize(width: 179, height: 32)
+        XCTAssertEqual(IslandMetrics.filletRadius(for: real), 9)
+        XCTAssertEqual(IslandMetrics.peekSize(for: real), CGSize(width: 220, height: 57))
+        XCTAssertEqual(IslandMetrics.peekBottomRadius(for: real), 13)
+        XCTAssertEqual(IslandMetrics.openBottomRadius(for: real), 16)
+    }
 }
