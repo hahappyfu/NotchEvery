@@ -98,3 +98,6 @@ iOSInjectionProject/
 
 # LLVM coverage artifacts
 *.profraw
+
+# Claude Code worktrees
+.claude/worktrees/
