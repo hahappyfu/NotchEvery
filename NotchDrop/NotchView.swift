@@ -60,7 +60,7 @@ struct NotchView: View {
                     VStack(spacing: vm.spacing) {
                         NotchContentView(vm: vm)
                             .frame(maxWidth: .infinity)
-                            .modifier(StaggeredEntry(delay: 0.16))
+                            .modifier(StaggeredEntry(delay: 0.06))
                     }
                     .onAppear { notchTimingMark("contentAppear") }
                     .padding(.horizontal, vm.spacing)
@@ -258,7 +258,8 @@ struct NotchView: View {
     }
 }
 
-/// 分批入场修饰符：延迟后 blur 4→0 + opacity 0→1 + 下移入场；reduceMotion 直接显示
+/// 分批入场修饰符：延迟后 blur 2→0 + opacity 0→1 + 下移入场；reduceMotion 直接显示
+/// （首展跟手调优：延迟/blur 减半，时长不动；NOTCH_TIMING 日志证实同步链路 ≤70ms，体感全在这）
 struct StaggeredEntry: ViewModifier {
     let delay: TimeInterval
     @State private var shown = false
@@ -267,7 +268,7 @@ struct StaggeredEntry: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(shown || reduceMotion ? 1 : 0)
-            .blur(radius: shown || reduceMotion ? 0 : 4)
+            .blur(radius: shown || reduceMotion ? 0 : 2)
             .offset(y: shown || reduceMotion ? 0 : -6)
             .onAppear {
                 guard !reduceMotion else { return }
