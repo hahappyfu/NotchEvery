@@ -12,8 +12,15 @@ struct NotchRootView: View {
     private let deadZoneMargin: CGFloat = 8
 
     var body: some View {
-        // dots 已收进面板内容区（NotchView 内），外层只剩 pages
-        pages
+        // dots 在测量树内紧贴内容：间距 6 + 底部 6，随内容一起量，不裁剪不漂浮
+        VStack(spacing: 6) {
+            pages
+            SmoothPageIndicator(pageCount: 2, currentPage: Binding(
+                get: { NotchViewModel.pageIndex(for: vm.contentType) },
+                set: { vm.jumpToZone(NotchViewModel.zone(for: $0)) }
+            ))
+        }
+        .padding(.bottom, 6)
         // 刘海安全区垫在测量区内：测量含安全区，面板才够高（03 工单）
         .padding(.top, vm.notchSafeAreaTop)
         // 耳区贴顶叠在禁放区两侧；中央禁放区留空只画背景（ADR-0009）
