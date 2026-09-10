@@ -2,7 +2,7 @@
 
 日期：2026-09-11
 状态：设计已批准（用户逐节确认；形态经交互原型验收）
-视觉基准：`docs/superpowers/prototypes/2026-09-11-island-form.html`（三态 morph + 两页内容 + 深浅壁纸切换）
+视觉基准：`docs/superpowers/prototypes/2026-09-11-island-form.html`（三态 morph + 两页内容 + 深浅壁纸切换）、`docs/superpowers/prototypes/2026-09-11-island-form-v2.html`（+ dots 指示器样式确认，用户选定胶囊座）
 
 ## 背景
 
@@ -58,7 +58,7 @@ NotchEvery 现形态为「玻璃卡片悬于刘海下方」：material 刘海壳
 
 ### 底部
 
-dots 指示器保留，白色系（非当前页白 0.25 / 当前页白 0.75）。
+dots 指示器保留**胶囊座现状款**（用户经原型 v2 选定）：容器白 0.08 + 描边白 0.15 + 黑投影，当前页 13×5 白 0.95、非当前页 5×5 白 0.3，spring 形变与点击直达不变。现有 `iOSPageIndicator` 已是全白色系、无系统语义色，在纯黑岛上直接成立，**无需改动**。
 
 ## 三、色彩与明暗
 
@@ -82,7 +82,7 @@ dots 指示器保留，白色系（非当前页白 0.25 / 当前页白 0.75）�
 
 - `NotchRootView`：去玻璃底，内容直接坐黑岛；耳区条带配色随黑岛
 - `QuotaCardView` / `TokenZoneView`：黑底配色重排；模型列宽改数据驱动（自适应宽度）
-- `iOSPageIndicator`：白色系配色
+- `iOSPageIndicator`：无需改动（已是白色系胶囊座，纯黑岛直接成立）
 
 ## 五、删除与保留
 
