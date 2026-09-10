@@ -7,6 +7,7 @@ import SwiftUI
 /// 双页外壳：滑动切页 + dots + 耳区（设置走右键菜单 Popover，挂根，右上齿轮已删）。
 struct NotchRootView: View {
     @StateObject var vm: NotchViewModel
+    @StateObject private var usage = UsageStore.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// 中央禁放区两侧边距（ADR-0009）：禁放区总宽 = 挖槽宽 + 2×margin，只画背景
     private let deadZoneMargin: CGFloat = 8
@@ -72,20 +73,15 @@ struct NotchRootView: View {
 
     @ViewBuilder
     private var leftEarPill: some View {
-        if vm.contentType == .token {
+        // 左耳：当前 cc-switch 供应商（claude-desktop 槽）；查无则整只隐藏
+        if vm.contentType == .token, let provider = usage.providerName {
             HStack(spacing: 6) {
                 Circle()
                     .fill(Color.green)
                     .frame(width: 8, height: 8)
-                Text(TokenRequest.mock.first?.model ?? "opus-5")
+                Text(provider)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.primary)
-                Text("Token")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 1)
-                    .background(Color.white.opacity(0.10), in: Capsule())
             }
             .monospacedDigit()
             .lineLimit(1)
@@ -96,12 +92,9 @@ struct NotchRootView: View {
 
     @ViewBuilder
     private var rightEarPill: some View {
+        // 右耳：今日调用次数
         if vm.contentType == .token {
-            Text("实时调用流")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            RollupText(text: usage.summary.calls, font: .system(size: 11, weight: .medium), color: .secondary)
         }
     }
 

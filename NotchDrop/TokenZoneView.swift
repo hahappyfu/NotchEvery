@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// 单条模型请求（真数据来自 cc-switch 使用统计；mock 仅供预览）。
+/// 单条模型请求（真数据来自 cc-switch 使用统计）。
 struct TokenRequest: Identifiable, Equatable {
     /// cc-switch 的 request_id（稳定标识，滚动动画依赖）
     let id: String
@@ -19,14 +19,6 @@ struct TokenRequest: Identifiable, Equatable {
     let durationSeconds: Double
     let cost: String
     let status: Int
-
-    static let mock: [TokenRequest] = [
-        .init(id: "mock-01", time: "14:46", model: "opus-5", inputTokens: 524, outputTokens: 283, durationSeconds: 26.8, cost: "未定价", status: 200),
-        .init(id: "mock-02", time: "14:45", model: "opus-5", inputTokens: 538, outputTokens: 185, durationSeconds: 19.3, cost: "未定价", status: 200),
-        .init(id: "mock-03", time: "14:44", model: "opus-5", inputTokens: 2977, outputTokens: 638, durationSeconds: 40.1, cost: "未定价", status: 200),
-        .init(id: "mock-04", time: "14:39", model: "opus-5", inputTokens: 0, outputTokens: 0, durationSeconds: 6.1, cost: "$0.00", status: 429),
-        .init(id: "mock-05", time: "14:37", model: "opus-5", inputTokens: 1126, outputTokens: 372, durationSeconds: 63.2, cost: "未定价", status: 200),
-    ]
 }
 
 /// KPI 聚合（真数据来自 UsageStore）。
@@ -37,6 +29,30 @@ struct TokenSummary: Equatable {
     let cost: String
 
     static let empty = TokenSummary(totalTokens: "0", cacheRate: "0.0%", calls: "0次", cost: "$0.00")
+}
+
+/// 数字变化时的滚动过渡：老值上滑出、新值滑入（reduceMotion 降级为直替）。
+struct RollupText: View {
+    let text: String
+    var font: Font = .system(size: 14, weight: .bold)
+    var color: Color = .primary
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            Text(text)
+                .font(font.monospacedDigit())
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .id(text)
+                .transition(reduceMotion ? .identity : .asymmetric(
+                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                    removal: .move(edge: .top).combined(with: .opacity)
+                ))
+        }
+        .clipped()
+        .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.85), value: text)
+    }
 }
 private func tokenStatusColor(_ status: Int) -> Color {
     // 状态色：圆点 + 文字用色（白字实心 pill 已删）
@@ -49,7 +65,10 @@ private struct TokenRowView: View {
     let modelW: CGFloat
     let durationW: CGFloat
     let statusW: CGFloat
+    /// 刚插入的新行：播一次绿闪渐隐
+    var isNew: Bool = false
     @State private var hovering = false
+    @State private var flashOpacity: Double = 0
 
     var body: some View {
         HStack(spacing: 8) {
@@ -59,6 +78,8 @@ private struct TokenRowView: View {
             Text(row.model)
                 .fontWeight(.semibold)
                 .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
                 .frame(width: modelW, alignment: .leading)
             Text("\(row.inputTokens.formatted()) / \(row.outputTokens.formatted())")
                 .font(.system(size: 10))
@@ -81,7 +102,16 @@ private struct TokenRowView: View {
         .padding(.vertical, 6)
         .contentShape(Rectangle())
         .background(hovering ? Color.white.opacity(0.04) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+        .background(Color.green.opacity(flashOpacity), in: RoundedRectangle(cornerRadius: 6))
         .onHover { hovering = $0 }
+        .onAppear {
+            // 新行入场：绿闪一下后渐隐（B 柔闪）
+            guard isNew else { return }
+            flashOpacity = 0.16
+            DispatchQueue.main.async {
+                withAnimation(.easeOut(duration: 0.9)) { flashOpacity = 0 }
+            }
+        }
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(Color(nsColor: .separatorColor).opacity(0.5))
@@ -92,24 +122,51 @@ private struct TokenRowView: View {
 
 struct TokenZoneView: View {
     @StateObject private var store = UsageStore.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// 首行 id 追踪：只对新插入的行播绿闪（首帧不闪）
+    @State private var lastFirstID: String?
 
     /// 列宽（header 与行共用同一组，保证对齐；文本列左对齐，数字列右对齐）
-    private let timeW: CGFloat = 44
-    private let modelW: CGFloat = 72
-    private let durationW: CGFloat = 56
-    private let statusW: CGFloat = 44
+    private let timeW: CGFloat = 40
+    private let modelW: CGFloat = 100
+    private let durationW: CGFloat = 48
+    private let statusW: CGFloat = 38
 
     var body: some View {
         VStack(spacing: 0) {
             summaryBar
             header
-            ForEach(store.recentRequests.prefix(5)) { row in
-                TokenRowView(row: row, timeW: timeW, modelW: modelW, durationW: durationW, statusW: statusW)
+            VStack(spacing: 0) {
+                ForEach(store.recentRequests.prefix(5)) { row in
+                    TokenRowView(
+                        row: row, timeW: timeW, modelW: modelW, durationW: durationW, statusW: statusW,
+                        isNew: lastFirstID != nil
+                            && row.id == store.recentRequests.first?.id
+                            && row.id != lastFirstID
+                    )
+                    .transition(reduceMotion ? .identity : .opacity)
+                }
             }
+            // 上下渐隐遮罩：行进不出硬边（B 柔闪配套）
+            .mask(
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black, location: 0.03),
+                        .init(color: .black, location: 0.97),
+                        .init(color: .clear, location: 1),
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+            )
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: store.recentRequests)
             footer
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
+        .onChange(of: store.recentRequests) { rows in
+            if let first = rows.first, first.id != lastFirstID { lastFirstID = first.id }
+        }
     }
 
     private var summaryBar: some View {
@@ -118,18 +175,14 @@ struct TokenZoneView: View {
                 Text("Tokens")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                Text(store.summary.totalTokens)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.primary)
+                RollupText(text: store.summary.totalTokens)
             }
             Spacer()
             HStack(spacing: 6) {
                 Text("缓存命中率")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.green)
-                Text(store.summary.cacheRate)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.green)
+                RollupText(text: store.summary.cacheRate, font: .system(size: 12, weight: .bold), color: .green)
                 ZStack(alignment: .leading) {
                     Capsule()
                         .fill(Color.green.opacity(0.2))
@@ -143,15 +196,6 @@ struct TokenZoneView: View {
             .padding(.vertical, 4)
             .background(Color.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.green.opacity(0.20), lineWidth: 1))
-            Spacer()
-            HStack(spacing: 6) {
-                Text("调用量")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                Text(store.summary.calls)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.primary)
-            }
         }
         .monospacedDigit()
         .lineLimit(1)
