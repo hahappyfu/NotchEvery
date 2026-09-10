@@ -2,7 +2,7 @@
 //  TokenZoneView.swift
 //  NotchDrop
 //
-//  Token 分区：模型请求记录表（mock 先行，数据源后接，见 ADR-0005）。
+//  Token 分区：模型请求记录表（真数据来自 UsageStore 的 cc-switch 统计，见 ADR-0005）。
 //
 
 import SwiftUI
@@ -67,6 +67,7 @@ private struct TokenRowView: View {
     let statusW: CGFloat
     /// 刚插入的新行：播一次绿闪渐隐
     var isNew: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
     @State private var flashOpacity: Double = 0
 
@@ -105,8 +106,8 @@ private struct TokenRowView: View {
         .background(Color.green.opacity(flashOpacity), in: RoundedRectangle(cornerRadius: 6))
         .onHover { hovering = $0 }
         .onAppear {
-            // 新行入场：绿闪一下后渐隐（B 柔闪）
-            guard isNew else { return }
+            // 新行入场：绿闪一下后渐隐（B 柔闪）；reduceMotion 下不闪
+            guard isNew, !reduceMotion else { return }
             flashOpacity = 0.16
             DispatchQueue.main.async {
                 withAnimation(.easeOut(duration: 0.9)) { flashOpacity = 0 }

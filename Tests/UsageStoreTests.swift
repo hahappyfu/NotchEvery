@@ -25,6 +25,28 @@ final class UsageStoreTests: XCTestCase {
 
     // MARK: - Fixture
 
+    private static let schemaSQL = """
+    CREATE TABLE proxy_request_logs (
+        request_id TEXT PRIMARY KEY, provider_id TEXT NOT NULL, app_type TEXT NOT NULL,
+        model TEXT NOT NULL, input_tokens INTEGER NOT NULL DEFAULT 0,
+        output_tokens INTEGER NOT NULL DEFAULT 0, cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+        cache_creation_tokens INTEGER NOT NULL DEFAULT 0, total_cost_usd TEXT NOT NULL DEFAULT '0',
+        latency_ms INTEGER NOT NULL, status_code INTEGER NOT NULL, created_at INTEGER NOT NULL,
+        data_source TEXT NOT NULL DEFAULT 'proxy', pricing_model TEXT,
+        input_token_semantics INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE providers (
+        id TEXT NOT NULL, app_type TEXT NOT NULL, name TEXT NOT NULL,
+        is_current BOOLEAN NOT NULL DEFAULT 0, PRIMARY KEY (id, app_type)
+    );
+    CREATE TABLE model_pricing (
+        model_id TEXT PRIMARY KEY, display_name TEXT NOT NULL,
+        input_cost_per_million TEXT NOT NULL, output_cost_per_million TEXT NOT NULL,
+        cache_read_cost_per_million TEXT NOT NULL DEFAULT '0',
+        cache_creation_cost_per_million TEXT NOT NULL DEFAULT '0'
+    );
+    """
+
     private func epoch(secondsFromNow offset: TimeInterval) -> Int {
         Int(now.addingTimeInterval(offset).timeIntervalSince1970)
     }
@@ -34,26 +56,7 @@ final class UsageStoreTests: XCTestCase {
         XCTAssertEqual(sqlite3_open(dbURL.path, &db), SQLITE_OK)
         defer { sqlite3_close(db) }
 
-        try exec(db, """
-        CREATE TABLE proxy_request_logs (
-            request_id TEXT PRIMARY KEY, provider_id TEXT NOT NULL, app_type TEXT NOT NULL,
-            model TEXT NOT NULL, input_tokens INTEGER NOT NULL DEFAULT 0,
-            output_tokens INTEGER NOT NULL DEFAULT 0, cache_read_tokens INTEGER NOT NULL DEFAULT 0,
-            cache_creation_tokens INTEGER NOT NULL DEFAULT 0, total_cost_usd TEXT NOT NULL DEFAULT '0',
-            latency_ms INTEGER NOT NULL, status_code INTEGER NOT NULL, created_at INTEGER NOT NULL,
-            data_source TEXT NOT NULL DEFAULT 'proxy', pricing_model TEXT,
-            input_token_semantics INTEGER NOT NULL DEFAULT 0
-        );
-        CREATE TABLE providers (
-            id TEXT NOT NULL, app_type TEXT NOT NULL, name TEXT NOT NULL,
-            is_current BOOLEAN NOT NULL DEFAULT 0, PRIMARY KEY (id, app_type)
-        );
-        CREATE TABLE model_pricing (
-            model_id TEXT PRIMARY KEY, display_name TEXT NOT NULL,
-            input_cost_per_million TEXT NOT NULL, output_cost_per_million TEXT NOT NULL,
-            cache_read_cost_per_million TEXT NOT NULL DEFAULT '0',
-            cache_creation_cost_per_million TEXT NOT NULL DEFAULT '0'
-        );
+        try exec(db, Self.schemaSQL + """
         INSERT INTO model_pricing VALUES ('deepseek-v4-flash', 'DeepSeek V4 Flash', '0.44', '0.88', '0.014', '0');
         INSERT INTO model_pricing VALUES ('muse-spark', 'Muse Spark', '0.50', '1.00', '0.05', '0');
         INSERT INTO providers VALUES ('p1', 'claude-desktop', 'DeepSeek', 1);
@@ -209,22 +212,42 @@ final class UsageStoreTests: XCTestCase {
     func testEmptyTablesReturnEmpty() throws {
         var db: OpaquePointer?
         XCTAssertEqual(sqlite3_open(dbURL.path, &db), SQLITE_OK)
-        try exec(db, """
-        CREATE TABLE proxy_request_logs (request_id TEXT PRIMARY KEY, provider_id TEXT, app_type TEXT,
-            model TEXT, input_tokens INTEGER DEFAULT 0, output_tokens INTEGER DEFAULT 0,
-            cache_read_tokens INTEGER DEFAULT 0, cache_creation_tokens INTEGER DEFAULT 0,
-            total_cost_usd TEXT DEFAULT '0', latency_ms INTEGER DEFAULT 0, status_code INTEGER DEFAULT 0,
-            created_at INTEGER DEFAULT 0, data_source TEXT DEFAULT 'proxy', pricing_model TEXT,
-            input_token_semantics INTEGER DEFAULT 0);
-        CREATE TABLE providers (id TEXT, app_type TEXT, name TEXT, is_current INTEGER DEFAULT 0);
-        CREATE TABLE model_pricing (model_id TEXT PRIMARY KEY, display_name TEXT, input_cost_per_million TEXT,
-            output_cost_per_million TEXT, cache_read_cost_per_million TEXT, cache_creation_cost_per_million TEXT);
-        """)
+        try exec(db, Self.schemaSQL)
         sqlite3_close(db)
 
         let data = UsageStore.fetch(dbPath: dbURL, now: now)
         XCTAssertTrue(data.recentRequests.isEmpty)
         XCTAssertNil(data.providerName)
         XCTAssertEqual(data.summary, TokenSummary.empty)
+    }
+
+    func testMissingLogTableReturnsEmptyWithoutCrash() throws {
+        // db 存在但缺 proxy_request_logs 表（部分 schema）
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(dbURL.path, &db), SQLITE_OK)
+        try exec(db, "CREATE TABLE providers (id TEXT, app_type TEXT, name TEXT, is_current INTEGER DEFAULT 0);")
+        sqlite3_close(db)
+
+        let data = UsageStore.fetch(dbPath: dbURL, now: now)
+        XCTAssertTrue(data.recentRequests.isEmpty)
+        XCTAssertNil(data.providerName)
+        XCTAssertEqual(data.summary, TokenSummary.empty)
+    }
+
+    func testUnpricedRowSkippedInSavings() throws {
+        // 今日行：有缓存读但模型无任何定价条目 → 节省额跳过；命中量与成本文案照常
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(dbURL.path, &db), SQLITE_OK)
+        defer { sqlite3_close(db) }
+        try exec(db, Self.schemaSQL)
+        try insert(db, id: "u1", offset: -600, app: "claude-desktop", model: "mystery-model",
+                   input: 100, output: 10, cr: 50000, cc: 0, lat: 1000, status: 200,
+                   cost: "0", pricing: nil, sem: 2, source: "proxy")
+
+        let data = UsageStore.fetch(dbPath: dbURL, now: now)
+        XCTAssertEqual(data.footer.savedUSD, 0)
+        XCTAssertEqual(data.footer.cacheReadTotal, 50000)
+        let row = try XCTUnwrap(data.recentRequests.first)
+        XCTAssertEqual(row.cost, "未定价")
     }
 }
