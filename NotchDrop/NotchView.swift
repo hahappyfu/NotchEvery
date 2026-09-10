@@ -9,48 +9,52 @@ import SwiftUI
 
 struct NotchView: View {
     @StateObject var vm: NotchViewModel
+    @StateObject private var usage = UsageStore.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State var dropTargeting: Bool = false
     @State private var swipeResolver = ScrollSwipeResolver()
 
-    var notchSize: CGSize {
+    /// 岛体尺寸：闲置=物理刘海同形；悬停=peek；展开=内容测量值；popping=微胀
+    var islandSize: CGSize {
         let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {
         case .closed:
-            if isGhost {
-                // 舌头形虚影：宽 = max(刘海宽×1.1, 200)、高 52
-                let w = max(vm.deviceNotchRect.width * 1.1, 200)
-                return CGSize(width: w, height: 52)
-            }
-            var ans = CGSize(
-                width: vm.deviceNotchRect.width - 4,
-                height: vm.deviceNotchRect.height - 4
+            if isGhost { return IslandMetrics.peekSize }
+            return CGSize(
+                width: max(vm.deviceNotchRect.width - 4, 0),
+                height: max(vm.deviceNotchRect.height - 4, 0)
             )
-            if ans.width < 0 { ans.width = 0 }
-            if ans.height < 0 { ans.height = 0 }
-            return ans
         case .opened:
             return vm.zoneOpenedSize
         case .popping:
-            return .init(
-                width: vm.deviceNotchRect.width,
-                height: vm.deviceNotchRect.height + 4
-            )
+            return CGSize(width: vm.deviceNotchRect.width, height: vm.deviceNotchRect.height + 4)
         }
     }
 
-    var notchCornerRadius: CGFloat {
+    /// 顶部凹角半径：闲置与 popping 为 0（与刘海同形），悬停/展开出现
+    var islandFillet: CGFloat {
         let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {
-        case .closed: return isGhost ? 16 : 8
-        case .opened: return 32
+        case .closed: return isGhost ? IslandMetrics.filletRadius : 0
+        case .opened: return IslandMetrics.filletRadius
+        case .popping: return 0
+        }
+    }
+
+    /// 底部圆角：随状态变化（原型 12 / 20 / 26）
+    var islandBottomRadius: CGFloat {
+        let isGhost = vm.hoverGhosting || vm.ghostFading
+        switch vm.status {
+        case .closed: return isGhost ? 20 : 12
+        case .opened: return 26
         case .popping: return 10
         }
     }
 
     var body: some View {
         ZStack(alignment: .top) {
-            notch
+            island
                 .zIndex(0)
                 .disabled(true)
                 .opacity(vm.notchVisible ? 1 : 0.3)
@@ -116,7 +120,7 @@ struct NotchView: View {
                 )
             )
         }
-        .animation(vm.status == .opened ? vm.openAnimation : vm.closeAnimation, value: vm.status)
+        .animation(reduceMotion ? nil : (vm.status == .opened ? vm.openAnimation : vm.closeAnimation), value: vm.status)
         // 背景跟随切页尺寸：瞬变贴顶。窗口已一步到位锁顶，背景若再用 spring 会相对窗口
         // "从上往下慢慢铺开"，用户感知为"最上层滑下来"；顶部恒贴顶，不回弹不脱开。
         // 页面内容转场由 NotchRootView 内层 pageAnimation 独立驱动。
@@ -138,15 +142,17 @@ struct NotchView: View {
         .ignoresSafeArea()
     }
 
-    var notch: some View {
-        glassNotchBackground
-            .mask(notchBackgroundMaskGroup)
-            .frame(
-                width: notchSize.width + notchCornerRadius * 2,
-                height: notchSize.height
-            )
-            // 无外投影：悬浮感靠磨砂与描边，投影在浅底上显脏（2026-09-08 定稿）
-            // 过桥菊花：openFromGhost 后 150ms 短闪
+    var island: some View {
+        IslandShape(bottomRadius: islandBottomRadius, filletRadius: islandFillet)
+            .fill(Color.black)
+            .frame(width: islandSize.width + islandFillet * 2, height: islandSize.height)
+            .overlay(alignment: .bottom) {
+                if vm.hoverGhosting || vm.ghostFading {
+                    peekHint
+                        .padding(.bottom, 16)
+                        .transition(.opacity)
+                }
+            }
             .overlay {
                 if vm.bridgeSpinning {
                     SpinnerView(size: 16, color: .white)
@@ -155,91 +161,26 @@ struct NotchView: View {
             }
     }
 
-    /// 玻璃刘海背景：控制中心式高透磨砂，浅底色 + 顶部折射高光
-    private var glassNotchBackground: some View {
-        let shape = UnevenRoundedRectangle(
-            topLeadingRadius: 0,
-            bottomLeadingRadius: notchCornerRadius,
-            bottomTrailingRadius: notchCornerRadius,
-            topTrailingRadius: 0,
-            style: .continuous
-        )
-        return Rectangle()
-            .fill(.clear)
-            .background(
-                shape.fill((vm.hoverGhosting || vm.ghostFading)
-                    ? Color(red: 0.165, green: 0.173, blue: 0.2).opacity(0.72)
-                    : Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.15)
-                )
-            )
-            .background(shape.fill(.ultraThinMaterial))
-            .overlay(
-                shape.fill(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.10), Color.clear],
-                        startPoint: .top,
-                        endPoint: .center
-                    )
-                )
-            )
-            .overlay(shape.strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-    }
-
-    var notchBackgroundMaskGroup: some View {
-        Rectangle()
-            .foregroundStyle(.black)
-            .frame(
-                width: notchSize.width,
-                height: notchSize.height
-            )
-            .clipShape(.rect(
-                bottomLeadingRadius: notchCornerRadius,
-                bottomTrailingRadius: notchCornerRadius
-            ))
-            .overlay {
-                ZStack(alignment: .topTrailing) {
-                    Rectangle()
-                        .frame(width: notchCornerRadius, height: notchCornerRadius)
-                        .foregroundStyle(.black)
-                    Rectangle()
-                        .clipShape(.rect(topTrailingRadius: notchCornerRadius))
-                        .foregroundStyle(.white)
-                        .frame(
-                            width: notchCornerRadius + vm.spacing,
-                            height: notchCornerRadius + vm.spacing
-                        )
-                        .blendMode(.destinationOut)
-                }
-                .compositingGroup()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .offset(x: -notchCornerRadius - vm.spacing + 0.5, y: -0.5)
-            }
-            .overlay {
-                ZStack(alignment: .topLeading) {
-                    Rectangle()
-                        .frame(width: notchCornerRadius, height: notchCornerRadius)
-                        .foregroundStyle(.black)
-                    Rectangle()
-                        .clipShape(.rect(topLeadingRadius: notchCornerRadius))
-                        .foregroundStyle(.white)
-                        .frame(
-                            width: notchCornerRadius + vm.spacing,
-                            height: notchCornerRadius + vm.spacing
-                        )
-                        .blendMode(.destinationOut)
-                }
-                .compositingGroup()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .offset(x: notchCornerRadius + vm.spacing - 0.5, y: -0.5)
-            }
+    /// 悬停 peek 提示：今日用量一行小字（真数据）
+    private var peekHint: some View {
+        HStack(spacing: 7) {
+            Circle()
+                .fill(Color.green)
+                .frame(width: 7, height: 7)
+            Text("\(usage.summary.totalTokens) · \(usage.summary.cacheRate)")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.62))
+                .monospacedDigit()
+                .lineLimit(1)
+        }
     }
 
     @ViewBuilder
     var dragDetector: some View {
-        RoundedRectangle(cornerRadius: notchCornerRadius)
+        RoundedRectangle(cornerRadius: islandBottomRadius)
             .foregroundStyle(Color.black.opacity(0.001)) // 近乎透明的命中区：SwiftUI 最小可用不透明度
             .contentShape(Rectangle())
-            .frame(width: notchSize.width + vm.dropDetectorRange, height: notchSize.height + vm.dropDetectorRange)
+            .frame(width: islandSize.width + vm.dropDetectorRange, height: islandSize.height + vm.dropDetectorRange)
             .onDrop(of: [.data], isTargeted: $dropTargeting) { _ in true }
             .onChange(of: dropTargeting) { isTargeted in
                 if isTargeted, vm.status == .closed {

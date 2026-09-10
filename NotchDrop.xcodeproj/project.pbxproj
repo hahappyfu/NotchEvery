@@ -57,6 +57,8 @@
 		B7C8D3E4F5A6071829304101 /* iOSPageIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */; };
 		D0E1F2A3B4C5071829304101 /* OverviewPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */; };
 		C9D0E1F2A3B4071829304101 /* NotchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D0E1F2A3B4071829304100 /* NotchRootView.swift */; };
+		C1D2E3F4A506172839404301 /* IslandShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404300 /* IslandShape.swift */; };
+		C1D2E3F4A506172839404303 /* IslandMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404302 /* IslandMetrics.swift */; };
 		7AE10C0220260AB000000D1 /* AppPathsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C1 /* AppPathsTests.swift */; };
 		7AE10C0220260AB000000D2 /* ContentZoneSwitcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */; };
 		7AE10C0220260AB000000D3 /* QuotaSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C3 /* QuotaSnapshotTests.swift */; };
@@ -123,6 +125,8 @@
 		B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSPageIndicator.swift; sourceTree = "<group>"; };
 		D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewPageView.swift; sourceTree = "<group>"; };
 		C9D0E1F2A3B4071829304100 /* NotchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchRootView.swift; sourceTree = "<group>"; };
+		C1D2E3F4A506172839404300 /* IslandShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandShape.swift; sourceTree = "<group>"; };
+		C1D2E3F4A506172839404302 /* IslandMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMetrics.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C1 /* AppPathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPathsTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentZoneSwitcherTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C3 /* QuotaSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaSnapshotTests.swift; sourceTree = "<group>"; };
@@ -198,6 +202,8 @@
 				B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */,
 				D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */,
 				C9D0E1F2A3B4071829304100 /* NotchRootView.swift */,
+				C1D2E3F4A506172839404300 /* IslandShape.swift */,
+				C1D2E3F4A506172839404302 /* IslandMetrics.swift */,
 				503D8EB92C3F838200E173FF /* NotchMenuView.swift */,
 				504381AE2C3ADFF2000ED325 /* NotchContentView.swift */,
 				7AE10C0220260AB000000002 /* ZoneSizeGuard.swift */,
@@ -367,6 +373,8 @@
 				B7C8D3E4F5A6071829304101 /* iOSPageIndicator.swift in Sources */,
 				D0E1F2A3B4C5071829304101 /* OverviewPageView.swift in Sources */,
 				C9D0E1F2A3B4071829304101 /* NotchRootView.swift in Sources */,
+				C1D2E3F4A506172839404301 /* IslandShape.swift in Sources */,
+				C1D2E3F4A506172839404303 /* IslandMetrics.swift in Sources */,
 				504381A02C3A8BA1000ED325 /* NotchView.swift in Sources */,
 				503D8EBA2C3F838200E173FF /* NotchMenuView.swift in Sources */,
 				50EFDB522C3BF7B4002D3E0F /* Ext+NSImage.swift in Sources */,

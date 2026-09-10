@@ -13,8 +13,7 @@ struct NotchRootView: View {
     private let deadZoneMargin: CGFloat = 8
 
     var body: some View {
-        // 面板实底：ultraThinMaterial 全屏宽 blur 每展开首帧重合成即卡（systematic-debugging 假设），
-        // 换低成本不 blur 的纯色玻璃感；dots 落在实底内、底边留 10 缝隙 = 镶嵌感
+        // 黑岛（ADR-0010）：内容透明直接坐岛上，岛体由 NotchView 的 IslandShape 绘制
         VStack(spacing: 0) {
             pages
             SmoothPageIndicator(pageCount: 2, currentPage: Binding(
@@ -24,7 +23,6 @@ struct NotchRootView: View {
             .padding(.top, 8)
         }
         .padding(.bottom, 10)
-        .background(Color(nsColor: .windowBackgroundColor).opacity(0.55), in: RoundedRectangle(cornerRadius: 20))
         // 刘海安全区垫在测量区内：测量含安全区，面板才够高（03 工单）
         .padding(.top, vm.notchSafeAreaTop)
         // 耳区贴顶叠在禁放区两侧；中央禁放区留空只画背景（ADR-0009）
