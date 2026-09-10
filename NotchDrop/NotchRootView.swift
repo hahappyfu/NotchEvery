@@ -42,37 +42,52 @@ struct NotchRootView: View {
 
     private var earsRow: some View {
         HStack(spacing: 0) {
-            earItem(text: leftEarText, alignment: .leading)
+            // 左耳：靠右对齐 → 右缘贴死区左缘（外侧自然留白）
+            leftEarPill
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            // 中央禁放区：挖槽宽 + 双侧 margin，只画背景（ADR-0009）；
+            // 高度写死：Color 是弹性视图，不锁高会把整行撑成面板高（掉到第二行即此因）
             Color.clear
-                .frame(width: vm.deviceNotchRect.width + deadZoneMargin * 2)
-            earItem(text: rightEarText, alignment: .trailing)
+                .frame(width: vm.deviceNotchRect.width + deadZoneMargin * 2, height: vm.notchSafeAreaTop)
+            // 右耳：靠左对齐 → 左缘贴死区右缘（外侧自然留白）
+            rightEarPill
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, maxHeight: vm.notchSafeAreaTop, alignment: .top)
+        .frame(maxWidth: .infinity, minHeight: vm.notchSafeAreaTop, alignment: .center)
     }
 
-    /// 单耳：单行内容、超长截断；内容 nil 页只画背景仍占位（跨页等高，切页顶部不跳）
-    private func earItem(text: String?, alignment: HorizontalAlignment) -> some View {
-        Text(text ?? "")
-            .font(.system(size: 11, design: .monospaced))
+    @ViewBuilder
+    private var leftEarPill: some View {
+        if vm.contentType == .token {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 8, height: 8)
+                Text(TokenRequest.mock.first?.model ?? "opus-5")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.primary)
+                Text("Token")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 1)
+                    .background(Color.white.opacity(0.10), in: Capsule())
+            }
             .monospacedDigit()
-            .foregroundStyle(.secondary)
             .lineLimit(1)
-            .minimumScaleFactor(0.7)
             .truncationMode(.tail)
-            .frame(maxWidth: .infinity, maxHeight: vm.notchSafeAreaTop, alignment: Alignment(horizontal: alignment, vertical: .center))
-    }
-
-    private var leftEarText: String? {
-        switch vm.contentType {
-        case .normal: return nil
-        case .token: return "\(TokenSummary.mock.totalTokens) · \(TokenSummary.mock.cacheRate)"
+            .minimumScaleFactor(0.8)
         }
     }
 
-    private var rightEarText: String? {
-        switch vm.contentType {
-        case .normal: return nil
-        case .token: return TokenSummary.mock.calls
+    @ViewBuilder
+    private var rightEarPill: some View {
+        if vm.contentType == .token {
+            Text("实时调用流")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
     }
 
