@@ -19,7 +19,7 @@ struct NotchRootView: View {
                 get: { NotchViewModel.pageIndex(for: vm.contentType) },
                 set: { vm.jumpToZone(NotchViewModel.zone(for: $0)) }
             ))
-            .padding(.top, 12)
+            .padding(.top, 8)
         }
         .padding(.bottom, 10)
         // 刘海安全区垫在测量区内：测量含安全区，面板才够高（03 工单）
