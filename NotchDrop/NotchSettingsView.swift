@@ -15,7 +15,7 @@ struct NotchSettingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Language: ")
+                Text(LocalizedStringKey("Language"))
                     .font(.system(size: 13))
                 Spacer()
                 Picker("", selection: $vm.selectedLanguage) {
@@ -25,7 +25,8 @@ struct NotchSettingsView: View {
                 }
                 .pickerStyle(MenuPickerStyle())
                 .controlSize(.small)
-                .frame(width: vm.selectedLanguage == .simplifiedChinese || vm.selectedLanguage == .traditionalChinese ? 150 : 120)
+                // 语言名宽度各异，随内容自适应（不再硬编码 150/120）
+                .fixedSize()
             }
             .padding(.vertical, 2)
             Divider()
@@ -39,31 +40,36 @@ struct NotchSettingsView: View {
                 .font(.system(size: 13))
                 .padding(.vertical, 2)
             Divider()
-            HStack {
-                Text("File Storage Time: ")
-                    .font(.system(size: 13))
-                Spacer()
-                Picker(String(), selection: $tvm.selectedFileStorageTime) {
-                    ForEach(TrayDrop.FileStorageTime.allCases) { time in
-                        Text(time.localized).tag(time)
-                    }
-                }
-                .pickerStyle(MenuPickerStyle())
-                .controlSize(.small)
-                .frame(width: 90)
-                if tvm.selectedFileStorageTime == .custom {
-                    TextField("Days", value: $tvm.customStorageTime, formatter: NumberFormatter())
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .controlSize(.small)
-                        .frame(width: 40)
-                    Picker("Time Unit", selection: $tvm.customStorageTimeUnit) {
-                        ForEach(TrayDrop.CustomStorageTimeUnit.allCases) { unit in
-                            Text(unit.localized).tag(unit)
+            // 自定义时 field+unit 换第二行右对齐：一行摆不下 240pt 三件套+label（360 Popover 可用仅 336）
+            VStack(alignment: .trailing, spacing: 4) {
+                HStack {
+                    Text(LocalizedStringKey("File Storage Time"))
+                        .font(.system(size: 13))
+                    Spacer()
+                    Picker(String(), selection: $tvm.selectedFileStorageTime) {
+                        ForEach(TrayDrop.FileStorageTime.allCases) { time in
+                            Text(time.localized).tag(time)
                         }
                     }
                     .pickerStyle(MenuPickerStyle())
                     .controlSize(.small)
-                    .frame(width: 110)
+                    .frame(width: 90)
+                }
+                if tvm.selectedFileStorageTime == .custom {
+                    HStack {
+                        TextField("Days", value: $tvm.customStorageTime, formatter: NumberFormatter())
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .controlSize(.small)
+                            .frame(width: 40)
+                        Picker("Time Unit", selection: $tvm.customStorageTimeUnit) {
+                            ForEach(TrayDrop.CustomStorageTimeUnit.allCases) { unit in
+                                Text(unit.localized).tag(unit)
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
+                        .controlSize(.small)
+                        .frame(width: 110)
+                    }
                 }
             }
             .padding(.vertical, 2)

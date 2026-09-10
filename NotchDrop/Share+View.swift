@@ -13,29 +13,11 @@ import UniformTypeIdentifiers
 struct ShareView: View {
     enum ShareType {
         case airdrop
-        case generic
 
-        var imageName: String {
-            switch self {
-            case .airdrop: "airplayaudio"
-            case .generic: "arrow.up.circle"
-            }
-        }
-
-        var title: String {
-            switch self {
-            case .airdrop: NSLocalizedString("AirDrop", comment: "AirDrop sharing title")
-            case .generic: NSLocalizedString("Share", comment: "Generic sharing title")
-            }
-        }
-
+        var imageName: String { "airplayaudio" }
+        var title: String { NSLocalizedString("AirDrop", comment: "AirDrop sharing title") }
         var service: ([URL]) -> Share {
-            switch self {
-            case .airdrop:
-                { urls in Share(files: urls, serviceName: .sendViaAirDrop) }
-            case .generic:
-                { urls in Share(files: urls) }
-            }
+            { urls in Share(files: urls, serviceName: .sendViaAirDrop) }
         }
     }
 

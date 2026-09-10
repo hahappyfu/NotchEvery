@@ -85,6 +85,9 @@ fastlane/test_output
 # Superpowers brainstorm/prototype artifacts
 .superpowers/
 
+# Local scratch/spec scratchpads (not source)
+.scratch/
+
 # Code Injection
 #
 # After new code Injection tools there's a generated folder /iOSInjectionProject
@@ -92,3 +95,6 @@ fastlane/test_output
 
 iOSInjectionProject/
 .DS_Store
+
+# LLVM coverage artifacts
+*.profraw

@@ -49,17 +49,23 @@ struct TrayView: View {
         RoundedRectangle(cornerRadius: vm.cornerRadius)
             .fill(.clear)
             .overlay {
-                if tvm.isEmpty {
-                    RoundedRectangle(cornerRadius: vm.cornerRadius)
-                        .stroke(Color.secondary.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [6, 6]))
-                } else {
-                    RoundedRectangle(cornerRadius: vm.cornerRadius)
-                        .strokeBorder(Color.white.opacity(targeting ? 0.3 : 0.12), lineWidth: targeting ? 1.5 : 0.5)
-                }
+                RoundedRectangle(cornerRadius: vm.cornerRadius)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(targeting ? 0.25 : 0.08),
+                                Color.white.opacity(targeting ? 0.15 : 0.04)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: targeting ? 1.5 : 0.5
+                    )
             }
             .overlay {
                 content
-                    .padding()
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
             }
             .overlay(loadingIndicator)
             .scaleEffect(targeting ? 1.02 : 1.0)
@@ -77,28 +83,22 @@ struct TrayView: View {
         }
     }
 
-    var text: String {
-        [
-            String(
-                format: NSLocalizedString("Drag files here to keep them for %@", comment: ""),
-                storageTime
-            ),
-            "&",
-            NSLocalizedString("Press Option to delete", comment: ""),
-        ].joined(separator: " ")
-    }
-
     var content: some View {
         Group {
             if tvm.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "tray.and.arrow.down.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.secondary)
-                    Text(text)
-                        .multilineTextAlignment(.center)
-                        .font(.system(.headline, design: .rounded))
-                        .foregroundStyle(.primary)
+                VStack(spacing: 10) {
+                    Image(systemName: "tray.and.arrow.down")
+                        .font(.system(size: 28, weight: .light))
+                        .foregroundStyle(.secondary.opacity(0.7))
+                    VStack(spacing: 3) {
+                        Text(String(format: NSLocalizedString("Drag files here to keep them for %@", comment: ""), storageTime))
+                            .font(.system(.subheadline, design: .rounded))
+                            .multilineTextAlignment(.center)
+                        Text(LocalizedStringKey("Press Option to delete"))
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
                 }
             } else {
                 ScrollView(.horizontal) {

@@ -2,8 +2,8 @@
 //  QuotaCardView.swift
 //  NotchEvery
 //
-//  额度卡（样式 C：5h 大环 + 周/月小字）。纯展示，点击穿透。
-//  视觉已锁定（7pt 中环 / 阈值三色 / 虚线占位 / reduceMotion 跳值）。
+//  额度卡（样式 C：5h 大环 + 周/月小字，2026-09-08 定稿视觉，锁定）。
+//  环内数字 15pt（100.0% ≈52pt < 内径 54，不溢出）
 //
 
 import Foundation
@@ -12,6 +12,7 @@ import SwiftUI
 struct QuotaCardView: View {
     @StateObject var vm: NotchViewModel
     @StateObject var store = QuotaStore.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// 用量阈值配色：<70 绿，70–90 橙，≥90 红
     static func ringColor(_ percent: Double) -> Color {
@@ -20,42 +21,51 @@ struct QuotaCardView: View {
         return .green
     }
 
-    private var reduceMotion: Bool {
-        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-    }
-
     var body: some View {
+        // 扁长横块（灵动岛比例，清单 08 三返工）：环左数据右，环 56 + 纵向 8，高约 72、宽 250+
         HStack(spacing: 12) {
-            ring(size: 68, percent: store.snapshot.window("5h")?.percent, label: "5h")
-            VStack(alignment: .leading, spacing: 8) {
+            ring(size: 56, percent: store.snapshot.window("5h")?.percent, label: "5h")
+            VStack(alignment: .leading, spacing: 6) {
                 row(key: "weekly", title: "周")
                 row(key: "monthly", title: "月")
                 statusLine
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(12)
+        // 横块：宽给 250、高随内容（清单 08 返工：1:1 方形偏长，改宽不改高）
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .frame(minWidth: 250)
         .onAppear { store.start() }
+        // 30s 轮询随面板收起停表（常驻定时器归零）：面板收起 → status closed
+        .onChange(of: vm.status) { status in
+            if status == .closed {
+                store.stop()
+            } else {
+                store.start()
+            }
+        }
     }
 
     private func row(key: String, title: String) -> some View {
         let percent = store.snapshot.window(key)?.percent
-        return HStack(spacing: 6) {
+        return HStack(spacing: 8) {
             Text(title)
-                .font(.system(size: 12))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
+                .frame(width: 20, alignment: .leading)
             miniBar(percent: percent)
-                .frame(minWidth: 40)
+                .frame(minWidth: 50)
             if let percent {
                 Text("\(Int(percent))%")
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundStyle(.primary)
-                    .frame(width: 40, alignment: .trailing)
+                    .frame(width: 42, alignment: .trailing)
             } else {
                 Text("--%")
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundStyle(.tertiary)
-                    .frame(width: 40, alignment: .trailing)
+                    .frame(width: 42, alignment: .trailing)
             }
         }
     }
@@ -66,15 +76,16 @@ struct QuotaCardView: View {
         let fill: Color = percent.map(Self.ringColor) ?? .clear
         return GeometryReader { geo in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 2.5)
-                    .fill(Color(nsColor: .separatorColor))
-                    .frame(height: 5)
-                RoundedRectangle(cornerRadius: 2.5)
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(nsColor: .separatorColor).opacity(0.5))
+                    .frame(height: 6)
+                RoundedRectangle(cornerRadius: 3)
                     .fill(fill)
-                    .frame(width: geo.size.width * fraction, height: 5)
+                    .frame(width: geo.size.width * fraction, height: 6)
+                    .animation(.easeInOut(duration: 0.3), value: fraction)
             }
         }
-        .frame(height: 5)
+        .frame(height: 6)
     }
 
     /// 分钟精度倒计时（秒级跳动在状态栏是噪音，且 8 字符必换行）。
@@ -110,35 +121,50 @@ struct QuotaCardView: View {
     }
 
     private func ring(size: CGFloat, percent: Double?, label: String) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 4) {
             ZStack {
                 if let percent {
                     Circle()
-                        .stroke(Color(nsColor: .separatorColor), lineWidth: 7)
+                        .stroke(Color(nsColor: .separatorColor).opacity(0.4), lineWidth: 8)
                         .frame(width: size, height: size)
                     Circle()
                         .trim(from: 0, to: min(1, max(0, percent / 100)))
-                        .stroke(Self.ringColor(percent), style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                        .stroke(
+                            AngularGradient(
+                                colors: [Self.ringColor(percent).opacity(0.8), Self.ringColor(percent)],
+                                center: .center,
+                                startAngle: .degrees(-90),
+                                endAngle: .degrees(270)
+                            ),
+                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                        )
                         .rotationEffect(.degrees(-90))
                         .frame(width: size, height: size)
-                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: percent)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.4), value: percent)
                     Text(String(format: "%.1f%%", percent))
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(.primary)
+                        .frame(width: size - 16)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
                 } else {
                     Circle()
-                        .strokeBorder(Color(nsColor: .separatorColor), style: StrokeStyle(lineWidth: 7, dash: [4, 4]))
+                        .strokeBorder(
+                            Color(nsColor: .separatorColor).opacity(0.4),
+                            style: StrokeStyle(lineWidth: 8, dash: [6, 6])
+                        )
                         .frame(width: size, height: size)
                     Text("--%")
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(.tertiary)
                 }
             }
             Text(label)
-                .font(.system(size: 9))
+                .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.secondary)
         }
     }
+
 }
 
 #if DEBUG

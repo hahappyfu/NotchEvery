@@ -8,22 +8,22 @@ import SwiftUI
 struct NotchRootView: View {
     @StateObject var vm: NotchViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var showSettings = false
 
     var body: some View {
-        VStack(spacing: 6) {
-            ZStack(alignment: .topTrailing) {
-                pages
+        VStack(spacing: 10) {
+            ZStack(alignment: .topTrailing) {                pages
                 Button {
-                    showSettings = true
+                    vm.showSettings = true
                 } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 12))
                         .foregroundStyle(.primary.opacity(0.4))
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .padding(6)
-                .popover(isPresented: $showSettings, arrowEdge: .top) {
+                .popover(isPresented: $vm.showSettings, arrowEdge: .top) {
                     VStack(alignment: .leading, spacing: 8) {
                         NotchMenuView(vm: vm)
                         NotchSettingsView(vm: vm)
@@ -32,14 +32,19 @@ struct NotchRootView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(12)
-                    .frame(minWidth: 300)
+                    .frame(minWidth: 360)
                 }
             }
-            iOSPageIndicator(count: 2, current: NotchViewModel.pageIndex(for: vm.contentType)) {
-                vm.jumpToZone(NotchViewModel.zone(for: $0))
-            }
+            SmoothPageIndicator(pageCount: 2, currentPage: Binding(
+                get: { NotchViewModel.pageIndex(for: vm.contentType) },
+                set: { vm.jumpToZone(NotchViewModel.zone(for: $0)) }
+            ))
         }
-        .frame(width: NotchViewModel.zonePanelWidth)
+        // 刘海安全区垫在测量区内：测量含安全区，面板才够高（03 工单）
+        .padding(.top, vm.notchSafeAreaTop)
+        // 整体上报：含安全区+内容+dots，dots 预留魔法数不再需要
+        .zoneSizeReporter(active: true)
+        .frame(width: vm.zoneOpenedSize.width)
     }
 
     private var pages: some View {
@@ -47,18 +52,19 @@ struct NotchRootView: View {
             switch vm.contentType {
             case .normal:
                 OverviewPageView(vm: vm)
-                    .zoneHeightReporter(active: vm.contentType == .normal)
+                    // 量理想宽：maxWidth 填充会让测量值永远等于容器宽、宽度锁死，
+                    // 水平 fixedSize 让面板宽度收敛到内容（垂直保持 flexible）
+                    .fixedSize(horizontal: true, vertical: false)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .transition(reduceMotion ? .opacity : .blurFade)
+                    .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             case .token:
                 TokenZoneView()
-                    .zoneHeightReporter(active: vm.contentType == .token)
+                    .fixedSize(horizontal: true, vertical: false)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .transition(reduceMotion ? .opacity : .blurFade)
-            case .settings:
-                Color.clear
+                    .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             }
         }
-        .animation(vm.animation, value: vm.contentType)
+        // 切页专用快弹簧（清单 05；裁剪已撤：与窗口边双边打架是闪的根因，窗口自带裁剪 enough）
+        .animation(vm.pageAnimation, value: vm.contentType)
     }
 }

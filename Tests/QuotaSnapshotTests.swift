@@ -12,7 +12,8 @@ final class QuotaSnapshotTests: XCTestCase {
         // 缓存 percent 恒 0，used=62 limit=100 → 自算 62
         let json = #"{"at": 1788423000000, "quota": {"5h": {"used": 62, "limit": 100, "percent": 0}}}"#
         let snap = QuotaSnapshot.normalize(json.data(using: .utf8)!, now: Date(timeIntervalSince1970: 1788423000))
-        XCTAssertEqual(snap.window("5h")?.percent, 62, accuracy: 0.01)
+        let percent = try XCTUnwrap(snap.window("5h")?.percent)
+        XCTAssertEqual(percent, 62, accuracy: 0.01)
     }
 
     func testDropsInvalidWindows() {

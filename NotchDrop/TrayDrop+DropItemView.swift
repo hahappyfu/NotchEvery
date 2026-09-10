@@ -13,7 +13,8 @@ import UniformTypeIdentifiers
 struct DropItemView: View {
     let item: TrayDrop.DropItem
     @StateObject var vm: NotchViewModel
-    @StateObject var tvm = TrayDrop.shared
+    // 单例降级：@ObservedObject 从父级接收，不每卡片自持状态对象（插一条全卡片重算的根源之一）
+    @ObservedObject var tvm: TrayDrop
 
     @State var hover = false
 

@@ -14,39 +14,32 @@ struct NotchContentView: View {
     var body: some View {
         NotchRootView(vm: vm)
         .animation(vm.animation, value: vm.contentType)
-        .onPreferenceChange(ZoneNaturalHeightKey.self) { natural in
-            // 溢出守卫：内容回报高超过内容区槽位 = 高度表与内容脱节，选项卡会被挤动
-            // 语义边界见 ZoneHeightGuard.swift（弹性子视图会吸收溢出导致漏报）
+        // 尺寸上报：内容自然大小驱动面板（ADR-0008），见 ZoneSizeGuard.swift
+        .onPreferenceChange(ZoneNaturalSizeKey.self) { natural in
+            vm.measuredNaturalSize = natural
+            // 越界守卫：内容超过最大界 = 钳制将生效，内部必须可滚/可裁
             assert(
-                natural <= vm.zoneContentHeight + 0.5,
-                "高度表与内容脱节：\(vm.contentType) 内容回报高 \(natural) > 可用 \(vm.zoneContentHeight)，请更新 zonePanelHeight 或收缩内容"
+                natural.width <= NotchViewModel.maxPanelWidth + 0.5,
+                "内容超宽：\(vm.contentType) 自然宽 \(natural.width) > 最大 \(NotchViewModel.maxPanelWidth)，内部必须收缩"
             )
         }
     }
 }
 
-/// 模糊淡入过渡：出现时 blur 6→0 + 透明度 + 轻微放大，消失时反向快退
-struct BlurFadeModifier: ViewModifier, Animatable {
-    var amount: CGFloat
-
-    var animatableData: CGFloat {
-        get { amount }
-        set { amount = newValue }
-    }
-
-    func body(content: Content) -> some View {
-        content
-            .opacity(1 - amount)
-            .blur(radius: 6 * amount)
-            .scaleEffect(1 - 0.02 * amount)
-    }
-}
-
 extension AnyTransition {
-    static var blurFade: AnyTransition {
+    /// 分区滑动（旧项目灵感合成 + 弹开修正）：插入 24pt 方向轻推，移除 0.15s 快淡出——
+    /// 移除不带行程，转场并集期压到最短，面板/窗口尺寸不弹到两页最大（systematic-debugging H1）。
+    static var zoneSlideNext: AnyTransition {
         .asymmetric(
-            insertion: .modifier(active: BlurFadeModifier(amount: 1), identity: BlurFadeModifier(amount: 0)),
-            removal: .opacity.animation(.easeOut(duration: 0.18))
+            insertion: .offset(x: 24).combined(with: .opacity),
+            removal: .opacity.animation(.easeOut(duration: 0.15))
+        )
+    }
+
+    static var zoneSlidePrevious: AnyTransition {
+        .asymmetric(
+            insertion: .offset(x: -24).combined(with: .opacity),
+            removal: .opacity.animation(.easeOut(duration: 0.15))
         )
     }
 }

@@ -1,5 +1,5 @@
 import XCTest
-@testable import NotchDrop
+@testable import NotchEvery
 
 // 首批单测（#31 最小集，需在 Xcode 中新建 Test Target 后启用）
 final class TrayDropTests: XCTestCase {

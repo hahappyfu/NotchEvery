@@ -100,15 +100,33 @@ class TrayDrop: ObservableObject {
             return
         }
         DispatchQueue.main.async {
-            succeeded.forEach { self.items.updateOrInsert($0, at: 0) }
-            // ——— 修复 #18: 限容 100，最老优先淘汰 ———
+            // 一次性迁移旧数据到外置预览文件（迁移失败则该条丢弃，不拖累整批）
+            var migrated: [DropItem] = []
+            for item in succeeded {
+                var copy = item
+                if copy.migratePreviewIfNeeded() { migrated.append(copy) }
+            }
+            // 批量收集后一次赋值：不再逐条 updateOrInsert（每条都触发一次全量持久化 = 卡顿主因）
+            var newSet = self.items
+            for item in migrated {
+                if let idx = newSet.firstIndex(where: { $0.id == item.id }) {
+                    newSet.remove(at: idx)
+                }
+                newSet.insert(item, at: 0)
+            }
+            // ——— 修复 #18: 限容 100，最老优先淘汰（文件删除集中处理，不再逐条触发持久化）———
             let maxItems = 100
-            if self.items.count > maxItems {
-                let overflow = self.items.count - maxItems
-                let oldest = self.items.sorted(by: { $0.copiedDate < $1.copiedDate }).prefix(overflow)
-                for o in oldest { self.delete(item: o) }
+            if newSet.count > maxItems {
+                let overflow = newSet.count - maxItems
+                let oldest = newSet.sorted(by: { $0.copiedDate < $1.copiedDate }).prefix(overflow)
+                for o in oldest {
+                    self.removeFiles(of: o)
+                }
+                let oldestIDs = Set(oldest.map(\.id))
+                newSet.removeAll { oldestIDs.contains($0.id) }
                 trayLog.info("capacity trimmed \(overflow) items")
             }
+            self.items = newSet
             bumpLoading(-1)
             if !failures.isEmpty {
                 trayLog.error("load: \(failures.count) of \(urls.count) items failed")
@@ -136,9 +154,8 @@ class TrayDrop: ObservableObject {
         delete(item: item)
     }
 
-    private func delete(item: DropItem) {
-        var inEdit = items
-
+    /// 仅清理文件与空父目录，不触碰 items（供批量删除复用，避免逐条触发持久化）
+    private func removeFiles(of item: DropItem) {
         var url = item.storageURL
         try? FileManager.default.removeItem(at: url)
 
@@ -152,13 +169,19 @@ class TrayDrop: ObservableObject {
                 url = url.deletingLastPathComponent()
             }
         } catch {}
+    }
 
+    private func delete(item: DropItem) {
+        var inEdit = items
+        removeFiles(of: item)
         inEdit.remove(item)
         items = inEdit
     }
 
     func removeAll() {
-        items.forEach { delete(item: $0) }
+        // 先删文件再一次清空：避免逐条删除触发 N 次全量持久化
+        items.forEach { removeFiles(of: $0) }
+        items = []
     }
 }
 

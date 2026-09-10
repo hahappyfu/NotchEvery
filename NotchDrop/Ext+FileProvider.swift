@@ -9,18 +9,20 @@ import Cocoa
 import Foundation
 import UniformTypeIdentifiers
 
-extension NSItemProvider {
-    // ——— 修复 #12: 校验符号链接与路径穿越 ———
-    private func sanitizedFileName(_ name: String) -> String {
-        // 拒绝路径分隔符与空名，截断过长
-        var s = name.trimmingCharacters(in: .whitespacesAndNewlines)
+extension String {
+    /// 文件名消毒：拒绝路径分隔符与空名，截断过长（拖入、持久化回读、导出三个口共用）
+    var sanitizedFileName: String {
+        var s = trimmingCharacters(in: .whitespacesAndNewlines)
         if s.isEmpty { s = UUID().uuidString }
-        s = s.replacingOccurrences(of: "/", with: "_")
+        s = replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: ":", with: "_")
-        if s.count > 200 { s = String(s.prefix(200)) }
+        if count > 200 { s = String(prefix(200)) }
         return s
     }
+}
 
+extension NSItemProvider {
+    // ——— 修复 #12: 校验符号链接与路径穿越 ———
     private func duplicateToOurStorage(_ url: URL?) throws -> URL {
         guard let url else { throw NSError(domain: "NotchDrop", code: 1, userInfo: [NSLocalizedDescriptionKey: "empty url"]) }
 
@@ -38,7 +40,7 @@ extension NSItemProvider {
         let temp = temporaryDirectory
             .appendingPathComponent("TemporaryDrop")
             .appendingPathComponent(UUID().uuidString)
-            .appendingPathComponent(sanitizedFileName(url.lastPathComponent))
+            .appendingPathComponent(url.lastPathComponent.sanitizedFileName)
         try? FileManager.default.createDirectory(
             at: temp.deletingLastPathComponent(),
             withIntermediateDirectories: true

@@ -21,15 +21,6 @@ struct NotchGeometry {
         )
     }
 
-    var headlineOpenedRect: CGRect {
-        .init(
-            x: screenRect.origin.x + (screenRect.width - zoneOpenedSize.width) / 2,
-            y: screenRect.origin.y + screenRect.height - deviceNotchRect.height,
-            width: zoneOpenedSize.width,
-            height: deviceNotchRect.height
-        )
-    }
-
     func insetDeviceRect() -> CGRect {
         deviceNotchRect.insetBy(dx: inset, dy: inset)
     }
@@ -61,41 +52,42 @@ class NotchViewModel: NSObject, ObservableObject {
     }
 
     let animation: Animation = .interactiveSpring(
-        duration: 0.5,
-        extraBounce: 0.25,
-        blendDuration: 0.125
+        duration: 0.4,
+        extraBounce: 0,
+        blendDuration: 0.1
     )
-    /// 分区面板尺寸：宽 520 全区锁定（切换不重居中，选项卡钉死不动）；高查表。
-    /// 推导（任务 8 方案 C，无头部行）：H = natural + dots 行 19（dots 实高 13 + 间距 6）+ 上下 padding 40 + 1pt 余量。
-    /// 概览 165 = 105（配额卡环 68+标签+内边距，探针实测）+ 19 + 40 + 1。
-    /// Token 224 = 164（KPI 单行 + 表头 + 5 行，探针实测）+ 19 + 40 + 1，落在 210~230 区间内。
-    /// 概览 165 低于 210~230：内容就这么高，不加空白硬撑，如实记录（见 ADR-0006）。
-    /// 设置 284 不动：旧布局值保留（内容自然高 194 + 头部槽 29 + 间距 60 = 283，取 284）。
-    static let zonePanelWidth: CGFloat = 520
-    static let zonePanelHeight: [ContentType: CGFloat] = [
-        .normal: 165,
-        .token: 224,
-        .settings: 284,
-    ]
+    /// 内容自适应面板（ADR-0008）：面板尺寸跟随当前分区内容自然大小，钳制有界。
+    /// 最小 320×120 防塌，最大 640 宽 × 屏高 40%，超限由内容区内部吸收，外层不动。
+    static let minPanelSize = CGSize(width: 320, height: 120)
+    static let maxPanelWidth: CGFloat = 640
     /// headerSlotHeight 常量保留，不作语义用途（头部行已删；测试锁定值 29）。
-    /// 29 = 守卫实测（12pt 字 + 上下 padding 5×2 + 外层 padding 2×2 ≈ 29，原表注释写 28 差 1pt）
     static let headerSlotHeight: CGFloat = 29
 
-    /// 宿主层排版高度 = 最大分区高：NSHostingView 对高于窗口 bounds 的内容垂直居中
-    /// （设置 284 > 窗口 200 时整个面板上溢 42pt，选项卡跑到屏幕外），
-    /// hosting view 必须以此高度 top 钉死，让面板永远顶对齐、向下溢出
-    static let hostedViewHeight: CGFloat = zonePanelHeight.values.max() ?? 284
-
-    /// 当前区已打开尺寸：面板 frame 与几何计算都跟随它
-    var zoneOpenedSize: CGSize {
-        .init(width: Self.zonePanelWidth, height: Self.zonePanelHeight[contentType] ?? Self.zonePanelHeight[.normal]!)
+    /// 钳制纯函数：自然尺寸 → 面板尺寸。maxHeight 由调用方按当前屏幕给（屏高 40%）。
+    static func clampPanelSize(_ natural: CGSize, maxHeight: CGFloat) -> CGSize {
+        CGSize(
+            width: min(max(natural.width, minPanelSize.width), maxPanelWidth),
+            height: min(max(natural.height, minPanelSize.height), maxHeight)
+        )
     }
 
-    /// 内容区可用高度 = 分区高度 − 上下 padding；高度动画只作用于这一段。
-    /// 「间距×2」编码的是 NotchView 展开态布局（上下 padding 20×2，头部行已删），改布局必须同步这里与高度表注释。
-    /// 概览 165−40 = 125 ≥ 页自然高 105 + dots 行 19 = 124；Token 224−40 = 184 ≥ 164 + 19 = 183（各留 1pt 余量）
-    var zoneContentHeight: CGFloat {
-        zoneOpenedSize.height - spacing * 2
+    /// 面板高上限 = 屏高 40%；屏幕未知时回落 360（≈900×0.4）。
+    var maxPanelHeight: CGFloat {
+        screenRect.height > 0 ? screenRect.height * 0.4 : 360
+    }
+
+    /// 当前分区上报的自然尺寸（内容驱动，见 ZoneNaturalSizeKey）
+    @Published var measuredNaturalSize: CGSize = .zero
+
+    /// 当前区已打开尺寸：整体测量值（含安全区+内容+dots）经钳制；未量到取最小保底
+    var zoneOpenedSize: CGSize {
+        Self.clampPanelSize(measuredNaturalSize, maxHeight: maxPanelHeight)
+    }
+
+    /// 刘海安全区顶边 = 物理刘海高 + 8pt（03 工单）。面板内容从此之下开始，
+    /// 刘海区只画背景。无刘海屏沿用控制器兜底值。
+    var notchSafeAreaTop: CGFloat {
+        deviceNotchRect.height + 8
     }
     let dropDetectorRange: CGFloat = 32
 
@@ -116,23 +108,6 @@ class NotchViewModel: NSObject, ObservableObject {
     enum ContentType: Int, Codable, Hashable, Equatable {
         case normal
         case token
-        case settings
-
-        var tabTitleKey: LocalizedStringKey {
-            switch self {
-            case .normal: "TabOverview"
-            case .token: "TabToken"
-            case .settings: "TabSettings"
-            }
-        }
-
-        var tabIconName: String {
-            switch self {
-            case .normal: "chart.pie.fill"
-            case .token: "bolt.fill"
-            case .settings: "gearshape.fill"
-            }
-        }
     }
 
     // ——— 几何经由 NotchGeometry 计算，Published 仍在门面以保持绑定 ———
@@ -146,7 +121,6 @@ class NotchViewModel: NSObject, ObservableObject {
     }
 
     var notchOpenedRect: CGRect { geometry.notchOpenedRect }
-    var headlineOpenedRect: CGRect { geometry.headlineOpenedRect }
 
     @Published private(set) var status: Status = .closed
     @Published var openReason: OpenReason = .unknown
@@ -168,6 +142,8 @@ class NotchViewModel: NSObject, ObservableObject {
     let openAnimation: Animation = .spring(response: 0.28, dampingFraction: 0.78)
     /// 收起弹簧（无过冲快退）
     let closeAnimation: Animation = .spring(response: 0.2, dampingFraction: 1.0)
+    /// 切页专用：快、无过冲（清单 05 转场收敛；.snappy 需 macOS 14+，部署目标 13 故用高阻尼 spring）
+    let pageAnimation: Animation = .spring(response: 0.3, dampingFraction: 0.9)
 
     @PublishedPersist(key: "selectedLanguage", defaultValue: .system)
     var selectedLanguage: Language
@@ -269,9 +245,8 @@ class NotchViewModel: NSObject, ObservableObject {
         }
     }
 
-    func showSettings() {
-        contentType = .settings
-    }
+    /// 设置 Popover 弹出状态：根齿轮与右键菜单共用（设置走 Popover 定案，不占分页）
+    @Published var showSettings = false
 
     /// 功能区固定顺序：左右滑按此循环（概览｜Token）
     static let zoneOrder: [ContentType] = [.normal, .token]

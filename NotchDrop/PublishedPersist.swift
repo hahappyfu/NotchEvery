@@ -25,14 +25,19 @@ private var configDir: URL {
 class FileStorage: PersistProvider {
     private let ioQueue = DispatchQueue(label: "NotchDrop.FileStorage", qos: .utility)
     private let fm = FileManager.default
+    /// 目录已确保存在的缓存：避免每次 pathForKey 都做一次 createDirectory 系统调用
+    private var dirEnsured = false
 
     func pathForKey(_ key: String) -> URL {
         let safe = key.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: ":", with: "_")
         let dir = configDir
-        do {
-            try fm.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-        } catch {
-            storeLog.error("createDirectory \(dir.path) failed: \(error.localizedDescription)")
+        if !dirEnsured {
+            do {
+                try fm.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+                dirEnsured = true
+            } catch {
+                storeLog.error("createDirectory \(dir.path) failed: \(error.localizedDescription)")
+            }
         }
         return dir.appendingPathComponent(safe)
     }
@@ -60,7 +65,7 @@ class FileStorage: PersistProvider {
 }
 
 @propertyWrapper
-struct Persist<Value: Codable> {
+struct Persist<Value: Codable & Equatable> {
     private let subject: CurrentValueSubject<Value, Never>
     private let cancellables: Set<AnyCancellable>
 
@@ -82,7 +87,10 @@ struct Persist<Value: Codable> {
         }
 
         var cancellables: Set<AnyCancellable> = .init()
+        // 值级去重：先在 Equatable 值上 removeDuplicates，再编码——
+        // 避免旧实现对多 MB 编码后 Data 全量比较（托盘风暴卡顿主因）
         subject
+            .removeDuplicates()
             .receive(on: DispatchQueue.global())
             .compactMap { value -> Data? in
                 do {
@@ -92,7 +100,6 @@ struct Persist<Value: Codable> {
                     return nil
                 }
             }
-            .removeDuplicates()
             .sink { engine.set($0, forKey: key) }
             .store(in: &cancellables)
         self.cancellables = cancellables
@@ -105,7 +112,7 @@ struct Persist<Value: Codable> {
 }
 
 @propertyWrapper
-struct PublishedPersist<Value: Codable> {
+struct PublishedPersist<Value: Codable & Equatable> {
     @Persist private var value: Value
 
     var projectedValue: AnyPublisher<Value, Never> { $value }

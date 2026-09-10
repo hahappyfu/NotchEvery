@@ -23,7 +23,6 @@ enum ArrowDirection {
 protocol EventMonitorsProtocol: AnyObject {
     var mouseLocation: CurrentValueSubject<NSPoint, Never> { get }
     var mouseDown: PassthroughSubject<Void, Never> { get }
-    var mouseDraggingFile: PassthroughSubject<Void, Never> { get }
     var optionKeyPress: CurrentValueSubject<Bool, Never> { get }
     /// 原始滚轮增量：正=右滑，负=左滑；调用方用 ScrollSwipeResolver 解析
     var scrollDelta: PassthroughSubject<ScrollDelta, Never> { get }
@@ -36,12 +35,10 @@ class EventMonitors: EventMonitorsProtocol {
 
     private var mouseMoveEvent: EventMonitor!
     private var mouseDownEvent: EventMonitor!
-    private var mouseDraggingFileEvent: EventMonitor!
     private var optionKeyPressEvent: EventMonitor!
 
     let mouseLocation: CurrentValueSubject<NSPoint, Never> = .init(.zero)
     let mouseDown: PassthroughSubject<Void, Never> = .init()
-    let mouseDraggingFile: PassthroughSubject<Void, Never> = .init()
     let optionKeyPress: CurrentValueSubject<Bool, Never> = .init(false)
     let scrollDelta: PassthroughSubject<ScrollDelta, Never> = .init()
     let arrowKey: PassthroughSubject<ArrowDirection, Never> = .init()
@@ -61,12 +58,6 @@ class EventMonitors: EventMonitorsProtocol {
             mouseDown.send()
         }
         mouseDownEvent.start()
-
-        mouseDraggingFileEvent = EventMonitor(mask: .leftMouseDragged) { [weak self] _ in
-            guard let self else { return }
-            mouseDraggingFile.send()
-        }
-        mouseDraggingFileEvent.start()
 
         optionKeyPressEvent = EventMonitor(mask: .flagsChanged) { [weak self] event in
             guard let self else { return }
@@ -106,7 +97,6 @@ class EventMonitors: EventMonitorsProtocol {
 final class MockEventMonitors: EventMonitorsProtocol {
     let mouseLocation: CurrentValueSubject<NSPoint, Never> = .init(.zero)
     let mouseDown: PassthroughSubject<Void, Never> = .init()
-    let mouseDraggingFile: PassthroughSubject<Void, Never> = .init()
     let optionKeyPress: CurrentValueSubject<Bool, Never> = .init(false)
     let scrollDelta: PassthroughSubject<ScrollDelta, Never> = .init()
     let arrowKey: PassthroughSubject<ArrowDirection, Never> = .init()

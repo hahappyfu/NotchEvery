@@ -812,7 +812,7 @@
         }
       }
     },
-    "File Storage Time: ": {
+    "File Storage Time": {
       "localizations": {
         "de": {
           "stringUnit": {
@@ -823,7 +823,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "File Storage Time: "
+            "value": "File Storage Time"
           }
         },
         "fr": {
@@ -1219,7 +1219,7 @@
         }
       }
     },
-    "Language: ": {
+    "Language": {
       "localizations": {
         "de": {
           "stringUnit": {
@@ -1230,7 +1230,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Language: "
+            "value": "Language"
           }
         },
         "fr": {

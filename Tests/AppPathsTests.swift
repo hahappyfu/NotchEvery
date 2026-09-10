@@ -1,5 +1,5 @@
 import XCTest
-@testable import NotchDrop
+@testable import NotchEvery
 
 final class AppPathsTests: XCTestCase {
     func testDocumentsDirectoryFallbackWhenEmpty() {

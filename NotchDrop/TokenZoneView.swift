@@ -14,17 +14,18 @@ struct TokenRequest: Identifiable {
     let model: String
     let inputTokens: Int
     let outputTokens: Int
-    let duration: String
+    /// 耗时存数值（秒），展示层格式化，避免反解析字符串
+    let durationSeconds: Double
     let cost: String
     let status: Int
     let cached: Bool
 
     static let mock: [TokenRequest] = [
-        .init(time: "14:46", model: "opus-5", inputTokens:524, outputTokens:283, duration: "26.8s", cost: "未定价", status: 200, cached: true),
-        .init(time: "14:45", model: "opus-5", inputTokens:538, outputTokens:185, duration: "19.3s", cost: "未定价", status: 200, cached: true),
-        .init(time: "14:44", model: "opus-5", inputTokens:2977, outputTokens:638, duration: "40.1s", cost: "未定价", status: 200, cached: true),
-        .init(time: "14:39", model: "opus-5", inputTokens:0, outputTokens:0, duration: "6.1s", cost: "$0.00", status: 429, cached: false),
-        .init(time: "14:37", model: "opus-5", inputTokens:1126, outputTokens:372, duration: "63.2s", cost: "未定价", status: 200, cached: true),
+        .init(time: "14:46", model: "opus-5", inputTokens: 524, outputTokens: 283, durationSeconds: 26.8, cost: "未定价", status: 200, cached: true),
+        .init(time: "14:45", model: "opus-5", inputTokens: 538, outputTokens: 185, durationSeconds: 19.3, cost: "未定价", status: 200, cached: true),
+        .init(time: "14:44", model: "opus-5", inputTokens: 2977, outputTokens: 638, durationSeconds: 40.1, cost: "未定价", status: 200, cached: true),
+        .init(time: "14:39", model: "opus-5", inputTokens: 0, outputTokens: 0, durationSeconds: 6.1, cost: "$0.00", status: 429, cached: false),
+        .init(time: "14:37", model: "opus-5", inputTokens: 1126, outputTokens: 372, durationSeconds: 63.2, cost: "未定价", status: 200, cached: true),
     ]
 }
 
@@ -38,7 +39,8 @@ struct TokenSummary {
     static let mock = TokenSummary(totalTokens: "38.8M", cacheRate: "94.6%", calls: "527次", cost: "$0.00")
 }
 private func tokenStatusColor(_ status: Int) -> Color {
-    status >= 400 ? .red : .green
+    // 白字纯色 pill：深底保证对比度（浅粉底深红字已删）
+    status >= 400 ? Color(red: 0.75, green: 0.20, blue: 0.18) : Color(red: 0.16, green: 0.55, blue: 0.32)
 }
 
 struct TokenZoneView: View {
@@ -46,92 +48,98 @@ struct TokenZoneView: View {
     var summary: TokenSummary = .mock
 
     var body: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 0) {
             kpiRow
-                .padding(.bottom, 6)
+                .padding(.bottom, 10)
             header
             ForEach(requests.prefix(5)) { row in
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Text(row.time)
-                        .frame(width: 40, alignment: .leading)
+                        .frame(width: 42, alignment: .leading)
                         .foregroundStyle(.secondary)
                     Text(row.model)
-                        .frame(width: 64, alignment: .leading)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                        .frame(width: 68, alignment: .leading)
                     Text("\(row.inputTokens.formatted()) / \(row.outputTokens.formatted())")
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .overlay(alignment: .trailing) {
                             if row.cached {
-                                Text("⚡︎").font(.system(size: 9)).foregroundStyle(.green.opacity(0.8))
+                                Image(systemName: "bolt.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.green.opacity(0.8))
                             }
                         }
-                    Text(row.duration)
-                        .frame(width: 48, alignment: .leading)
+                    Text(String(format: "%.1fs", row.durationSeconds))
+                        .frame(width: 50, alignment: .leading)
                         .foregroundStyle(.secondary)
                         .background(alignment: .bottomLeading) {
-                            Capsule().fill(Color.accentColor.opacity(0.5))
-                                .frame(width: min(1, durationSeconds(row.duration) / 60) * 44, height: 3)
+                            Capsule().fill(Color.accentColor.opacity(0.4))
+                                .frame(width: min(1, row.durationSeconds / 60) * 46, height: 3)
                         }
-                    Text(row.cost)
-                        .frame(width: 56, alignment: .leading)
-                        .foregroundStyle(.secondary)
                     Text("\(row.status)")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(tokenStatusColor(row.status))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 1)
-                        .background(tokenStatusColor(row.status).opacity(0.15), in: Capsule())
-                        .frame(width: 48, alignment: .trailing)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(tokenStatusColor(row.status), in: Capsule())
+                        .frame(width: 50, alignment: .trailing)
                 }
                 .font(.system(size: 11, design: .monospaced))
                 .monospacedDigit()
-                .padding(.vertical, 3)
+                .padding(.vertical, 4)
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.06))
+                        .frame(height: 1)
+                }
             }
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
     }
 
     private var kpiRow: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             kpiItem(label: "Tokens", value: summary.totalTokens)
-            kpiItem(label: "缓存率", value: summary.cacheRate, valueColor: .green, fraction: 0.946)
+            kpiItem(label: "缓存命中率", value: summary.cacheRate, valueColor: .green, fraction: 0.946)
             kpiItem(label: "调用", value: summary.calls)
-            Spacer()
-            kpiItem(label: "成本", value: summary.cost)
         }
         .font(.system(size: 11, design: .monospaced))
         .monospacedDigit()
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .padding(.trailing, 28)
+        .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
     }
 
     private func kpiItem(label: String, value: String, valueColor: Color = .primary, fraction: Double? = nil) -> some View {
-        HStack(spacing: 4) {
-            Text(label).font(.system(size: 10)).foregroundStyle(.secondary)
+        HStack(spacing: 5) {
+            Text(label).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
             Text(value).fontWeight(.semibold).foregroundStyle(valueColor)
                 .monospacedDigit()
             if let fraction {
                 Capsule()
-                    .fill(Color.green)
-                    .frame(width: 28 * fraction, height: 4)
+                    .fill(Color.green.opacity(0.8))
+                    .frame(width: 30 * fraction, height: 4)
             }
         }
     }
 
-    private func durationSeconds(_ duration: String) -> Double {
-        Double(duration.replacingOccurrences(of: "s", with: "")) ?? 0
-    }
-
-    private var header: some View {        HStack(spacing: 6) {
-            Text("时间").frame(width: 40, alignment: .leading)
-            Text("模型").frame(width: 64, alignment: .leading)
+    private var header: some View {
+        HStack(spacing: 8) {
+            Text("时间").frame(width: 42, alignment: .leading)
+            Text("模型").frame(width: 68, alignment: .leading)
             Text("入 / 出").frame(maxWidth: .infinity, alignment: .leading)
-            Text("用时").frame(width: 48, alignment: .leading)
-            Text("成本").frame(width: 56, alignment: .leading)
-            Text("状态").frame(width: 48, alignment: .trailing)
+            Text("用时").frame(width: 50, alignment: .leading)
+            Text("状态").frame(width: 50, alignment: .trailing)
         }
-        .font(.system(size: 10))
-        .foregroundStyle(.tertiary)
-        .padding(.bottom, 2)
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.bottom, 4)
     }
 }
 

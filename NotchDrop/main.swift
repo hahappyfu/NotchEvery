@@ -32,7 +32,7 @@ DispatchQueue.global(qos: .userInitiated).async {
 
 // ——— 修复 #11: PID 单例文件加 O_EXCL/O_NOFOLLOW/文件锁 + 修复 #15 权限校验 ———
 func secureWritePID() {
-    let pid = String(NSRunningApplication.current.processIdentifier)
+    let pid = String(getpid())
     guard let data = pid.data(using: .utf8) else { return }
     let path = pidFile.path
     // 1) 若已存在，先用 lstat 校验非 symlink，再尝试读旧 PID 优雅退出旧实例
@@ -88,7 +88,10 @@ atexit {
 }
 
 _ = TrayDrop.shared
-TrayDrop.shared.cleanExpiredFiles()
+// 启动过期清理移后台：避免阻塞首屏（文件遍历 + 可能的重写）
+DispatchQueue.global(qos: .utility).async {
+    TrayDrop.shared.cleanExpiredFiles()
+}
 
 // ——— 修复 #4: O_EVTONLY FD 泄漏 ———
 repeat {

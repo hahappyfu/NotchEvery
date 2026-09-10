@@ -53,7 +53,7 @@ struct NotchMenuView: View {
             tint: .accentColor
         )
         .onTapGesture {
-            vm.showSettings()
+            vm.showSettings = true
         }
     }
 }

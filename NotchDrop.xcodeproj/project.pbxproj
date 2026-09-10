@@ -26,8 +26,7 @@
 		504381AA2C3A9514000ED325 /* EventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504381A92C3A9514000ED325 /* EventMonitor.swift */; };
 		504381AC2C3A95BD000ED325 /* EventMonitors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504381AB2C3A95BD000ED325 /* EventMonitors.swift */; };
 		504381AF2C3ADFF2000ED325 /* NotchContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504381AE2C3ADFF2000ED325 /* NotchContentView.swift */; };
-		7AE10C0220260AB000000001 /* ZoneHeightGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000002 /* ZoneHeightGuard.swift */; };
-		504381B12C3AE0B6000ED325 /* NotchHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504381B02C3AE0B6000ED325 /* NotchHeaderView.swift */; };
+		7AE10C0220260AB000000001 /* ZoneSizeGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000002 /* ZoneSizeGuard.swift */; };
 		5044EE992C3B069200071C5C /* TrayDrop+View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5044EE982C3B069200071C5C /* TrayDrop+View.swift */; };
 		5044EE9C2C3B082300071C5C /* Pow in Frameworks */ = {isa = PBXBuildFile; productRef = 5044EE9B2C3B082300071C5C /* Pow */; };
 		5044EE9E2C3B0F3D00071C5C /* Ext+FileProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5044EE9D2C3B0F3D00071C5C /* Ext+FileProvider.swift */; };
@@ -57,7 +56,24 @@
 		B7C8D3E4F5A6071829304101 /* iOSPageIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */; };
 		D0E1F2A3B4C5071829304101 /* OverviewPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */; };
 		C9D0E1F2A3B4071829304101 /* NotchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D0E1F2A3B4071829304100 /* NotchRootView.swift */; };
+		7AE10C0220260AB000000D1 /* AppPathsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C1 /* AppPathsTests.swift */; };
+		7AE10C0220260AB000000D2 /* ContentZoneSwitcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */; };
+		7AE10C0220260AB000000D3 /* QuotaSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C3 /* QuotaSnapshotTests.swift */; };
+		7AE10C0220260AB000000D4 /* ScrollSwipeResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */; };
+		7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C5 /* TabMetricsTests.swift */; };
+		7AE10C0220260AB000000D6 /* TrayDropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C6 /* TrayDropTests.swift */; };
+		7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7AE10C0220260AB0000000B1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504381782C3A86EA000ED325 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5043817F2C3A86EA000ED325;
+			remoteInfo = NotchDrop;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		148901512DC9149900F2E06C /* Share.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Share.swift; sourceTree = "<group>"; };
@@ -80,8 +96,7 @@
 		504381A92C3A9514000ED325 /* EventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMonitor.swift; sourceTree = "<group>"; };
 		504381AB2C3A95BD000ED325 /* EventMonitors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMonitors.swift; sourceTree = "<group>"; };
 		504381AE2C3ADFF2000ED325 /* NotchContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchContentView.swift; sourceTree = "<group>"; };
-		7AE10C0220260AB000000002 /* ZoneHeightGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneHeightGuard.swift; sourceTree = "<group>"; };
-		504381B02C3AE0B6000ED325 /* NotchHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchHeaderView.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB000000002 /* ZoneSizeGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneSizeGuard.swift; sourceTree = "<group>"; };
 		5044EE982C3B069200071C5C /* TrayDrop+View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrayDrop+View.swift"; sourceTree = "<group>"; };
 		5044EE9D2C3B0F3D00071C5C /* Ext+FileProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Ext+FileProvider.swift"; sourceTree = "<group>"; };
 		5044EE9F2C3B116000071C5C /* PublishedPersist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublishedPersist.swift; sourceTree = "<group>"; };
@@ -105,6 +120,14 @@
 		B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSPageIndicator.swift; sourceTree = "<group>"; };
 		D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewPageView.swift; sourceTree = "<group>"; };
 		C9D0E1F2A3B4071829304100 /* NotchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchRootView.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB000000C1 /* AppPathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPathsTests.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentZoneSwitcherTests.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB000000C3 /* QuotaSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaSnapshotTests.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSwipeResolverTests.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB000000C5 /* TabMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabMetricsTests.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB000000C6 /* TrayDropTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayDropTests.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneSizeGuardTests.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB0000000A7 /* NotchEveryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchEveryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +153,7 @@
 			isa = PBXGroup;
 			children = (
 				504381822C3A86EA000ED325 /* NotchDrop */,
+				7AE10C0220260AB0000000A6 /* Tests */,
 				504381812C3A86EA000ED325 /* Products */,
 				504381AD2C3ADDAB000ED325 /* Frameworks */,
 			);
@@ -139,6 +163,7 @@
 			isa = PBXGroup;
 			children = (
 				504381802C3A86EA000ED325 /* NotchDrop.app */,
+				7AE10C0220260AB0000000A7 /* NotchEveryTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -165,14 +190,13 @@
 				B1C2D3E4F506172839404152 /* AppPaths.swift */,
 				A1B2C3D4E5F6071829304050 /* Glass.swift */,
 				A1B2C3D4E5F6071829304052 /* SpinnerView.swift */,
-				504381B02C3AE0B6000ED325 /* NotchHeaderView.swift */,
 				B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */,
 				D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */,
 				C9D0E1F2A3B4071829304100 /* NotchRootView.swift */,
-				F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */,
 				503D8EB92C3F838200E173FF /* NotchMenuView.swift */,
 				504381AE2C3ADFF2000ED325 /* NotchContentView.swift */,
-				7AE10C0220260AB000000002 /* ZoneHeightGuard.swift */,
+				7AE10C0220260AB000000002 /* ZoneSizeGuard.swift */,
+				F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */,
 				60AD62862C579F4400299297 /* NotchSettingsView.swift */,
 				504381A52C3A8CFD000ED325 /* NotchViewController.swift */,
 				504381A72C3A926E000ED325 /* NotchViewModel.swift */,
@@ -199,6 +223,20 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7AE10C0220260AB0000000A6 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				7AE10C0220260AB000000C1 /* AppPathsTests.swift */,
+				7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */,
+				7AE10C0220260AB000000C3 /* QuotaSnapshotTests.swift */,
+				7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */,
+				7AE10C0220260AB000000C5 /* TabMetricsTests.swift */,
+				7AE10C0220260AB000000C6 /* TrayDropTests.swift */,
+				7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */,
+			);
+			path = Tests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -231,6 +269,24 @@
 			productReference = 504381802C3A86EA000ED325 /* NotchDrop.app */;
 			productType = "com.apple.product-type.application";
 		};
+		7AE10C0220260AB0000000A1 /* NotchEveryTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7AE10C0220260AB0000000A2 /* Build configuration list for PBXNativeTarget "NotchEveryTests" */;
+			buildPhases = (
+				7AE10C0220260AB0000000A5 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7AE10C0220260AB0000000B2 /* PBXTargetDependency */,
+			);
+			name = NotchEveryTests;
+			packageProductDependencies = (
+			);
+			productName = NotchEveryTests;
+			productReference = 7AE10C0220260AB0000000A7 /* NotchEveryTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -243,6 +299,9 @@
 				TargetAttributes = {
 					5043817F2C3A86EA000ED325 = {
 						CreatedOnToolsVersion = 15.4;
+					};
+					7AE10C0220260AB0000000A1 = {
+						TestTargetID = 5043817F2C3A86EA000ED325;
 					};
 				};
 			};
@@ -271,6 +330,7 @@
 			projectRoot = "";
 			targets = (
 				5043817F2C3A86EA000ED325 /* NotchDrop */,
+				7AE10C0220260AB0000000A1 /* NotchEveryTests */,
 			);
 		};
 /* End PBXProject section */
@@ -296,7 +356,8 @@
 				504381992C3A8893000ED325 /* NotchWindow.swift in Sources */,
 				5044EEA22C3B126F00071C5C /* TrayDrop+DropItemView.swift in Sources */,
 				504381AF2C3ADFF2000ED325 /* NotchContentView.swift in Sources */,
-				7AE10C0220260AB000000001 /* ZoneHeightGuard.swift in Sources */,
+				7AE10C0220260AB000000001 /* ZoneSizeGuard.swift in Sources */,
+				F1E2D3C4B5A6071829304101 /* TokenZoneView.swift in Sources */,
 				B7C8D3E4F5A6071829304101 /* iOSPageIndicator.swift in Sources */,
 				D0E1F2A3B4C5071829304101 /* OverviewPageView.swift in Sources */,
 				C9D0E1F2A3B4071829304101 /* NotchRootView.swift in Sources */,
@@ -306,7 +367,6 @@
 				50E26E272C3AF5E9007CF247 /* TrayDrop.swift in Sources */,
 				5044EE9E2C3B0F3D00071C5C /* Ext+FileProvider.swift in Sources */,
 				504381A42C3A8C7E000ED325 /* NotchWindowController.swift in Sources */,
-				504381B12C3AE0B6000ED325 /* NotchHeaderView.swift in Sources */,
 				50E26E292C3AF67B007CF247 /* TrayDrop+DropItem.swift in Sources */,
 				504381A22C3A8BE0000ED325 /* Ext+NSScreen.swift in Sources */,
 				5044EEA42C3B140F00071C5C /* Ext+URL.swift in Sources */,
@@ -331,11 +391,32 @@
 				A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */,
 				A1B2C3D4E5F6071829304053 /* SpinnerView.swift in Sources */,
 				D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */,
-				F1E2D3C4B5A6071829304101 /* TokenZoneView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7AE10C0220260AB0000000A5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7AE10C0220260AB000000D1 /* AppPathsTests.swift in Sources */,
+				7AE10C0220260AB000000D2 /* ContentZoneSwitcherTests.swift in Sources */,
+				7AE10C0220260AB000000D3 /* QuotaSnapshotTests.swift in Sources */,
+				7AE10C0220260AB000000D4 /* ScrollSwipeResolverTests.swift in Sources */,
+				7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */,
+				7AE10C0220260AB000000D6 /* TrayDropTests.swift in Sources */,
+				7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7AE10C0220260AB0000000B2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5043817F2C3A86EA000ED325 /* NotchDrop */;
+			targetProxy = 7AE10C0220260AB0000000B1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5043818D2C3A86EC000ED325 /* Debug */ = {
@@ -540,6 +621,38 @@
 			};
 			name = Release;
 		};
+		7AE10C0220260AB0000000A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 964G86XT2P;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hahappyfu.NotchEveryTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NotchEvery.app/Contents/MacOS/NotchEvery";
+			};
+			name = Debug;
+		};
+		7AE10C0220260AB0000000A4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 964G86XT2P;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.hahappyfu.NotchEveryTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NotchEvery.app/Contents/MacOS/NotchEvery";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -557,6 +670,15 @@
 			buildConfigurations = (
 				504381902C3A86EC000ED325 /* Debug */,
 				504381912C3A86EC000ED325 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7AE10C0220260AB0000000A2 /* Build configuration list for PBXNativeTarget "NotchEveryTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7AE10C0220260AB0000000A3 /* Debug */,
+				7AE10C0220260AB0000000A4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -643,7 +765,3 @@
 	};
 	rootObject = 504381782C3A86EA000ED325 /* Project object */;
 }
-		C9D0E1F2A3B4071829304101 /* NotchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D0E1F2A3B4071829304100 /* NotchRootView.swift */; };
-		C9D0E1F2A3B4071829304100 /* NotchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchRootView.swift; sourceTree = "<group>"; };
-				C9D0E1F2A3B4071829304100 /* NotchRootView.swift */,
-				C9D0E1F2A3B4071829304101 /* NotchRootView.swift in Sources */,

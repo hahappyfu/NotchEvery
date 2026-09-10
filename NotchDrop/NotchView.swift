@@ -56,16 +56,16 @@ struct NotchView: View {
                 .opacity(vm.notchVisible ? 1 : 0.3)
             Group {
                 if vm.status == .opened {
-                    // 无头部行（任务 8 方案 C 定案）：TabBar 早删，gear 与根齿轮重复，挂载移除；
-                    // 外层 frame 只锁宽（无高度可居中），内容区高度动画与分区无关
+                    // 内容自适应（ADR-0008）：内容自然高，不锁死、不裁剪
                     VStack(spacing: vm.spacing) {
                         NotchContentView(vm: vm)
                             .frame(maxWidth: .infinity)
-                            .frame(height: vm.zoneContentHeight)
-                            .clipped()
                             .modifier(StaggeredEntry(delay: 0.16))
                     }
-                    .padding(vm.spacing)
+                    .padding(.horizontal, vm.spacing)
+                    .padding(.bottom, vm.spacing)
+                    // 顶部收紧 20→10：安全区之上已垫刘海避让，内层不再 double（02 票）
+                    .padding(.top, 10)
                     .frame(width: vm.zoneOpenedSize.width, alignment: .top)
                     .overlay(alignment: .bottom) {
                         if !vm.hasSeenSwipeHint {
@@ -116,14 +116,16 @@ struct NotchView: View {
             )
         }
         .animation(vm.status == .opened ? vm.openAnimation : vm.closeAnimation, value: vm.status)
-        // 面板胀缩挂同一内容切换事务：背景与 frame 高度跟随当前区，无跳变
-        .animation(vm.animation, value: vm.contentType)
+        // 背景跟随切页尺寸：瞬变贴顶。窗口已一步到位锁顶，背景若再用 spring 会相对窗口
+        // "从上往下慢慢铺开"，用户感知为"最上层滑下来"；顶部恒贴顶，不回弹不脱开。
+        // 页面内容转场由 NotchRootView 内层 pageAnimation 独立驱动。
+        .animation(nil, value: vm.contentType)
         .background(dragDetector)
         // 右键菜单挂根层级：外壳带 .disabled(true) 会把菜单按钮全置灰，根层级无禁用
         .contextMenu {
             Button(LocalizedStringKey("Settings")) {
                 vm.openFromGhost()
-                vm.showSettings()
+                vm.showSettings = true
             }
             Divider()
             Button(LocalizedStringKey("Exit")) {
@@ -154,33 +156,32 @@ struct NotchView: View {
 
     /// 玻璃刘海背景：控制中心式高透磨砂，浅底色 + 顶部折射高光
     private var glassNotchBackground: some View {
-        Rectangle()
+        let shape = UnevenRoundedRectangle(
+            topLeadingRadius: 0,
+            bottomLeadingRadius: notchCornerRadius,
+            bottomTrailingRadius: notchCornerRadius,
+            topTrailingRadius: 0,
+            style: .continuous
+        )
+        return Rectangle()
             .fill(.clear)
             .background(
-                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: notchCornerRadius, bottomTrailingRadius: notchCornerRadius, topTrailingRadius: 0, style: .continuous)
-                    .fill((vm.hoverGhosting || vm.ghostFading)
-                        ? Color(red: 0.165, green: 0.173, blue: 0.2).opacity(0.72)
-                        : Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.15)
-                    )
+                shape.fill((vm.hoverGhosting || vm.ghostFading)
+                    ? Color(red: 0.165, green: 0.173, blue: 0.2).opacity(0.72)
+                    : Color(red: 0.08, green: 0.08, blue: 0.09).opacity(0.15)
+                )
             )
-            .background(
-                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: notchCornerRadius, bottomTrailingRadius: notchCornerRadius, topTrailingRadius: 0, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            )
+            .background(shape.fill(.ultraThinMaterial))
             .overlay(
-                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: notchCornerRadius, bottomTrailingRadius: notchCornerRadius, topTrailingRadius: 0, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.10), Color.clear],
-                            startPoint: .top,
-                            endPoint: .center
-                        )
+                shape.fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.10), Color.clear],
+                        startPoint: .top,
+                        endPoint: .center
                     )
+                )
             )
-            .overlay(
-                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: notchCornerRadius, bottomTrailingRadius: notchCornerRadius, topTrailingRadius: 0, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
-            )
+            .overlay(shape.strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
     }
 
     var notchBackgroundMaskGroup: some View {
@@ -235,7 +236,7 @@ struct NotchView: View {
     @ViewBuilder
     var dragDetector: some View {
         RoundedRectangle(cornerRadius: notchCornerRadius)
-            .foregroundStyle(Color.black.opacity(0.001)) // fuck you apple and 0.001 is the smallest we can have
+            .foregroundStyle(Color.black.opacity(0.001)) // 近乎透明的命中区：SwiftUI 最小可用不透明度
             .contentShape(Rectangle())
             .frame(width: notchSize.width + vm.dropDetectorRange, height: notchSize.height + vm.dropDetectorRange)
             .onDrop(of: [.data], isTargeted: $dropTargeting) { _ in true }
