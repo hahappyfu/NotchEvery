@@ -57,7 +57,6 @@ struct NotchView: View {
             island
                 .zIndex(0)
                 .disabled(true)
-                .opacity(vm.notchVisible ? 1 : 0.3)
             Group {
                 if vm.status == .opened {
                     // 内容自适应（ADR-0008）：内容自然高，不锁死、不裁剪
