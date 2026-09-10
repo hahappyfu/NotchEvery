@@ -56,6 +56,7 @@ class NotchWindowController: NSWindowController {
                     // 若叠 0.3s animator 会被逐次打断、永久停在中间值，形成"卡卡缩回"；内容自身已有 SwiftUI 转场，窗口跟着走即可。
                     self?.hostingHeightConstraint?.constant = height
                     window.setFrame(target, display: true)
+                    notchTimingMark("setFrame h=\(Int(height))")
                 } else {
                     NSAnimationContext.runAnimationGroup { context in
                         context.duration = 0.3
@@ -81,6 +82,16 @@ class NotchWindowController: NSWindowController {
             vm?.screenRect = screen.frame
             if self.openAfterCreate {
                 vm?.notchOpen(.boot)
+            }
+            // TEMP-DEL: 截图验证耳区用，NOTCH_EARS=1 强制展开 Token 页
+            if ProcessInfo.processInfo.environment["NOTCH_EARS"] == "1" {
+                vm?.notchOpen(.boot)
+                vm?.contentType = .token
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak vm] in
+                    guard let vm else { return }
+                    let msg = "DEBUG notch=\(vm.deviceNotchRect.size) panel=\(vm.zoneOpenedSize) safeTop=\(vm.notchSafeAreaTop) status=\(vm.status) window=\(String(describing: self.window?.frame))\n"
+                    FileHandle.standardError.write(msg.data(using: .utf8)!)
+                }
             }
         }
     }

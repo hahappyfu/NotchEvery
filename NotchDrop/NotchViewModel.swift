@@ -4,6 +4,28 @@ import Foundation
 import LaunchAtLogin
 import SwiftUI
 
+// MARK: - 首展耗时埋点（systematic-debugging 诊断用，NOTCH_TIMING=1 开启；关闭零开销）
+private let notchTimingEnabled = ProcessInfo.processInfo.environment["NOTCH_TIMING"] == "1"
+private var notchTimingT0: CFTimeInterval = 0
+func notchTimingMark(_ label: String) {
+    guard notchTimingEnabled else { return }
+    let now = CFAbsoluteTimeGetCurrent()
+    if label == "clickDown" || notchTimingT0 == 0 { notchTimingT0 = now }
+    let path = "/tmp/notch-timing.log"
+    if !FileManager.default.fileExists(atPath: path) {
+        FileManager.default.createFile(atPath: path, contents: nil)
+    }
+    let msg = String(format: "[TIMING] %6.0fms %@\n", (now - notchTimingT0) * 1000, label)
+    if let data = msg.data(using: .utf8) {
+        FileHandle.standardError.write(data)
+        if let fh = try? FileHandle(forWritingTo: URL(fileURLWithPath: path)) {
+            try? fh.seekToEnd()
+            try? fh.write(contentsOf: data)
+            try? fh.close()
+        }
+    }
+}
+
 // MARK: - NotchGeometry（#24 拆分：纯几何计算）
 
 struct NotchGeometry {
@@ -180,13 +202,16 @@ class NotchViewModel: NSObject, ObservableObject {
 
     /// 虚影态→展开态（点击/拖拽调用），触发过桥菊花 150ms
     func openFromGhost() {
+        notchTimingMark("openFromGhost")
         cancelHoverClose()
         ghostGeneration += 1
         hoverGhosting = false
         ghostFading = false
         bridgeSpinning = true
         status = .opened
+        notchTimingMark("preActivate")
         NSApp.activate(ignoringOtherApps: true)
+        notchTimingMark("postActivate")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
             self?.bridgeSpinning = false
         }

@@ -62,6 +62,7 @@ struct NotchView: View {
                             .frame(maxWidth: .infinity)
                             .modifier(StaggeredEntry(delay: 0.16))
                     }
+                    .onAppear { notchTimingMark("contentAppear") }
                     .padding(.horizontal, vm.spacing)
                     .padding(.bottom, vm.spacing)
                     // 顶部收紧 20→10：安全区之上已垫刘海避让，内层不再 double（02 票）

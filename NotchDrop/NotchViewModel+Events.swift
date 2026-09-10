@@ -31,6 +31,7 @@ extension NotchViewModel {
                 case .closed, .popping:
                     // touch inside, open
                     if deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation) {
+                        notchTimingMark("clickDown")
                         // 虚影态点击 → 展开；否则直接展开
                         if hoverGhosting {
                             openFromGhost()
