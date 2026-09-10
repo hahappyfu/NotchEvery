@@ -39,56 +39,53 @@ struct TokenSummary {
     static let mock = TokenSummary(totalTokens: "38.8M", cacheRate: "94.6%", calls: "527次", cost: "$0.00")
 }
 private func tokenStatusColor(_ status: Int) -> Color {
-    // 白字纯色 pill：深底保证对比度（浅粉底深红字已删）
+    // 状态色：圆点 + 文字用色（白字实心 pill 已删）
     status >= 400 ? Color(red: 0.75, green: 0.20, blue: 0.18) : Color(red: 0.16, green: 0.55, blue: 0.32)
 }
 
 struct TokenZoneView: View {
     var requests: [TokenRequest] = TokenRequest.mock
 
+    /// 列宽（header 与行共用同一组，保证对齐；文本列左对齐，数字列右对齐）
+    private let timeW: CGFloat = 44
+    private let modelW: CGFloat = 72
+    private let durationW: CGFloat = 56
+    private let statusW: CGFloat = 44
+
     var body: some View {
         VStack(spacing: 0) {
+            summaryBar
             header
             ForEach(requests.prefix(5)) { row in
                 HStack(spacing: 8) {
                     Text(row.time)
-                        .frame(width: 42, alignment: .leading)
+                        .frame(width: timeW, alignment: .leading)
                         .foregroundStyle(.secondary)
                     Text(row.model)
                         .fontWeight(.semibold)
                         .foregroundStyle(.primary)
-                        .frame(width: 68, alignment: .leading)
+                        .frame(width: modelW, alignment: .leading)
                     Text("\(row.inputTokens.formatted()) / \(row.outputTokens.formatted())")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .overlay(alignment: .trailing) {
-                            if row.cached {
-                                Image(systemName: "bolt.fill")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(.green.opacity(0.8))
-                            }
-                        }
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                     Text(String(format: "%.1fs", row.durationSeconds))
-                        .frame(width: 50, alignment: .leading)
+                        .frame(width: durationW, alignment: .trailing)
                         .foregroundStyle(.secondary)
-                        .background(alignment: .bottomLeading) {
-                            Capsule().fill(Color.accentColor.opacity(0.4))
-                                .frame(width: min(1, row.durationSeconds / 60) * 46, height: 3)
-                        }
-                    Text("\(row.status)")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(tokenStatusColor(row.status), in: Capsule())
-                        .frame(width: 50, alignment: .trailing)
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(tokenStatusColor(row.status))
+                            .frame(width: 6, height: 6)
+                        Text("\(row.status)")
+                            .foregroundStyle(row.status >= 400 ? tokenStatusColor(row.status) : .secondary)
+                    }
+                    .frame(width: statusW, alignment: .trailing)
                 }
-                .font(.system(size: 11, design: .monospaced))
+                .font(.system(size: 12))
                 .monospacedDigit()
-                .padding(.vertical, 4)
+                .padding(.vertical, 6)
                 .overlay(alignment: .bottom) {
                     Rectangle()
-                        .fill(Color.white.opacity(0.06))
-                        .frame(height: 1)
+                        .fill(Color(nsColor: .separatorColor).opacity(0.5))
+                        .frame(height: 0.5)
                 }
             }
         }
@@ -96,19 +93,73 @@ struct TokenZoneView: View {
         .padding(.vertical, 8)
     }
 
+    private var summaryBar: some View {
+        HStack {
+            HStack(spacing: 6) {
+                Text("Tokens")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Text(TokenSummary.mock.totalTokens)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.primary)
+            }
+            Spacer()
+            HStack(spacing: 6) {
+                Text("缓存命中率")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.green)
+                Text(TokenSummary.mock.cacheRate)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.green)
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.green.opacity(0.2))
+                        .frame(width: 64, height: 6)
+                    Capsule()
+                        .fill(Color.green)
+                        .frame(width: 64 * 0.946, height: 6)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(Color.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.green.opacity(0.20), lineWidth: 1))
+            Spacer()
+            HStack(spacing: 6) {
+                Text("调用量")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Text(TokenSummary.mock.calls)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.primary)
+            }
+        }
+        .monospacedDigit()
+        .lineLimit(1)
+        .minimumScaleFactor(0.85)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color(nsColor: .separatorColor).opacity(0.5), lineWidth: 1))
+        .padding(.bottom, 10)
+    }
+
     private var header: some View {
         HStack(spacing: 8) {
-            Text("时间").frame(width: 42, alignment: .leading)
-            Text("模型").frame(width: 68, alignment: .leading)
-            Text("入 / 出").frame(maxWidth: .infinity, alignment: .leading)
-            Text("用时").frame(width: 50, alignment: .leading)
-            Text("状态").frame(width: 50, alignment: .trailing)
+            Text("时间").frame(width: timeW, alignment: .leading)
+            Text("模型").frame(width: modelW, alignment: .leading)
+            Text("入 / 出").frame(maxWidth: .infinity, alignment: .trailing)
+            Text("用时").frame(width: durationW, alignment: .trailing)
+            Text("状态").frame(width: statusW, alignment: .trailing)
         }
         .font(.system(size: 10, weight: .semibold))
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor).opacity(0.5))
+                .frame(height: 0.5)
+        }
         .padding(.bottom, 4)
     }
 }
