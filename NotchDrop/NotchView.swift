@@ -143,24 +143,26 @@ struct NotchView: View {
 
     var island: some View {
         let _ = notchTimingMark("island status=\(vm.status) fillet=\(islandFillet) openConst=\(IslandMetrics.openFilletRadius) size=\(islandSize) ghost=\(vm.hoverGhosting)/\(vm.ghostFading)")
-        return IslandShape(bottomRadius: islandBottomRadius, filletRadius: islandFillet)
-            .fill(Color.black)
-            .frame(width: islandSize.width + islandFillet * 2, height: islandSize.height)
-            .overlay(alignment: .bottom) {
-                if (vm.hoverGhosting || vm.ghostFading), usage.summary != TokenSummary.empty {
-                    peekHint
-                        .padding(.bottom, 8)
-                        .transition(.opacity)
-                }
+        return Canvas { context, size in
+            let path = IslandShape(bottomRadius: islandBottomRadius, filletRadius: islandFillet).path(in: CGRect(origin: .zero, size: size))
+            context.fill(path, with: .color(.black))
+        }
+        .frame(width: islandSize.width + islandFillet * 2, height: islandSize.height)
+        .overlay(alignment: .bottom) {
+            if (vm.hoverGhosting || vm.ghostFading), usage.summary != TokenSummary.empty {
+                peekHint
+                    .padding(.bottom, 8)
+                    .transition(.opacity)
             }
-            .overlay {
-                if vm.bridgeSpinning {
-                    SpinnerView(size: 16, color: .white)
-                        .transition(.opacity)
-                }
+        }
+        .overlay {
+            if vm.bridgeSpinning {
+                SpinnerView(size: 16, color: .white)
+                    .transition(.opacity)
             }
-            // 岛尺寸随数据变化走同款弹簧（与 TokenZoneView 列宽变化同步 morph）
-            .animation(reduceMotion ? nil : IslandMetrics.growSpring, value: islandSize)
+        }
+        // 岛尺寸随数据变化走同款弹簧（与 TokenZoneView 列宽变化同步 morph）
+        .animation(reduceMotion ? nil : IslandMetrics.growSpring, value: islandSize)
     }
 
     /// 悬停 peek 提示：今日用量一行小字（真数据）
