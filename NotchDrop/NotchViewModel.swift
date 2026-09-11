@@ -107,7 +107,17 @@ class NotchViewModel: NSObject, ObservableObject {
     }
 
     /// 当前分区上报的自然尺寸（内容驱动，见 ZoneNaturalSizeKey）
-    @Published var measuredNaturalSize: CGSize = .zero
+    @Published var measuredNaturalSize: CGSize = .zero {
+        didSet {
+            // 只记有效测量：切换时的归零是占位，不是内容真实尺寸
+            if measuredNaturalSize.width > 0 {
+                lastZoneSize[contentType] = measuredNaturalSize
+            }
+        }
+    }
+
+    /// 各区上次真实尺寸：重开/切回直接从它起跳，首帧即接近终值，测量到达只剩微调
+    private var lastZoneSize: [ContentType: CGSize] = [:]
 
     /// 当前区已打开尺寸：整体测量值（含安全区+内容+dots）经钳制；未量到取最小保底
     var zoneOpenedSize: CGSize {
@@ -154,17 +164,19 @@ class NotchViewModel: NSObject, ObservableObject {
 
     @Published private(set) var status: Status = .closed {
         didSet {
-            // 每次展开重置宽度测量：宽度是「涨」信号，不重置会在多个稳态间漂移
+            // 重开从本区上次宽度起跳（无记忆时回落归零，即旧行为）
             if status == .opened, oldValue != .opened {
-                measuredNaturalSize = CGSize(width: 0, height: measuredNaturalSize.height)
+                let seed = lastZoneSize[contentType]?.width ?? 0
+                measuredNaturalSize = CGSize(width: seed, height: measuredNaturalSize.height)
             }
         }
     }
     @Published var openReason: OpenReason = .unknown
     @Published var contentType: ContentType = .normal {
         didSet {
-            // 切页允许面板缩：宽度测量含「涨」信号，不重置会卡在上一页的宽度
-            measuredNaturalSize = CGSize(width: 0, height: measuredNaturalSize.height)
+            // 切页恢复目标区自己的宽度：各区独立记忆，窄区回来不会被宽区卡住
+            let seed = lastZoneSize[contentType]?.width ?? 0
+            measuredNaturalSize = CGSize(width: seed, height: measuredNaturalSize.height)
         }
     }
 

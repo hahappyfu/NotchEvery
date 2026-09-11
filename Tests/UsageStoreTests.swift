@@ -250,4 +250,49 @@ final class UsageStoreTests: XCTestCase {
         let row = try XCTUnwrap(data.recentRequests.first)
         XCTAssertEqual(row.cost, "未定价")
     }
+
+    // MARK: - 按提供商筛选
+
+    func testSummaryFilteredByCurrentProvider() throws {
+        // 两个 provider 的数据混在一起，只应返回当前 provider（p1 = DeepSeek）的数据
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(dbURL.path, &db), SQLITE_OK)
+        defer { sqlite3_close(db) }
+        try exec(db, Self.schemaSQL + """
+        INSERT INTO providers VALUES ('p1', 'claude-desktop', 'DeepSeek', 1);
+        INSERT INTO providers VALUES ('p2', 'claude-desktop', 'Nvidia', 0);
+        """)
+        // p1 的请求
+        try insert(db, id: "f1", offset: -600, app: "claude-desktop", model: "deepseek-v4-flash",
+                   input: 1000, output: 100, cr: 20000, cc: 0, lat: 2000, status: 200,
+                   cost: "0.01", pricing: "deepseek-v4-flash", sem: 2, source: "proxy")
+        // p2 的请求（不同 provider，应被过滤）
+        try insertMultiProvider(db, id: "f2", providerId: "p2", offset: -300,
+                   app: "claude-desktop", model: "nvidia-nemotron",
+                   input: 5000, output: 500, cr: 10000, cc: 0, lat: 1500, status: 200,
+                   cost: "0.05", pricing: nil, sem: 2, source: "proxy")
+
+        let data = UsageStore.fetch(dbPath: dbURL, now: now)
+        // summary 只应含 p1 的数据：净输入 1000 + 输出 100 + 缓存 20000 = 21100
+        XCTAssertEqual(data.summary.totalTokens, "21.1K")
+        XCTAssertEqual(data.summary.calls, "1次")
+        // 列表也只含 p1
+        XCTAssertEqual(data.recentRequests.map(\.id), ["f1"])
+    }
+
+    private func insertMultiProvider(
+        _ db: OpaquePointer?, id: String, providerId: String, offset: TimeInterval,
+        app: String, model: String, input: Int, output: Int, cr: Int, cc: Int,
+        lat: Int, status: Int, cost: String, pricing: String?, sem: Int, source: String
+    ) throws {
+        let pricingSQL = pricing.map { "'\($0)'" } ?? "NULL"
+        try exec(db, """
+        INSERT INTO proxy_request_logs
+        (request_id, provider_id, app_type, model, input_tokens, output_tokens,
+         cache_read_tokens, cache_creation_tokens, total_cost_usd, latency_ms,
+         status_code, created_at, data_source, pricing_model, input_token_semantics)
+        VALUES ('\(id)', '\(providerId)', '\(app)', '\(model)', \(input), \(output), \(cr), \(cc),
+                '\(cost)', \(lat), \(status), \(epoch(secondsFromNow: offset)), '\(source)', \(pricingSQL), \(sem));
+        """)
+    }
 }

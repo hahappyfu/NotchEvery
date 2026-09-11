@@ -44,8 +44,6 @@ enum IslandMetrics {
     /// 面板内容与岛体边缘的留白：内容不贴边界（对齐原版 600/664 的 32pt 比例，2026-09-11 用户验收要求）
     static let panelContentInset: CGFloat = 32
 
-    /// 生长/收敛过渡弹簧（数据驱动宽度变化与岛尺寸变化共用）
-    static let growSpring: Animation = .spring(response: 0.45, dampingFraction: 0.85)
     /// 模型列宽钳制区间
     static let modelColumnMin: CGFloat = 100
     static let modelColumnMax: CGFloat = 220

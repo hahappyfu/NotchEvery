@@ -154,6 +154,7 @@ struct NotchView: View {
         return Rectangle()
             .foregroundStyle(.black)
             .mask(notchBackgroundMaskGroup)
+            // frame 瞬时跳终值：所有形变动画由遮罩内部 islandSize 驱动，外层不再追弹簧
             .frame(width: islandSize.width + islandCornerRadius * 2, height: islandSize.height)
             .opacity(vm.status == .closed && !vm.hoverGhosting && !vm.ghostFading ? 0.3 : 1)
             .overlay(alignment: .bottom) {
@@ -169,7 +170,6 @@ struct NotchView: View {
                         .transition(.opacity)
                 }
             }
-            .animation(reduceMotion ? nil : IslandMetrics.growSpring, value: islandSize)
     }
 
     /// 岛体圆角（照抄原版数值：收起 8 / popping 10 / 展开 32；虚影态取 peek 底圆角）
@@ -225,6 +225,8 @@ struct NotchView: View {
             }
             // 遮罩 body 在外框内顶部对齐：黑体永远从屏顶向下生长（外框恒定，不参与动画）
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            // 弹簧驱动遮罩内部 islandSize 变形：外层 frame 瞬跳，只有遮罩内部平滑过渡
+            .animation(reduceMotion ? nil : (vm.status == .opened ? vm.openAnimation : vm.closeAnimation), value: islandSize)
     }
 
     /// 悬停 peek 提示：今日用量一行小字（真数据）

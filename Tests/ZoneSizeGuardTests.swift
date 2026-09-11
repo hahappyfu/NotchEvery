@@ -63,4 +63,26 @@ final class ZoneSizeGuardTests: XCTestCase {
         let vm = NotchViewModel(events: MockEventMonitors())
         XCTAssertEqual(vm.zoneOpenedSize, CGSize(width: 320, height: 120))
     }
+
+    // H1（2026-09-11 时序实锤）：点击打开首帧宽度曾被清零，测量晚 ~10ms 才到，
+    // 岛体跳两跳而内容走自己的曲线 = 撕裂。重开应从本区上次宽度起跳。
+    func testReopenSeedsLastZoneWidthInsteadOfZero() {
+        let vm = NotchViewModel(events: MockEventMonitors())
+        vm.notchOpen(.click)
+        vm.measuredNaturalSize = CGSize(width: 500, height: 200)
+        vm.notchClose()
+        vm.notchOpen(.click)
+        XCTAssertEqual(vm.measuredNaturalSize.width, 500)
+    }
+
+    // 切页同理：回旧区应恢复该区自己的宽度（各区独立记忆），而不是归零重涨。
+    func testSwitchZoneRestoresThatZonesWidth() {
+        let vm = NotchViewModel(events: MockEventMonitors())
+        vm.notchOpen(.click)
+        vm.measuredNaturalSize = CGSize(width: 500, height: 200)
+        vm.jumpToZone(.token)
+        vm.measuredNaturalSize = CGSize(width: 420, height: 200)
+        vm.jumpToZone(.normal)
+        XCTAssertEqual(vm.measuredNaturalSize.width, 500)
+    }
 }

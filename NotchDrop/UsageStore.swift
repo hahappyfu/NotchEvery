@@ -28,6 +28,7 @@ struct UsageData: Equatable {
     var cacheRateFraction: Double = 0
     var footer = UsageFooter()
     var providerName: String?
+    var providerId: String?
 
     static let empty = UsageData()
 }
@@ -40,6 +41,7 @@ final class UsageStore: ObservableObject {
     @Published private(set) var cacheRateFraction: Double = 0
     @Published private(set) var footer = UsageFooter()
     @Published private(set) var providerName: String?
+    @Published private(set) var providerId: String?
 
     /// 用 libc 直取真实家目录（不经过沙盒重定向的 Foundation 家目录 API）
     static let defaultDBPath: URL = {
@@ -93,6 +95,7 @@ final class UsageStore: ObservableObject {
                 if self.cacheRateFraction != data.cacheRateFraction { self.cacheRateFraction = data.cacheRateFraction }
                 if self.footer != data.footer { self.footer = data.footer }
                 if self.providerName != data.providerName { self.providerName = data.providerName }
+                if self.providerId != data.providerId { self.providerId = data.providerId }
             }
         }
     }
@@ -108,14 +111,16 @@ extension UsageStore {
 
         let startOfDay = Calendar.current.startOfDay(for: now)
         var data = UsageData()
-        data.recentRequests = queryRecent(db)
-        let (summary, fraction) = queryTodaySummary(db, since: startOfDay)
+        let (provName, provId) = queryCurrentProvider(db)
+        data.providerName = provName
+        data.providerId = provId
+        data.recentRequests = queryRecent(db, providerId: provId)
+        let (summary, fraction) = queryTodaySummary(db, since: startOfDay, providerId: provId)
         data.summary = summary
         data.cacheRateFraction = fraction
-        data.footer.cacheReadTotal = todayCacheReadTotal(db, since: startOfDay)
-        data.footer.savedUSD = todayCacheSaved(db, since: startOfDay)
+        data.footer.cacheReadTotal = todayCacheReadTotal(db, since: startOfDay, providerId: provId)
+        data.footer.savedUSD = todayCacheSaved(db, since: startOfDay, providerId: provId)
         data.footer.lastRequestAt = queryLatestCreatedAt(db)
-        data.providerName = queryCurrentProvider(db)
         return data
     }
 
@@ -177,12 +182,13 @@ extension UsageStore {
         return stmt
     }
 
-    private static func queryRecent(_ db: OpaquePointer) -> [TokenRequest] {
+    private static func queryRecent(_ db: OpaquePointer, providerId: String?) -> [TokenRequest] {
+        let providerClause = providerId.map { " AND l.provider_id = '\($0)'" } ?? ""
         let sql = """
             SELECT l.request_id, l.created_at, l.model, l.input_tokens, l.output_tokens,
                    l.latency_ms, l.status_code, l.total_cost_usd, l.pricing_model
             FROM proxy_request_logs l
-            WHERE \(baseFilter)
+            WHERE \(baseFilter)\(providerClause)
             ORDER BY l.created_at DESC, l.rowid DESC
             LIMIT 5
             """
@@ -208,7 +214,8 @@ extension UsageStore {
         return rows
     }
 
-    private static func queryTodaySummary(_ db: OpaquePointer, since: Date) -> (TokenSummary, Double) {
+    private static func queryTodaySummary(_ db: OpaquePointer, since: Date, providerId: String?) -> (TokenSummary, Double) {
+        let providerClause = providerId.map { " AND l.provider_id = '\($0)'" } ?? ""
         let sql = """
             SELECT COUNT(*),
                    COALESCE(SUM(\(freshInputSQL)), 0),
@@ -217,7 +224,7 @@ extension UsageStore {
                    COALESCE(SUM(l.cache_creation_tokens), 0),
                    COALESCE(SUM(CAST(l.total_cost_usd AS REAL)), 0)
             FROM proxy_request_logs l
-            WHERE \(baseFilter) AND l.created_at >= ?
+            WHERE \(baseFilter)\(providerClause) AND l.created_at >= ?
             """
         guard let stmt = prepare(db, sql) else { return (.empty, 0) }
         defer { sqlite3_finalize(stmt) }
@@ -243,11 +250,12 @@ extension UsageStore {
         return (summary, fraction)
     }
 
-    private static func todayCacheReadTotal(_ db: OpaquePointer, since: Date) -> Int {
+    private static func todayCacheReadTotal(_ db: OpaquePointer, since: Date, providerId: String?) -> Int {
+        let providerClause = providerId.map { " AND l.provider_id = '\($0)'" } ?? ""
         let sql = """
             SELECT COALESCE(SUM(l.cache_read_tokens), 0)
             FROM proxy_request_logs l
-            WHERE \(baseFilter) AND l.created_at >= ?
+            WHERE \(baseFilter)\(providerClause) AND l.created_at >= ?
             """
         guard let stmt = prepare(db, sql) else { return 0 }
         defer { sqlite3_finalize(stmt) }
@@ -257,7 +265,8 @@ extension UsageStore {
     }
 
     /// 缓存节省 = Σ 缓存读/1e6 ×（输入单价 − 缓存读单价）；无定价行跳过。
-    private static func todayCacheSaved(_ db: OpaquePointer, since: Date) -> Double {
+    private static func todayCacheSaved(_ db: OpaquePointer, since: Date, providerId: String?) -> Double {
+        let providerClause = providerId.map { " AND l.provider_id = '\($0)'" } ?? ""
         let sql = """
             SELECT COALESCE(SUM(
                 l.cache_read_tokens / 1000000.0
@@ -265,7 +274,7 @@ extension UsageStore {
             ), 0)
             FROM proxy_request_logs l
             LEFT JOIN model_pricing mp ON mp.model_id = COALESCE(NULLIF(l.pricing_model, ''), l.model)
-            WHERE \(baseFilter) AND l.created_at >= ? AND mp.model_id IS NOT NULL
+            WHERE \(baseFilter)\(providerClause) AND l.created_at >= ? AND mp.model_id IS NOT NULL
             """
         guard let stmt = prepare(db, sql) else { return 0 }
         defer { sqlite3_finalize(stmt) }
@@ -288,12 +297,12 @@ extension UsageStore {
         return Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(stmt, 0)))
     }
 
-    private static func queryCurrentProvider(_ db: OpaquePointer) -> String? {
-        let sql = "SELECT name FROM providers WHERE app_type = 'claude-desktop' AND is_current = 1 LIMIT 1"
-        guard let stmt = prepare(db, sql) else { return nil }
+    private static func queryCurrentProvider(_ db: OpaquePointer) -> (name: String?, id: String?) {
+        let sql = "SELECT id, name FROM providers WHERE app_type = 'claude-desktop' AND is_current = 1 LIMIT 1"
+        guard let stmt = prepare(db, sql) else { return (nil, nil) }
         defer { sqlite3_finalize(stmt) }
-        guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
-        return text(stmt, 0)
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return (nil, nil) }
+        return (text(stmt, 1), text(stmt, 0))
     }
 
     // MARK: - 展示格式化
