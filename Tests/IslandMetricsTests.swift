@@ -57,22 +57,3 @@ final class IslandMetricsTests: XCTestCase {
         XCTAssertEqual(IslandMetrics.peekBottomRadius(for: real), 13)
     }
 }
-
-/// 形状几何：凹角切角与圆角收角的点位断言（治「弧线反向扫掠成圆疙瘩」回归）。
-final class IslandShapeTests: XCTestCase {
-    func testConcaveFilletsCutTheCorners() {
-        let rect = CGRect(x: 0, y: 0, width: 220, height: 57)
-        let path = IslandShape(bottomRadius: 13, filletRadius: 9).path(in: rect)
-        // 顶部两凹角区中心应被挖掉
-        XCTAssertFalse(path.contains(CGPoint(x: 4.5, y: 4.5)))
-        XCTAssertFalse(path.contains(CGPoint(x: 215.5, y: 4.5)))
-        // 贴顶外侧被挖掉，内侧是实体
-        XCTAssertFalse(path.contains(CGPoint(x: 0.5, y: 1)))
-        XCTAssertTrue(path.contains(CGPoint(x: 30, y: 4.5)))
-        XCTAssertTrue(path.contains(CGPoint(x: 110, y: 30)))
-        // 底部两圆角切掉的角点之外
-        XCTAssertFalse(path.contains(CGPoint(x: 0.5, y: 56.5)))
-        XCTAssertFalse(path.contains(CGPoint(x: 219.5, y: 56.5)))
-        XCTAssertTrue(path.contains(CGPoint(x: 110, y: 56.5)))
-    }
-}

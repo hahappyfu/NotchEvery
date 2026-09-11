@@ -142,27 +142,46 @@ struct NotchView: View {
     }
 
     var island: some View {
-        let _ = notchTimingMark("island status=\(vm.status) fillet=\(islandFillet) openConst=\(IslandMetrics.openFilletRadius) size=\(islandSize) ghost=\(vm.hoverGhosting)/\(vm.ghostFading)")
-        return Canvas { context, size in
-            let path = IslandShape(bottomRadius: islandBottomRadius, filletRadius: islandFillet).path(in: CGRect(origin: .zero, size: size))
-            context.fill(path, with: .color(.black))
-        }
-        .frame(width: islandSize.width + islandFillet * 2, height: islandSize.height)
-        .overlay(alignment: .bottom) {
-            if (vm.hoverGhosting || vm.ghostFading), usage.summary != TokenSummary.empty {
-                peekHint
-                    .padding(.bottom, 8)
-                    .transition(.opacity)
+        return islandComposition
+            .frame(width: islandSize.width + islandFillet * 2, height: islandSize.height)
+            .overlay(alignment: .bottom) {
+                if (vm.hoverGhosting || vm.ghostFading), usage.summary != TokenSummary.empty {
+                    peekHint
+                        .padding(.bottom, 8)
+                        .transition(.opacity)
+                }
             }
-        }
-        .overlay {
-            if vm.bridgeSpinning {
-                SpinnerView(size: 16, color: .white)
-                    .transition(.opacity)
+            .overlay {
+                if vm.bridgeSpinning {
+                    SpinnerView(size: 16, color: .white)
+                        .transition(.opacity)
+                }
             }
-        }
-        // 岛尺寸随数据变化走同款弹簧（与 TokenZoneView 列宽变化同步 morph）
-        .animation(reduceMotion ? nil : IslandMetrics.growSpring, value: islandSize)
+            .animation(reduceMotion ? nil : IslandMetrics.growSpring, value: islandSize)
+    }
+
+    /// 黑岛组合：底圆角矩形 + 顶部两角凹圆切除。
+    /// 凹角圆心在 (0, r) / (W, r)：与原型 .nb-fillet radial-gradient(circle at 0%/100% 100%) 同构。
+    /// 不用自绘 Shape 的 concave 路径：本机 SwiftUI 渲染管线对 concave 路径不出画（事实驱动，2026-09-11 排查）。
+    private var islandComposition: some View {
+        Rectangle()
+            .fill(Color.black)
+            .clipShape(.rect(bottomLeadingRadius: islandBottomRadius, bottomTrailingRadius: islandBottomRadius))
+            .overlay(alignment: .topLeading) {
+                Circle()
+                    .fill(Color.black)
+                    .frame(width: islandFillet * 2, height: islandFillet * 2)
+                    .offset(x: -islandFillet, y: 0)
+                    .blendMode(.destinationOut)
+            }
+            .overlay(alignment: .topTrailing) {
+                Circle()
+                    .fill(Color.black)
+                    .frame(width: islandFillet * 2, height: islandFillet * 2)
+                    .offset(x: islandFillet, y: 0)
+                    .blendMode(.destinationOut)
+            }
+            .compositingGroup()
     }
 
     /// 悬停 peek 提示：今日用量一行小字（真数据）
