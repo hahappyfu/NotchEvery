@@ -17,9 +17,11 @@ struct IslandShape: Shape {
     var filletRadius: CGFloat
 
     func path(in rect: CGRect) -> Path {
+        let _ = notchTimingMark("IslandShape.path fillet=\(filletRadius) br=\(bottomRadius) rect=\(rect)")
         var p = Path()
         let r = min(filletRadius, rect.width / 4, rect.height / 2)
         let br = min(bottomRadius, rect.width / 2, rect.height / 2)
+        let _ = notchTimingMark("IslandShape.radius r=\(r) br=\(br)")
         let bodyL = rect.minX + r
         let bodyR = rect.maxX - r
         // 显式三次贝塞尔（k≈0.5523 标准四分之一圆常量）：不依赖 addArc 的
