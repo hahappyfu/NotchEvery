@@ -142,7 +142,8 @@ struct NotchView: View {
     }
 
     var island: some View {
-        IslandShape(bottomRadius: islandBottomRadius, filletRadius: islandFillet)
+        let _ = notchTimingMark("island status=\(vm.status) fillet=\(islandFillet) openConst=\(IslandMetrics.openFilletRadius) size=\(islandSize) ghost=\(vm.hoverGhosting)/\(vm.ghostFading)")
+        return IslandShape(bottomRadius: islandBottomRadius, filletRadius: islandFillet)
             .fill(Color.black)
             .frame(width: islandSize.width + islandFillet * 2, height: islandSize.height)
             .overlay(alignment: .bottom) {
