@@ -31,10 +31,11 @@ enum IslandMetrics {
         (20 * notch.width / protoNotch.width).rounded()
     }
 
-    /// 展开态底部圆角（按挖槽宽等比）
-    static func openBottomRadius(for notch: CGSize) -> CGFloat {
-        (26 * notch.width / protoNotch.width).rounded()
-    }
+    /// 展开态底部圆角（绝对常数：对齐原型 26px 在浏览器 1:1 呈现的物理曲率。
+    /// 等比换算会给 16pt、实测显方正，2026-09-11 用户验收改为绝对值）
+    static let openBottomRadius: CGFloat = 26
+    /// 展开态顶部凹角半径（绝对常数，理由同上，对齐原型 15px 物理曲率）
+    static let openFilletRadius: CGFloat = 14
 
     /// 生长/收敛过渡弹簧（数据驱动宽度变化与岛尺寸变化共用）
     static let growSpring: Animation = .spring(response: 0.45, dampingFraction: 0.85)

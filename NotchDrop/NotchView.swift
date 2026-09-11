@@ -37,7 +37,7 @@ struct NotchView: View {
         let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {
         case .closed: return isGhost ? IslandMetrics.filletRadius(for: vm.deviceNotchRect.size) : 0
-        case .opened: return IslandMetrics.filletRadius(for: vm.deviceNotchRect.size)
+        case .opened: return IslandMetrics.openFilletRadius
         case .popping: return 0
         }
     }
@@ -47,7 +47,7 @@ struct NotchView: View {
         let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {
         case .closed: return isGhost ? IslandMetrics.peekBottomRadius(for: vm.deviceNotchRect.size) : 12
-        case .opened: return IslandMetrics.openBottomRadius(for: vm.deviceNotchRect.size)
+        case .opened: return IslandMetrics.openBottomRadius
         case .popping: return 10
         }
     }
