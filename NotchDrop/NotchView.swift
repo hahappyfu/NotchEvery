@@ -225,8 +225,8 @@ struct NotchView: View {
             }
             // 遮罩 body 在外框内顶部对齐：黑体永远从屏顶向下生长（外框恒定，不参与动画）
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            // 弹簧驱动遮罩内部 islandSize 变形：外层 frame 瞬跳，只有遮罩内部平滑过渡
-            .animation(reduceMotion ? nil : (vm.status == .opened ? vm.openAnimation : vm.closeAnimation), value: islandSize)
+            // 弹簧驱动遮罩内部 islandSize 变形：过渡期（开/关/切页）才动画，稳态锁定
+            .animation(reduceMotion ? nil : (vm.transitionActive ? (vm.status == .opened ? vm.openAnimation : vm.closeAnimation) : nil), value: islandSize)
     }
 
     /// 悬停 peek 提示：今日用量一行小字（真数据）

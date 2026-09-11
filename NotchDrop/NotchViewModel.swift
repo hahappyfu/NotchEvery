@@ -169,6 +169,13 @@ class NotchViewModel: NSObject, ObservableObject {
                 let seed = lastZoneSize[contentType]?.width ?? 0
                 measuredNaturalSize = CGSize(width: seed, height: measuredNaturalSize.height)
             }
+            // 过渡期标志：开/关弹簧期间岛体响应 is 变化，稳态后锁定
+            if status != oldValue {
+                transitionActive = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                    self?.transitionActive = false
+                }
+            }
         }
     }
     @Published var openReason: OpenReason = .unknown
@@ -179,6 +186,11 @@ class NotchViewModel: NSObject, ObservableObject {
             measuredNaturalSize = CGSize(width: seed, height: measuredNaturalSize.height)
         }
     }
+
+    /// 过渡期标志：开/关/切页弹簧期间为 true，稳态后为 false。
+    /// NotchView 遮罩弹簧仅在 transitionActive 期间响应 islandSize 变化，
+    /// 稳态时数据轮询引起的微小尺寸波动不再驱动岛体动画。
+    @Published var transitionActive: Bool = false
 
     @Published var spacing: CGFloat = 20
     @Published var cornerRadius: CGFloat = 20
