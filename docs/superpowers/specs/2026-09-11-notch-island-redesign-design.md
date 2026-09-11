@@ -14,9 +14,9 @@ NotchEvery 现形态为「玻璃卡片悬于刘海下方」：material 刘海壳
 
 ### 形态
 
-- 纯黑岛（#000，不透明），从物理刘海无缝长出
-- 贴屏幕顶；岛与屏顶的左右交接 = **凹角（concave fillet，半径约 15pt）**
-- 底部圆角随状态变化：闲置 12pt / peek 20pt / 展开 26pt（数值以真机微调为准，原型为比例基准）
+- 纯黑岛（#000，不透明），从物理刘海向下长出、贴屏幕顶
+- **实施修订（2026-09-11 实测）**：设计原定「凹角（concave fillet）」——排查证明 macOS 26 的 SwiftUI 对 concave 渲染（自绘 Shape 路径 / Canvas 直绘 / destinationOut 挖口 / 原版 mask 溢出）在本机**全线不可用**（连参考项目原版 NotchDrop 在此机亦失效，实测截图存档于会话账本）。最终采用 `RoundedRectangle(cornerRadius: islandBottomRadius, style: .continuous)`（凸圆角、四角同径：闲置见下、peek 13pt、展开 26pt）。
+- 底部/顶部同半径圆角随状态变化：闲置 12pt / peek 13pt / 展开 26pt（数值以真机微调为准，原型为比例基准）
 
 ### 三态
 
@@ -72,11 +72,11 @@ dots 指示器保留**胶囊座现状款**（用户经原型 v2 选定）：容�
 
 现结构：NotchView 的 material 刘海壳（zIndex 0）+ NotchRootView 的 0.55 玻璃（zIndex 1）+ `notchBackgroundMaskGroup` 的 destinationOut 凹角 hack。
 
-新结构：**单一 `IslandShape`**（自绘 Shape，macOS 13 兼容，不用 `UnevenRoundedRectangle`）：
+**实施修订（2026-09-11）**：原计划的「单一 `IslandShape` 自绘凹角」在真机排查后废弃（concave 于 macOS 26 全线不可渲染，见「一、形态」修订注）。最终结构：
 
-- 顶部贴屏顶、左右凹角 fillet、底部圆角（半径随状态）
-- 岛 = 纯黑填充；无 material、无描边、无渐变
-- 三态尺寸表（idle / peek / open）接入现有窗口与测量链路（NotchWindow pinnedContentSize + ZoneSizeGuard 机制不动）
+- 岛体 = `RoundedRectangle(cornerRadius: islandBottomRadius, style: .continuous)` 纯黑填充；无 material、无描边、无渐变
+- 岛宽 = 内容自然宽 + 2 × islandFillet（侧边呼吸）；三态尺寸表（idle / peek / open）接入现有窗口与测量链路（NotchWindow pinnedContentSize + ZoneSizeGuard 机制不动）
+- `IslandShape.swift` 及其几何测试已在排查收尾时删除（避免死代码留存）
 
 ### 内容重排
 
@@ -88,9 +88,9 @@ dots 指示器保留**胶囊座现状款**（用户经原型 v2 选定）：容�
 
 **删除**：
 
-- 0.55 玻璃底与 `PanelGlassShape`（被 `IslandShape` 取代）
+- 0.55 玻璃底与 `PanelGlassShape`（形状层重写取代）
 - material 刘海壳 / 白描边 / 顶部渐变高光（NotchView `glassNotchBackground` 整套）
-- `notchBackgroundMaskGroup` 凹角 hack（被 `IslandShape` 凹角取代）
+- `notchBackgroundMaskGroup` 凹角 hack（形状层重写取代）
 - 跟随系统浅色的一切假设与残留分支
 - 模型列写死宽度（122pt）
 

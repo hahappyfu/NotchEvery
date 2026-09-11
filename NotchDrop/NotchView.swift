@@ -32,7 +32,7 @@ struct NotchView: View {
         }
     }
 
-    /// 顶部凹角半径：闲置与 popping 为 0（与刘海同形），悬停/展开出现
+    /// 岛体侧边呼吸边距（旧称「凹角半径」；凹角方案已废弃，此值现仅作岛宽外扩与内容留白，见 ADR-0010 修订）
     var islandFillet: CGFloat {
         let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {

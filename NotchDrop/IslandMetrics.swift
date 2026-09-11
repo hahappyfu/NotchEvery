@@ -13,7 +13,7 @@ enum IslandMetrics {
     /// 真机按物理挖槽逐轴等比换算（2026-09-11 验收：直搬像素值相对挖槽放大约 1.6 倍，显笨）。
     private static let protoNotch = CGSize(width: 285, height: 46)
 
-    /// 岛顶凹角半径（按挖槽宽等比）
+    /// 岛体侧边呼吸边距（旧「凹角半径」，凹角方案已废弃；现仅作岛宽外扩，按挖槽宽等比）
     static func filletRadius(for notch: CGSize) -> CGFloat {
         (15 * notch.width / protoNotch.width).rounded()
     }
@@ -34,7 +34,7 @@ enum IslandMetrics {
     /// 展开态底部圆角（绝对常数：对齐原型 26px 在浏览器 1:1 呈现的物理曲率。
     /// 等比换算会给 16pt、实测显方正，2026-09-11 用户验收改为绝对值）
     static let openBottomRadius: CGFloat = 26
-    /// 展开态顶部凹角半径（绝对常数，理由同上，对齐原型 15px 物理曲率）
+    /// 展开态侧边呼吸边距（绝对常数，对齐原型 15px 物理尺度；凹角方案已废弃）
     static let openFilletRadius: CGFloat = 14
 
     /// 生长/收敛过渡弹簧（数据驱动宽度变化与岛尺寸变化共用）
