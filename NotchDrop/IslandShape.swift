@@ -5,7 +5,8 @@
 //  黑岛形状：顶部贴屏顶 + 左右凹角（concave fillet）、底部圆角。
 //  macOS 13 兼容自绘（UnevenRoundedRectangle 需 14+）。
 //  filletRadius = 0 时退化为「底部圆角矩形」= 物理刘海同形（闲置态）。
-//  参数实现 animatableData：fillet 0↔15 随 morph 平滑生长。
+//  参数不做 animatableData 插值：曾因动画竞争把参数卡在旧值致凹角恒不渲染；
+//  状态 morph 由 frame 动画承担，圆角参数瞬时切换。
 //  四段角均为显式三次贝塞尔（端点/控制点写死），不依赖 addArc 的角度/方向约定。
 //
 
@@ -14,14 +15,6 @@ import SwiftUI
 struct IslandShape: Shape {
     var bottomRadius: CGFloat
     var filletRadius: CGFloat
-
-    var animatableData: AnimatablePair<CGFloat, CGFloat> {
-        get { AnimatablePair(bottomRadius, filletRadius) }
-        set {
-            bottomRadius = newValue.first
-            filletRadius = newValue.second
-        }
-    }
 
     func path(in rect: CGRect) -> Path {
         var p = Path()
