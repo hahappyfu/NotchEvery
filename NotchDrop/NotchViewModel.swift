@@ -73,10 +73,11 @@ class NotchViewModel: NSObject, ObservableObject {
         destroy()
     }
 
+    /// 通用弹簧：对齐原版 NotchDrop 的 animation 参数（回弹手感一致）
     let animation: Animation = .interactiveSpring(
-        duration: 0.4,
-        extraBounce: 0,
-        blendDuration: 0.1
+        duration: 0.5,
+        extraBounce: 0.25,
+        blendDuration: 0.125
     )
     /// 内容自适应面板（ADR-0008）：面板尺寸跟随当前分区内容自然大小，钳制有界。
     /// 最小 320×120 防塌，最大 640 宽 × 屏高 40%，超限由内容区内部吸收，外层不动。
@@ -161,9 +162,11 @@ class NotchViewModel: NSObject, ObservableObject {
     @Published private(set) var bridgeSpinning: Bool = false
 
     /// 展开弹簧（快长轻微过冲：response 收紧求快，damping 留轻微过冲）
-    let openAnimation: Animation = .spring(response: 0.28, dampingFraction: 0.78)
-    /// 收起弹簧（无过冲快退）
-    let closeAnimation: Animation = .spring(response: 0.2, dampingFraction: 1.0)
+    /// 展开/收起弹簧：对齐原版 NotchDrop 的 interactiveSpring(duration 0.5, extraBounce 0.25,
+    /// blendDuration 0.125)——灵动岛标志性的回弹手感（2026-09-11 用户要求对齐原版切换动作）
+    let openAnimation: Animation = .interactiveSpring(duration: 0.5, extraBounce: 0.25, blendDuration: 0.125)
+    /// 收起沿用同一条曲线（原版开合同参）
+    let closeAnimation: Animation = .interactiveSpring(duration: 0.5, extraBounce: 0.25, blendDuration: 0.125)
     /// 切页专用：快、无过冲（清单 05 转场收敛；.snappy 需 macOS 14+，部署目标 13 故用高阻尼 spring）
     let pageAnimation: Animation = .spring(response: 0.3, dampingFraction: 0.9)
 
