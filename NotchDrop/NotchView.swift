@@ -61,15 +61,22 @@ struct NotchView: View {
                 if vm.status == .opened {
                     // 内容自适应（ADR-0008）：内容自然高，不锁死、不裁剪
                     VStack(spacing: vm.spacing) {
+                        // 不给 maxWidth 填充：内容自然宽要能向上传播成面板测量值，
+                        // 撑满会让测量跟随上页面板宽 → 来回切页后卡大不缩（2026-09-11 探针实锤 box=605 / inner=388）
                         NotchContentView(vm: vm)
-                            .frame(maxWidth: .infinity)
                             .modifier(StaggeredEntry(delay: 0.06))
                     }
                     .onAppear { notchTimingMark("contentAppear") }
-                    .padding(.horizontal, vm.spacing)
-                    .padding(.bottom, vm.spacing)
-                    // 顶部收紧 20→10：安全区之上已垫刘海避让，内层不再 double（02 票）
-                    .padding(.top, 10)
+                    .padding(.horizontal, IslandMetrics.panelContentInset)
+                    .padding(.bottom, IslandMetrics.panelContentInset)
+                    // 顶部收紧 20→12：安全区之上已垫刘海避让，内层不再 double（02 票）
+                    .padding(.top, 12)
+                    // 面板尺寸 = 内容 + 外壳留白（否则边距被当作挤压余量，内容贴边）
+                    .zoneSizeReporter(active: true)
+                    .onPreferenceChange(ZoneNaturalSizeKey.self) { [weak vm] size in
+                        // 面板尺寸 = 内容 + 外壳留白（不留的话边距被内容吃穿，贴边/裁切）
+                        vm?.measuredNaturalSize = size
+                    }
                     .frame(width: vm.zoneOpenedSize.width, alignment: .top)
                     .overlay(alignment: .bottom) {
                         if !vm.hasSeenSwipeHint {
@@ -111,12 +118,10 @@ struct NotchView: View {
                 guard !dropTargeting else { return }
                 vm.markSwipeHintSeen()
             }
+            // 入场：从顶部锚点放大淡入（旧实现叠了 offset(-h/2)，内容从上方 191pt 处滑入，
+            // 视觉上「顶部探过头、没吸住屏顶」，2026-09-11 用户反馈后撤掉）
             .transition(
-                .scale.combined(
-                    with: .opacity
-                ).combined(
-                    with: .offset(y: -vm.zoneOpenedSize.height / 2)
-                )
+                .scale(scale: 0.92, anchor: .top).combined(with: .opacity)
             )
         }
         .animation(reduceMotion ? nil : (vm.status == .opened ? vm.openAnimation : vm.closeAnimation), value: vm.status)
@@ -142,12 +147,15 @@ struct NotchView: View {
     }
 
     var island: some View {
-        // 黑岛：顶部大圆角（凸）+ 底部大圆角。凹角（concave）技术在本机 macOS 26 全线不渲染
-        // （自绘 Shape / Canvas / 遮罩 / destinationOut 均实测失败，连原版参考项目在此机亦失效），
-        // 故采用凸圆角方案——弧线饱满、渲染可靠（2026-09-11 定案）。
-        return RoundedRectangle(cornerRadius: islandBottomRadius, style: .continuous)
-            .fill(Color.black)
-            .frame(width: islandSize.width + islandFillet * 2, height: islandSize.height)
+        // 原型：照抄原版 NotchDrop 外形——凹角遮罩组合逐字移植自原版 notchBackgroundMaskGroup。
+        // 2026-09-11 离屏渲染实测：凹角在本机 macOS 26 SDK 正常渲染，旧「凹角全线失效」结论作废。
+        // 帧尺寸瞬时变更、不叠动画：SwiftUI 帧动画按中心锚定（顶边甩出屏顶），
+        // 且帧理想尺寸若超窗口会触发宿主垂直居中（历史坑）。形变动画由遮罩 body 内部承担。
+        return Rectangle()
+            .foregroundStyle(.black)
+            .mask(notchBackgroundMaskGroup)
+            .frame(width: islandSize.width + islandCornerRadius * 2, height: islandSize.height)
+            .opacity(vm.status == .closed && !vm.hoverGhosting && !vm.ghostFading ? 0.3 : 1)
             .overlay(alignment: .bottom) {
                 if (vm.hoverGhosting || vm.ghostFading), usage.summary != TokenSummary.empty {
                     peekHint
@@ -162,6 +170,61 @@ struct NotchView: View {
                 }
             }
             .animation(reduceMotion ? nil : IslandMetrics.growSpring, value: islandSize)
+    }
+
+    /// 岛体圆角（照抄原版数值：收起 8 / popping 10 / 展开 32；虚影态取 peek 底圆角）
+    var islandCornerRadius: CGFloat {
+        let isGhost = vm.hoverGhosting || vm.ghostFading
+        switch vm.status {
+        case .closed: return isGhost ? IslandMetrics.peekBottomRadius(for: vm.deviceNotchRect.size) : 8
+        case .opened: return IslandMetrics.openCornerRadius
+        case .popping: return 10
+        }
+    }
+
+    /// 顶部凹角融合深度（"拉长"旋钮）：出挑的 2 倍——比正圆弧更长更丝滑的过渡
+    var islandFilletBlend: CGFloat { islandCornerRadius * 2 }
+
+    /// 原版凹角遮罩结构（destinationOut 挖角），切角由圆改为**拉长椭圆**：出挑不变、融合更深更丝滑
+    var notchBackgroundMaskGroup: some View {
+        let r = islandCornerRadius
+        let blend = islandFilletBlend
+        let spacing = vm.spacing
+        let cutSide = blend + spacing
+        return Rectangle()
+            .foregroundStyle(.black)
+            .frame(width: islandSize.width, height: islandSize.height)
+            .clipShape(.rect(bottomLeadingRadius: r, bottomTrailingRadius: r))
+            .overlay {
+                ZStack(alignment: .topTrailing) {
+                    Rectangle()
+                        .frame(width: r, height: blend)
+                        .foregroundStyle(.black)
+                    EllipticalCornerCut(rx: r, ry: blend, trailing: true)
+                        .foregroundStyle(.white)
+                        .frame(width: cutSide, height: cutSide)
+                        .blendMode(.destinationOut)
+                }
+                .compositingGroup()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .offset(x: -cutSide + 0.5, y: -0.5)
+            }
+            .overlay {
+                ZStack(alignment: .topLeading) {
+                    Rectangle()
+                        .frame(width: r, height: blend)
+                        .foregroundStyle(.black)
+                    EllipticalCornerCut(rx: r, ry: blend, trailing: false)
+                        .foregroundStyle(.white)
+                        .frame(width: cutSide, height: cutSide)
+                        .blendMode(.destinationOut)
+                }
+                .compositingGroup()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .offset(x: cutSide - 0.5, y: -0.5)
+            }
+            // 遮罩 body 在外框内顶部对齐：黑体永远从屏顶向下生长（外框恒定，不参与动画）
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     /// 悬停 peek 提示：今日用量一行小字（真数据）
@@ -204,8 +267,7 @@ struct NotchView: View {
 
 /// 分批入场修饰符：延迟后 opacity 0→1 + 下移入场；reduceMotion 直接显示
 /// （blur 已踢出动画：离屏重渲染逐帧掉帧是卡顿感来源；NOTCH_TIMING 证实同步链路 ≤70ms）
-struct StaggeredEntry: ViewModifier {
-    let delay: TimeInterval
+struct StaggeredEntry: ViewModifier {    let delay: TimeInterval
     @State private var shown = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -219,5 +281,40 @@ struct StaggeredEntry: ViewModifier {
                     shown = true
                 }
             }
+    }
+}
+
+/// 右上/左上角为椭圆弧的方形切割：凹角遮罩的 destinationOut 切刀（ry > rx 即为"拉长"的融合弧）
+struct EllipticalCornerCut: Shape {
+    var rx: CGFloat
+    var ry: CGFloat
+    var trailing: Bool
+
+    func path(in rect: CGRect) -> Path {
+        let k: CGFloat = 0.5522847498
+        var p = Path()
+        if trailing {
+            p.move(to: CGPoint(x: rect.minX, y: rect.minY))
+            p.addLine(to: CGPoint(x: rect.maxX - rx, y: rect.minY))
+            p.addCurve(
+                to: CGPoint(x: rect.maxX, y: rect.minY + ry),
+                control1: CGPoint(x: rect.maxX - rx + rx * k, y: rect.minY),
+                control2: CGPoint(x: rect.maxX, y: rect.minY + ry - ry * k)
+            )
+            p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+            p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        } else {
+            p.move(to: CGPoint(x: rect.maxX, y: rect.minY))
+            p.addLine(to: CGPoint(x: rect.minX + rx, y: rect.minY))
+            p.addCurve(
+                to: CGPoint(x: rect.minX, y: rect.minY + ry),
+                control1: CGPoint(x: rect.minX + rx - rx * k, y: rect.minY),
+                control2: CGPoint(x: rect.minX, y: rect.minY + ry - ry * k)
+            )
+            p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+            p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        }
+        p.closeSubpath()
+        return p
     }
 }

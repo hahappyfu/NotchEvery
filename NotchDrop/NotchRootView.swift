@@ -20,7 +20,7 @@ struct NotchRootView: View {
                 get: { NotchViewModel.pageIndex(for: vm.contentType) },
                 set: { vm.jumpToZone(NotchViewModel.zone(for: $0)) }
             ))
-            .padding(.top, 8)
+            .padding(.top, 4)
         }
         .padding(.bottom, 10)
         // 刘海安全区垫在测量区内：测量含安全区，面板才够高（03 工单）
@@ -40,8 +40,9 @@ struct NotchRootView: View {
             .frame(minWidth: 360)
         }
         // 整体上报：含安全区+内容（dots 已收进面板内，随内容一起量）
+        // 宽度不再自钉 zone 宽：那会让外壳留白失效、内容永远贴边
+        // （2026-09-11 探针坐实 box=704 / zone=640 / inner=640）；改由外壳给「面板宽−留白」的提案，内容按提案填充
         .zoneSizeReporter(active: true)
-        .frame(width: vm.zoneOpenedSize.width)
         // 用量轮询随面板开合（与额度卡同节奏，收起即停）
         .onAppear { UsageStore.shared.start() }
         .onChange(of: vm.status) { status in
@@ -97,19 +98,17 @@ struct NotchRootView: View {
     }
 
     private var pages: some View {
-        ZStack(alignment: .topLeading) {
+        ZStack(alignment: .top) {
             switch vm.contentType {
             case .normal:
                 OverviewPageView(vm: vm)
-                    // 量理想宽：maxWidth 填充会让测量值永远等于容器宽、宽度锁死，
-                    // 水平 fixedSize 让面板宽度收敛到内容（垂直保持 flexible）
-                    .fixedSize(horizontal: true, vertical: false)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    // 概览页按内容自身尺寸居中（不撑满）：测量值必须与提案无关，
+                    // 撑满会让高度/宽度跟随上页面板 → 来回切页卡大不缩（2026-09-11 探针实锤 inner 高度卡 334）
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             case .token:
                 TokenZoneView()
-                    .fixedSize(horizontal: true, vertical: false)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    // 横向填充（余宽由列间距均分）；纵向自然高
+                    .frame(maxWidth: .infinity, alignment: .top)
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             }
         }

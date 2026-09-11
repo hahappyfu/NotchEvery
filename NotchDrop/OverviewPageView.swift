@@ -14,6 +14,5 @@ struct OverviewPageView: View {
             .padding(.horizontal, 14)
             // 整行展示卡：完整包裹配额数据区，左右平衡（清单 05；底从配额卡体内上提）
             .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 }

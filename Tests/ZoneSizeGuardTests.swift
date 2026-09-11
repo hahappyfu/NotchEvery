@@ -20,11 +20,19 @@ final class ZoneSizeGuardTests: XCTestCase {
         XCTAssertEqual(value, CGSize(width: 200, height: 150))
     }
 
-    // 02 工单：钳制纯函数（屏高 900 → 高上限 360；最小 320×120；最大宽 640）
-    func testClampKeepsNormalSize() {
+    // 02 工单 + 2026-09-11 设计修订：宽 = 钳制(内容自然宽, 最小 320, 长宽比保底宽)，上限 640；
+    // 高 = min(max(自然高, 120), maxHeight)。natural 为含外壳留白的盒子（内容最小宽 + 2×32）。
+    func testClampKeepsContentWidth() {
         XCTAssertEqual(
             NotchViewModel.clampPanelSize(CGSize(width: 400, height: 200), maxHeight: 360),
-            CGSize(width: 400, height: 200)
+            CGSize(width: 400, height: 200) // 保底宽 286 < 内容 400，内容顶住
+        )
+    }
+
+    func testClampAppliesAspectFloorWhenContentNarrow() {
+        XCTAssertEqual(
+            NotchViewModel.clampPanelSize(CGSize(width: 400, height: 320), maxHeight: 400),
+            CGSize(width: 496, height: 320) // 320×1.75−64 = 496 > 内容 400
         )
     }
 
@@ -35,17 +43,10 @@ final class ZoneSizeGuardTests: XCTestCase {
         )
     }
 
-    func testClampCapsWidth() {
+    func testClampCapsWidthAndHeight() {
         XCTAssertEqual(
-            NotchViewModel.clampPanelSize(CGSize(width: 900, height: 200), maxHeight: 360),
-            CGSize(width: 640, height: 200)
-        )
-    }
-
-    func testClampCapsHeight() {
-        XCTAssertEqual(
-            NotchViewModel.clampPanelSize(CGSize(width: 400, height: 800), maxHeight: 360),
-            CGSize(width: 400, height: 360)
+            NotchViewModel.clampPanelSize(CGSize(width: 900, height: 800), maxHeight: 360),
+            CGSize(width: 640, height: 360) // 宽封顶 640、高封顶 360
         )
     }
 

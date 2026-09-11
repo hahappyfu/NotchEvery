@@ -36,12 +36,19 @@ enum IslandMetrics {
     static let openBottomRadius: CGFloat = 26
     /// 展开态侧边呼吸边距（绝对常数，对齐原型 15px 物理尺度；凹角方案已废弃）
     static let openFilletRadius: CGFloat = 14
+    /// 展开态凹角半径（= 侧翼出挑宽；长宽比保底的翼宽来源，与 NotchView 共用）
+    static let openCornerRadius: CGFloat = 32
+    /// 面板长宽比保底：岛体宽（内容宽 + 2×openCornerRadius）对高之比不低于此值，防「窄高条」。
+    /// 1.75 取自原版 NotchDrop 展开态比例（664/160≈4.15 为宽内容族下限的保守折中，2026-09-11 定案）
+    static let panelAspectFloor: CGFloat = 1.75
+    /// 面板内容与岛体边缘的留白：内容不贴边界（对齐原版 600/664 的 32pt 比例，2026-09-11 用户验收要求）
+    static let panelContentInset: CGFloat = 32
 
     /// 生长/收敛过渡弹簧（数据驱动宽度变化与岛尺寸变化共用）
     static let growSpring: Animation = .spring(response: 0.45, dampingFraction: 0.85)
     /// 模型列宽钳制区间
     static let modelColumnMin: CGFloat = 100
-    static let modelColumnMax: CGFloat = 180
+    static let modelColumnMax: CGFloat = 220
 
     /// 模型列宽：当前行最长模型名实测宽 + 4pt 呼吸，钳制 [min, max]。
     static func modelColumnWidth(for models: [String]) -> CGFloat {

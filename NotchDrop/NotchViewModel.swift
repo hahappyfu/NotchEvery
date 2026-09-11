@@ -87,10 +87,17 @@ class NotchViewModel: NSObject, ObservableObject {
     static let headerSlotHeight: CGFloat = 29
 
     /// 钳制纯函数：自然尺寸 → 面板尺寸。maxHeight 由调用方按当前屏幕给（屏高 40%）。
+    /// 宽度 = 钳制(内容自然宽, 最小宽, 长宽比保底宽)，上限 maxPanelWidth——
+    /// natural 取自**含外壳留白**的盒子测量：内容最小宽 + 2×panelContentInset 是硬下限，
+    /// 否则内容吃穿留白、贴岛体边缘甚至被裁（2026-09-11 探针定位）。
+    /// 长宽比保底 = 岛体宽高比 ≥ panelAspectFloor，防「窄高条」；切页时测量被重置以允许缩回。
     static func clampPanelSize(_ natural: CGSize, maxHeight: CGFloat) -> CGSize {
-        CGSize(
-            width: min(max(natural.width, minPanelSize.width), maxPanelWidth),
-            height: min(max(natural.height, minPanelSize.height), maxHeight)
+        let height = min(max(natural.height, minPanelSize.height), maxHeight)
+        let flankBleed = IslandMetrics.openCornerRadius * 2
+        let aspectFloorWidth = height * IslandMetrics.panelAspectFloor - flankBleed
+        return CGSize(
+            width: min(max(max(natural.width, minPanelSize.width), aspectFloorWidth), maxPanelWidth),
+            height: height
         )
     }
 
@@ -145,9 +152,21 @@ class NotchViewModel: NSObject, ObservableObject {
 
     var notchOpenedRect: CGRect { geometry.notchOpenedRect }
 
-    @Published private(set) var status: Status = .closed
+    @Published private(set) var status: Status = .closed {
+        didSet {
+            // 每次展开重置宽度测量：宽度是「涨」信号，不重置会在多个稳态间漂移
+            if status == .opened, oldValue != .opened {
+                measuredNaturalSize = CGSize(width: 0, height: measuredNaturalSize.height)
+            }
+        }
+    }
     @Published var openReason: OpenReason = .unknown
-    @Published var contentType: ContentType = .normal
+    @Published var contentType: ContentType = .normal {
+        didSet {
+            // 切页允许面板缩：宽度测量含「涨」信号，不重置会卡在上一页的宽度
+            measuredNaturalSize = CGSize(width: 0, height: measuredNaturalSize.height)
+        }
+    }
 
     @Published var spacing: CGFloat = 20
     @Published var cornerRadius: CGFloat = 20
@@ -160,9 +179,9 @@ class NotchViewModel: NSObject, ObservableObject {
     /// 过桥菊花：openFromGhost 后短闪 150ms
     @Published private(set) var bridgeSpinning: Bool = false
 
-    /// 展开/收起弹簧：对齐原版 NotchDrop 的 interactiveSpring(duration 0.5, extraBounce 0.25,
-    /// blendDuration 0.125)——灵动岛标志性的回弹手感（2026-09-11 用户要求对齐原版切换动作）
-    let openAnimation: Animation = .interactiveSpring(duration: 0.5, extraBounce: 0.25, blendDuration: 0.125)
+    /// 展开/收起弹簧：原版 NotchDrop 的 interactiveSpring(duration 0.5, extraBounce 0.25,
+    /// blendDuration 0.125)；展开回弹降到 0.1（2026-09-11 用户反馈「弹出来用力过猛」）
+    let openAnimation: Animation = .interactiveSpring(duration: 0.5, extraBounce: 0.1, blendDuration: 0.125)
     /// 收起沿用同一条曲线（原版开合同参）
     let closeAnimation: Animation = .interactiveSpring(duration: 0.5, extraBounce: 0.25, blendDuration: 0.125)
     /// 切页专用：快、无过冲（清单 05 转场收敛；.snappy 需 macOS 14+，部署目标 13 故用高阻尼 spring）

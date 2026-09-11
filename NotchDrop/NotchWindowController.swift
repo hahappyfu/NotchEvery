@@ -38,12 +38,12 @@ class NotchWindowController: NSWindowController {
             .sink { [weak self, weak window, weak screen] _, status, _ in
                 guard let window = window as? NotchWindow, let screen else { return }
                 guard let vm = self?.vm else { return }
-                let height: CGFloat
-                if status == .opened {
-                    height = vm.zoneOpenedSize.height
-                } else {
-                    height = notchHeight
-                }
+                // 窗口尺寸恒定（最大高度 + 余量），任何状态都不再变化：
+                // 窗口是「内容理想高 vs 窗口高」里被宿主垂直居中的受害者——任何窗口低于理想高的时刻
+                // （开面板首帧 / 切页 / 悬停展开）整块内容都会下移、顶部露空
+                // （探针实锤 top=-14/-76 = (窗口高−理想高)/2）。恒定条带下理想高恒 ≤ 窗口，居中无从发生；
+                // 透明多余部分不可见（命中测试透传，与历史 200pt 条带同理）。
+                let height = vm.maxPanelHeight + 24
                 window.pinnedContentSize = CGSize(width: screen.frame.width, height: height)
                 let target = CGRect(
                     x: screen.frame.origin.x,
@@ -51,19 +51,9 @@ class NotchWindowController: NSWindowController {
                     width: screen.frame.width,
                     height: height
                 )
-                if status == .opened {
-                    // 内容自适应：窗口直接跟随测量值。切页（尤其收缩方向）测量分步下降，
-                    // 若叠 0.3s animator 会被逐次打断、永久停在中间值，形成"卡卡缩回"；内容自身已有 SwiftUI 转场，窗口跟着走即可。
-                    self?.hostingHeightConstraint?.constant = height
-                    window.setFrame(target, display: true)
-                    notchTimingMark("setFrame h=\(Int(height))")
-                } else {
-                    NSAnimationContext.runAnimationGroup { context in
-                        context.duration = 0.3
-                        self?.hostingHeightConstraint?.animator().constant = height
-                        window.animator().setFrame(target, display: true)
-                    }
-                }
+                self?.hostingHeightConstraint?.constant = height
+                window.setFrame(target, display: true)
+                notchTimingMark("setFrame h=\(Int(height))")
             }
             .store(in: &cancellables)
 

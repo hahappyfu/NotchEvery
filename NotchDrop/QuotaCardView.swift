@@ -22,20 +22,20 @@ struct QuotaCardView: View {
     }
 
     var body: some View {
-        // 扁长横块（灵动岛比例，清单 08 三返工）：环左数据右，环 56 + 纵向 8，高约 72、宽 250+
-        HStack(spacing: 12) {
-            ring(size: 56, percent: store.snapshot.window("5h")?.percent, label: "5h")
-            VStack(alignment: .leading, spacing: 6) {
+        // 放大版横块（2026-09-11 用户验收：内容放大、面板=内容+黑边）：环 72 + 纵向 12，宽 360+
+        HStack(spacing: 14) {
+            ring(size: 72, percent: store.snapshot.window("5h")?.percent, label: "5h")
+            VStack(alignment: .leading, spacing: 7) {
                 row(key: "weekly", title: "周")
                 row(key: "monthly", title: "月")
                 statusLine
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        // 横块：宽给 250、高随内容（清单 08 返工：1:1 方形偏长，改宽不改高）
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .frame(minWidth: 250)
+        // 横块：固定设计宽 360（不随面板伸缩——弹性宽会把面板测量撑成"跟着上次页走"，划回来不缩）
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .frame(width: 360)
         .onAppear { store.start() }
         // 30s 轮询随面板收起停表（常驻定时器归零）：面板收起 → status closed
         .onChange(of: vm.status) { status in
@@ -51,21 +51,21 @@ struct QuotaCardView: View {
         let percent = store.snapshot.window(key)?.percent
         return HStack(spacing: 8) {
             Text(title)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Color.white.opacity(0.55))
-                .frame(width: 20, alignment: .leading)
+                .frame(width: 22, alignment: .leading)
             miniBar(percent: percent)
-                .frame(minWidth: 50)
+                .frame(minWidth: 70)
             if let percent {
                 Text("\(Int(percent))%")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.white.opacity(0.92))
-                    .frame(width: 42, alignment: .trailing)
+                    .frame(width: 46, alignment: .trailing)
             } else {
                 Text("--%")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.white.opacity(0.35))
-                    .frame(width: 42, alignment: .trailing)
+                    .frame(width: 46, alignment: .trailing)
             }
         }
     }
@@ -76,16 +76,16 @@ struct QuotaCardView: View {
         let fill: Color = percent.map(Self.ringColor) ?? .clear
         return GeometryReader { geo in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 3)
+                RoundedRectangle(cornerRadius: 4)
                     .fill(Color.white.opacity(0.12))
-                    .frame(height: 6)
-                RoundedRectangle(cornerRadius: 3)
+                    .frame(height: 8)
+                RoundedRectangle(cornerRadius: 4)
                     .fill(fill)
-                    .frame(width: geo.size.width * fraction, height: 6)
+                    .frame(width: geo.size.width * fraction, height: 8)
                     .animation(.easeInOut(duration: 0.3), value: fraction)
             }
         }
-        .frame(height: 6)
+        .frame(height: 8)
     }
 
     /// 分钟精度倒计时（秒级跳动在状态栏是噪音，且 8 字符必换行）。
@@ -125,7 +125,7 @@ struct QuotaCardView: View {
             ZStack {
                 if let percent {
                     Circle()
-                        .stroke(Color.white.opacity(0.12), lineWidth: 8)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 9)
                         .frame(width: size, height: size)
                     Circle()
                         .trim(from: 0, to: min(1, max(0, percent / 100)))
@@ -136,13 +136,13 @@ struct QuotaCardView: View {
                                 startAngle: .degrees(-90),
                                 endAngle: .degrees(270)
                             ),
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                            style: StrokeStyle(lineWidth: 9, lineCap: .round)
                         )
                         .rotationEffect(.degrees(-90))
                         .frame(width: size, height: size)
                         .animation(reduceMotion ? nil : .easeInOut(duration: 0.4), value: percent)
                     Text(String(format: "%.1f%%", percent))
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.white.opacity(0.92))
                         .frame(width: size - 16)
                         .minimumScaleFactor(0.6)
@@ -151,11 +151,11 @@ struct QuotaCardView: View {
                     Circle()
                         .strokeBorder(
                             Color.white.opacity(0.12),
-                            style: StrokeStyle(lineWidth: 8, dash: [6, 6])
+                            style: StrokeStyle(lineWidth: 9, dash: [6, 6])
                         )
                         .frame(width: size, height: size)
                     Text("--%")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.white.opacity(0.35))
                 }
             }

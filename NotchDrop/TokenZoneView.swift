@@ -63,8 +63,10 @@ private struct TokenRowView: View {
     let row: TokenRequest
     let timeW: CGFloat
     let modelW: CGFloat
+    let ioW: CGFloat
     let durationW: CGFloat
     let statusW: CGFloat
+    let columnGap: CGFloat
     /// 刚插入的新行：播一次绿闪渐隐
     var isNew: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -72,23 +74,27 @@ private struct TokenRowView: View {
     @State private var flashOpacity: Double = 0
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 0) {
             Text(row.time)
                 .frame(width: timeW, alignment: .leading)
                 .foregroundStyle(Color.white.opacity(0.55))
+            Spacer(minLength: columnGap)
             Text(row.model)
                 .fontWeight(.semibold)
                 .foregroundStyle(Color.white.opacity(0.92))
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
                 .frame(width: modelW, alignment: .leading)
+            Spacer(minLength: columnGap)
             Text("\(row.inputTokens.formatted()) / \(row.outputTokens.formatted())")
                 .font(.system(size: 10))
                 .foregroundStyle(Color.white.opacity(0.55))
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(width: ioW, alignment: .trailing)
+            Spacer(minLength: columnGap)
             Text(String(format: "%.1fs", row.durationSeconds))
                 .frame(width: durationW, alignment: .trailing)
                 .foregroundStyle(Color.white.opacity(0.55))
+            Spacer(minLength: columnGap)
             HStack(spacing: 4) {
                 Circle()
                     .fill(tokenStatusColor(row.status))
@@ -100,7 +106,7 @@ private struct TokenRowView: View {
         }
         .font(.system(size: 11))
         .monospacedDigit()
-        .padding(.vertical, 6)
+        .padding(.vertical, 7)
         .contentShape(Rectangle())
         .background(hovering ? Color.white.opacity(0.06) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
         .background(Color.green.opacity(flashOpacity), in: RoundedRectangle(cornerRadius: 6))
@@ -128,13 +134,16 @@ struct TokenZoneView: View {
     @State private var lastFirstID: String?
 
     /// 列宽（header 与行共用同一组，保证对齐；文本列左对齐，数字列右对齐）
-    private let timeW: CGFloat = 40
+    private let timeW: CGFloat = 48
     /// 自适应列宽：随当前 5 行数据收敛（钳制见 IslandMetrics）
     private var modelW: CGFloat {
         IslandMetrics.modelColumnWidth(for: store.recentRequests.prefix(5).map(\.model))
     }
-    private let durationW: CGFloat = 48
-    private let statusW: CGFloat = 38
+    private let ioW: CGFloat = 110
+    private let durationW: CGFloat = 56
+    private let statusW: CGFloat = 44
+    /// 列间弹性间距下限：面板余宽由四处间距均分吸收（不再堆成一列大空洞）
+    private let columnGap: CGFloat = 14
 
     var body: some View {
         VStack(spacing: 0) {
@@ -143,7 +152,8 @@ struct TokenZoneView: View {
             VStack(spacing: 0) {
                 ForEach(store.recentRequests.prefix(5)) { row in
                     TokenRowView(
-                        row: row, timeW: timeW, modelW: modelW, durationW: durationW, statusW: statusW,
+                        row: row, timeW: timeW, modelW: modelW, ioW: ioW,
+                        durationW: durationW, statusW: statusW, columnGap: columnGap,
                         isNew: lastFirstID != nil
                             && row.id == store.recentRequests.first?.id
                             && row.id != lastFirstID
@@ -166,59 +176,58 @@ struct TokenZoneView: View {
             .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: store.recentRequests)
             footer
         }
-        // 表格容器（header + 行）：列宽随数据变化走同款弹簧（岛宽同步 morph）
-        .animation(reduceMotion ? nil : IslandMetrics.growSpring, value: modelW)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
         .onChange(of: store.recentRequests) { rows in
             if let first = rows.first, first.id != lastFirstID { lastFirstID = first.id }
         }
     }
 
     private var summaryBar: some View {
-        HStack {
-            HStack(spacing: 6) {
+        // 安静的两端式 KPI 行：左 Tokens、右缓存命中率+条（去绿色胶囊底，宽面板下更干净）
+        HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text("Tokens")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.white.opacity(0.55))
-                RollupText(text: store.summary.totalTokens)
+                RollupText(text: store.summary.totalTokens, font: .system(size: 15, weight: .semibold))
             }
             Spacer()
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Text("缓存命中率")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.green)
-                RollupText(text: store.summary.cacheRate, font: .system(size: 12, weight: .bold), color: .green)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.white.opacity(0.55))
+                RollupText(text: store.summary.cacheRate, font: .system(size: 13, weight: .bold), color: .green)
                 ZStack(alignment: .leading) {
                     Capsule()
                         .fill(Color.green.opacity(0.2))
-                        .frame(width: 64, height: 6)
+                        .frame(width: 88, height: 6)
                     Capsule()
                         .fill(Color.green)
-                        .frame(width: 64 * min(1, max(0, store.cacheRateFraction)), height: 6)
+                        .frame(width: 88 * min(1, max(0, store.cacheRateFraction)), height: 6)
                 }
+                .offset(y: -1)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .background(Color.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.green.opacity(0.20), lineWidth: 1))
         }
         .monospacedDigit()
         .lineLimit(1)
         .minimumScaleFactor(0.85)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
-        .padding(.bottom, 10)
+        .padding(.bottom, 12)
     }
 
     private var header: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 0) {
             Text("时间").frame(width: timeW, alignment: .leading)
+            Spacer(minLength: columnGap)
             Text("模型").frame(width: modelW, alignment: .leading)
-            Text("入 / 出").frame(maxWidth: .infinity, alignment: .trailing)
+            Spacer(minLength: columnGap)
+            Text("入 / 出").frame(width: ioW, alignment: .trailing)
+            Spacer(minLength: columnGap)
             Text("用时").frame(width: durationW, alignment: .trailing)
+            Spacer(minLength: columnGap)
             Text("状态").frame(width: statusW, alignment: .trailing)
         }
         .font(.system(size: 11, weight: .medium))
@@ -229,7 +238,7 @@ struct TokenZoneView: View {
                 .fill(Color.white.opacity(0.08))
                 .frame(height: 0.5)
         }
-        .padding(.bottom, 4)
+        .padding(.bottom, 5)
     }
     private var footer: some View {
         VStack(spacing: 10) {
@@ -247,7 +256,7 @@ struct TokenZoneView: View {
             .font(.system(size: 10))
             .foregroundStyle(Color.white.opacity(0.55))
         }
-        .padding(.top, 10)
+        .padding(.top, 6)
     }
 
     private var footerTimeText: String {
