@@ -29,6 +29,7 @@ NotchEvery 现形态为「玻璃卡片悬于刘海下方」：material 刘海壳
 ### 动效
 
 - 状态切换 = 形状 morph：spring 约 response 0.45 / damping 0.85（对应原型 0.52s cubic-bezier(0.22,1,0.36,1) 的观感）
+  - **实施修订（2026-09-11）**：展开/收起/通用过渡统一为原版 NotchDrop 的 `.interactiveSpring(duration: 0.5, extraBounce: 0.25, blendDuration: 0.125)`（灵动岛回弹手感，用户验收）。岛宽 morph 仍走 growSpring（0.45/0.85）。
 - 内容层淡入带约 0.1s 延迟（形状先长、内容后现）；换页内容沿用现有方向性滑动过渡
 - reduceMotion 降级：直切、无位移
 

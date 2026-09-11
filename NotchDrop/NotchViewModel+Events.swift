@@ -76,14 +76,6 @@ extension NotchViewModel {
             .store(in: &cancellables)
 
         $status
-            .filter { $0 != .closed }
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                withAnimation { self?.notchVisible = true }
-            }
-            .store(in: &cancellables)
-
-        $status
             .filter { $0 == .popping }
             .throttle(for: .seconds(0.5), scheduler: DispatchQueue.main, latest: false)
             .sink { [weak self] _ in
@@ -100,17 +92,6 @@ extension NotchViewModel {
                     .levelChange,
                     performanceTime: .now
                 )
-            }
-            .store(in: &cancellables)
-
-        $status
-            .debounce(for: 0.5, scheduler: DispatchQueue.global())
-            .filter { $0 == .closed }
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                withAnimation {
-                    self?.notchVisible = false
-                }
             }
             .store(in: &cancellables)
 

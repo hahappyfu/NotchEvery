@@ -154,7 +154,6 @@ class NotchViewModel: NSObject, ObservableObject {
     @Published var deviceNotchRect: CGRect = .zero
     @Published var screenRect: CGRect = .zero
     @Published var optionKeyPressed: Bool = false
-    @Published var notchVisible: Bool = true
     @Published var hoverGhosting: Bool = false
     /// 两段收起中间态：保持虚影视觉 200ms 再清态
     @Published private(set) var ghostFading: Bool = false

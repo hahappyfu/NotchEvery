@@ -13,7 +13,7 @@ struct NotchRootView: View {
     private let deadZoneMargin: CGFloat = 8
 
     var body: some View {
-        // 黑岛（ADR-0010）：内容透明直接坐岛上，岛体由 NotchView 的 IslandShape 绘制
+        // 黑岛（ADR-0010）：内容透明直接坐岛上，岛体由 NotchView 的 RoundedRectangle 绘制
         VStack(spacing: 0) {
             pages
             SmoothPageIndicator(pageCount: 2, currentPage: Binding(
