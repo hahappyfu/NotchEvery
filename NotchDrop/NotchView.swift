@@ -142,7 +142,11 @@ struct NotchView: View {
     }
 
     var island: some View {
-        return islandComposition
+        // 黑岛：顶部大圆角（凸）+ 底部大圆角。凹角（concave）技术在本机 macOS 26 全线不渲染
+        // （自绘 Shape / Canvas / 遮罩 / destinationOut 均实测失败，连原版参考项目在此机亦失效），
+        // 故采用凸圆角方案——弧线饱满、渲染可靠（2026-09-11 定案）。
+        return RoundedRectangle(cornerRadius: islandBottomRadius, style: .continuous)
+            .fill(Color.black)
             .frame(width: islandSize.width + islandFillet * 2, height: islandSize.height)
             .overlay(alignment: .bottom) {
                 if (vm.hoverGhosting || vm.ghostFading), usage.summary != TokenSummary.empty {
@@ -158,30 +162,6 @@ struct NotchView: View {
                 }
             }
             .animation(reduceMotion ? nil : IslandMetrics.growSpring, value: islandSize)
-    }
-
-    /// 黑岛组合：底圆角矩形 + 顶部两角凹圆切除。
-    /// 凹角圆心在 (0, r) / (W, r)：与原型 .nb-fillet radial-gradient(circle at 0%/100% 100%) 同构。
-    /// 不用自绘 Shape 的 concave 路径：本机 SwiftUI 渲染管线对 concave 路径不出画（事实驱动，2026-09-11 排查）。
-    private var islandComposition: some View {
-        Rectangle()
-            .fill(Color.black)
-            .clipShape(.rect(bottomLeadingRadius: islandBottomRadius, bottomTrailingRadius: islandBottomRadius))
-            .overlay(alignment: .topLeading) {
-                Circle()
-                    .fill(Color.black)
-                    .frame(width: islandFillet * 2, height: islandFillet * 2)
-                    .offset(x: -islandFillet, y: 0)
-                    .blendMode(.destinationOut)
-            }
-            .overlay(alignment: .topTrailing) {
-                Circle()
-                    .fill(Color.black)
-                    .frame(width: islandFillet * 2, height: islandFillet * 2)
-                    .offset(x: islandFillet, y: 0)
-                    .blendMode(.destinationOut)
-            }
-            .compositingGroup()
     }
 
     /// 悬停 peek 提示：今日用量一行小字（真数据）
