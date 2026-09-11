@@ -93,9 +93,12 @@ class NotchWindowController: NSWindowController {
                     FileHandle.standardError.write(msg.data(using: .utf8)!)
                 }
             }
-            // TEMP-DEL: 截图验证 peek 用，NOTCH_GHOST=1 强制悬停虚影态（0.2s 重复对抗 300ms 自动清）
+            // TEMP-DEL: 截图验证 peek 用，NOTCH_GHOST=1 强制悬停虚影态（先收 boot 展开，0.2s 重复对抗 300ms 自动清）
             if ProcessInfo.processInfo.environment["NOTCH_GHOST"] == "1" {
                 UsageStore.shared.start()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak vm] in
+                    vm?.notchClose()
+                }
                 Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak vm] _ in
                     vm?.hoverGhosting = true
                 }
