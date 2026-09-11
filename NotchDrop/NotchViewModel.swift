@@ -160,7 +160,6 @@ class NotchViewModel: NSObject, ObservableObject {
     /// 过桥菊花：openFromGhost 后短闪 150ms
     @Published private(set) var bridgeSpinning: Bool = false
 
-    /// 展开弹簧（快长轻微过冲：response 收紧求快，damping 留轻微过冲）
     /// 展开/收起弹簧：对齐原版 NotchDrop 的 interactiveSpring(duration 0.5, extraBounce 0.25,
     /// blendDuration 0.125)——灵动岛标志性的回弹手感（2026-09-11 用户要求对齐原版切换动作）
     let openAnimation: Animation = .interactiveSpring(duration: 0.5, extraBounce: 0.25, blendDuration: 0.125)
