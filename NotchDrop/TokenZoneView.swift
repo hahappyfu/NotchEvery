@@ -35,7 +35,7 @@ struct TokenSummary: Equatable {
 struct RollupText: View {
     let text: String
     var font: Font = .system(size: 14, weight: .bold)
-    var color: Color = Color.white.opacity(0.92)
+    var color: Color = .primary
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -77,36 +77,35 @@ private struct TokenRowView: View {
         HStack(spacing: 0) {
             Text(row.time)
                 .frame(width: timeW, alignment: .leading)
-                .foregroundStyle(Color.white.opacity(0.55))
+                .foregroundStyle(.tertiary)
             Spacer(minLength: columnGap)
             Text(row.model)
-                .fontWeight(.semibold)
-                .foregroundStyle(Color.white.opacity(0.92))
+                .fontWeight(.medium)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
                 .frame(width: modelW, alignment: .leading)
             Spacer(minLength: columnGap)
             Text("\(row.inputTokens.formatted()) / \(row.outputTokens.formatted())")
-                .font(.system(size: 10))
-                .foregroundStyle(Color.white.opacity(0.55))
+                .foregroundStyle(.primary)
                 .frame(width: ioW, alignment: .trailing)
             Spacer(minLength: columnGap)
             Text(String(format: "%.1fs", row.durationSeconds))
                 .frame(width: durationW, alignment: .trailing)
-                .foregroundStyle(Color.white.opacity(0.55))
+                .foregroundStyle(.primary)
             Spacer(minLength: columnGap)
             HStack(spacing: 4) {
                 Circle()
                     .fill(tokenStatusColor(row.status))
                     .frame(width: 6, height: 6)
                 Text("\(row.status)")
-                    .foregroundStyle(row.status >= 400 ? tokenStatusColor(row.status) : Color.white.opacity(0.55))
+                    .foregroundStyle(row.status >= 400 ? tokenStatusColor(row.status) : .secondary)
             }
             .frame(width: statusW, alignment: .trailing)
         }
         .font(.system(size: 11))
         .monospacedDigit()
-        .padding(.vertical, 7)
+        .padding(.vertical, 8)
         .contentShape(Rectangle())
         .background(hovering ? Color.white.opacity(0.06) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
         .background(Color.green.opacity(flashOpacity), in: RoundedRectangle(cornerRadius: 6))
@@ -118,11 +117,6 @@ private struct TokenRowView: View {
             DispatchQueue.main.async {
                 withAnimation(.easeOut(duration: 0.9)) { flashOpacity = 0 }
             }
-        }
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color.white.opacity(0.08))
-                .frame(height: 0.5)
         }
     }
 }
@@ -174,7 +168,6 @@ struct TokenZoneView: View {
                 )
             )
             .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: store.recentRequests)
-            footer
         }
         .padding(.vertical, 6)
         .onChange(of: store.recentRequests) { rows in
@@ -184,29 +177,40 @@ struct TokenZoneView: View {
 
     private var summaryBar: some View {
         // 安静的两端式 KPI 行：左 Tokens、右缓存命中率+条（去绿色胶囊底，宽面板下更干净）
+        // C 档：底部 footer 并入此处第二行，岛体收矮
+        VStack(spacing: 8) {
         HStack(alignment: .firstTextBaseline) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text("Tokens")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.white.opacity(0.55))
-                RollupText(text: store.summary.totalTokens, font: .system(size: 15, weight: .semibold))
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(0.8)
+                    .foregroundStyle(.secondary)
+                RollupText(text: store.summary.totalTokens, font: .system(size: 19, weight: .bold, design: .rounded))
             }
             Spacer()
             HStack(spacing: 8) {
                 Text("缓存命中率")
                     .font(.system(size: 11))
-                    .foregroundStyle(Color.white.opacity(0.55))
-                RollupText(text: store.summary.cacheRate, font: .system(size: 13, weight: .bold), color: .green)
+                    .foregroundStyle(.secondary)
+                RollupText(text: store.summary.cacheRate, font: .system(size: 14, weight: .bold, design: .rounded), color: .green)
                 ZStack(alignment: .leading) {
                     Capsule()
                         .fill(Color.green.opacity(0.2))
-                        .frame(width: 88, height: 6)
+                        .frame(width: 64, height: 4)
                     Capsule()
-                        .fill(Color.green)
-                        .frame(width: 88 * min(1, max(0, store.cacheRateFraction)), height: 6)
+                        .fill(Color.green.opacity(0.9))
+                        .frame(width: 64 * min(1, max(0, store.cacheRateFraction)), height: 4)
                 }
                 .offset(y: -1)
             }
+            HStack {
+                Text("缓存命中 \(UsageStore.formatTokens(store.footer.cacheReadTotal))")
+                Spacer()
+                Text("更新于 \(footerTimeText)")
+            }
+            .font(.system(size: 10))
+            .foregroundStyle(.tertiary)
+        }
         }
         .monospacedDigit()
         .lineLimit(1)
@@ -230,8 +234,8 @@ struct TokenZoneView: View {
             Spacer(minLength: columnGap)
             Text("状态").frame(width: statusW, alignment: .trailing)
         }
-        .font(.system(size: 11, weight: .medium))
-        .foregroundStyle(Color.white.opacity(0.55))
+        .font(.system(size: 10, weight: .medium))
+        .foregroundStyle(.tertiary)
         .padding(.vertical, 5)
         .overlay(alignment: .bottom) {
             Rectangle()
@@ -239,24 +243,6 @@ struct TokenZoneView: View {
                 .frame(height: 0.5)
         }
         .padding(.bottom, 5)
-    }
-    private var footer: some View {
-        VStack(spacing: 10) {
-            Rectangle()
-                .fill(Color.white.opacity(0.08))
-                .frame(height: 0.5)
-            HStack {
-                Circle()
-                    .fill(store.footer.cacheReadTotal > 0 ? Color.green : Color.white.opacity(0.4))
-                    .frame(width: 6, height: 6)
-                Text("缓存命中 \(UsageStore.formatTokens(store.footer.cacheReadTotal)) · 省 \(UsageStore.formatCost(usd: store.footer.savedUSD, priced: true))")
-                Spacer()
-                Text("更新于 \(footerTimeText)")
-            }
-            .font(.system(size: 10))
-            .foregroundStyle(Color.white.opacity(0.55))
-        }
-        .padding(.top, 6)
     }
 
     private var footerTimeText: String {

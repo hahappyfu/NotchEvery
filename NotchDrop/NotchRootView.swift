@@ -80,7 +80,7 @@ struct NotchRootView: View {
                     .frame(width: 8, height: 8)
                 Text(provider)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.92))
+                    .foregroundStyle(.primary)
             }
             .monospacedDigit()
             .lineLimit(1)
@@ -91,9 +91,15 @@ struct NotchRootView: View {
 
     @ViewBuilder
     private var rightEarPill: some View {
-        // 右耳：今日调用次数
+        // 右耳：今日调用次数（标签+数字，不然裸数字不知所云）
         if vm.contentType == .token {
-            RollupText(text: usage.summary.calls, font: .system(size: 11, weight: .medium), color: Color.white.opacity(0.55))
+            HStack(spacing: 4) {
+                Text("请求次数")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                RollupText(text: usage.summary.calls, font: .system(size: 11, weight: .medium), color: .secondary)
+            }
+            .lineLimit(1)
         }
     }
 
