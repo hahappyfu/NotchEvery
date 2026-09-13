@@ -3,7 +3,7 @@
 //
 // 来源：由 FUnlock 的 FUnlockUtils.swift 提取而来（工单 01，见 .scratch/funlock-merge/）。
 // 原文件把四类关注点混在一起；本文件只承载逻辑层需要的 timingLog()（Foundation-only）。
-// 写入路径仍为 ~/Library/Logs/FUnlock/timing.log，日志路径改写随工单 02 落地。
+// 写入路径为 ~/Library/Logs/NotchEvery/timing.log（工单 02 已由旧目录改写）。
 // 逻辑逐字未改。
 
 import Foundation
@@ -16,7 +16,7 @@ private var lastTimingWriteByType: [String: Date] = [:]
 
 private var timingLogDirectory: URL {
     let home = FileManager.default.homeDirectoryForCurrentUser
-    return home.appendingPathComponent("Library/Logs/FUnlock")
+    return home.appendingPathComponent("Library/Logs/NotchEvery")
 }
 
 private var timingLogFileURL: URL {
@@ -32,7 +32,7 @@ private let timingDateFormatter: DateFormatter = {
 
 /// 时序埋点：按完整消息限流，同文案 1 秒最多写 1 条；
 /// 文件句柄缓存复用，避免高频开/关文件拖慢主线程。
-/// 写入 ~/Library/Logs/FUnlock/timing.log
+/// 写入 ~/Library/Logs/NotchEvery/timing.log
 func timingLog(_ msg: String) {
     timingLock.lock()
     defer { timingLock.unlock() }

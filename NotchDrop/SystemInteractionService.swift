@@ -9,7 +9,7 @@ final class SystemInteractionService {
     static let shared = SystemInteractionService()
     private init() {}
 
-    /// 同时写 ~/Library/Logs/FUnlock/debug.log（logDebug）与 os.log（Log.sm.debug）
+    /// 同时写 ~/Library/Logs/NotchEvery/debug.log（logDebug）与 os.log（Log.sm.debug）
     private func logBoth(_ component: String, _ osMsg: String, fileMsg: String? = nil) {
         let fm = fileMsg ?? osMsg.replacingOccurrences(of: "PASSWORD: ", with: "")
         logDebug(component: component, fm)
@@ -305,7 +305,7 @@ final class SystemInteractionService {
 
     func notifyLock(reason: String) {
         let content = UNMutableNotificationContent()
-        content.title = "Funlock"
+        content.title = "NotchEvery"
         if reason == "lost" { content.subtitle = t("notification_lost_signal") }
         else if reason == "away" { content.subtitle = t("notification_device_away") }
         content.body = t("notification_locked")
@@ -459,7 +459,7 @@ final class SystemInteractionService {
         alert.alertStyle = .warning
         alert.addButton(withTitle: t("open_settings"))
         alert.addButton(withTitle: t("ok"))
-        alert.window.title = "Funlock"
+        alert.window.title = "NotchEvery"
         NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
@@ -481,7 +481,7 @@ final class SystemInteractionService {
         alert.alertStyle = .warning
         alert.addButton(withTitle: t("re_enter_password"))
         alert.addButton(withTitle: t("cancel"))
-        alert.window.title = "Funlock"
+        alert.window.title = "NotchEvery"
         NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertFirstButtonReturn {
             SecurityService.shared.askPassword()
@@ -495,7 +495,7 @@ final class SystemInteractionService {
         alert.informativeText = t("abnormal_unlock_info")
         alert.alertStyle = .critical
         alert.addButton(withTitle: t("ok"))
-        alert.window.title = "Funlock"
+        alert.window.title = "NotchEvery"
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
     }

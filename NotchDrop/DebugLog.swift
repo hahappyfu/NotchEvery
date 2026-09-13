@@ -10,14 +10,14 @@ enum DebugLog {
 
     static var logDirectory: URL {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        return home.appendingPathComponent("Library/Logs/FUnlock")
+        return home.appendingPathComponent("Library/Logs/NotchEvery")
     }
 
     static var logFileURL: URL {
         logDirectory.appendingPathComponent("debug.log")
     }
 
-    private static let queue = DispatchQueue(label: "com.funlock.debugLog")
+    private static let queue = DispatchQueue(label: "com.hahappyfu.NotchEvery.debugLog")
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")

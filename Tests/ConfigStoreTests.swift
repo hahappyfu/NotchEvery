@@ -65,4 +65,70 @@ final class ConfigStoreTests: XCTestCase {
         store.set("hello", forKey: "strKey")
         XCTAssertEqual(store.get("strKey", fallback: ""), "hello")
     }
+    // MARK: - 旧域 → 新域迁移（工单 02）
+
+    /// 造一对隔离的新/旧 suite 名（随机域名，互不干扰、不碰生产 key）
+    private func makeLegacyPair(_ tag: String) -> (target: ConfigStore, targetName: String, legacyName: String) {
+        let targetName = "MigrateNewTests-\(tag)-\(UUID().uuidString)"
+        let legacyName = "MigrateLegacyTests-\(tag)-\(UUID().uuidString)"
+        return (ConfigStore(suiteName: targetName), targetName, legacyName)
+    }
+
+    private func legacyStore(_ name: String) -> ConfigStore {
+        ConfigStore(suiteName: name)
+    }
+
+    private func dropSuites(_ names: String...) {
+        for n in names { UserDefaults.standard.removePersistentDomain(forName: n) }
+    }
+
+    /// 首次迁移：旧域有值 → 新域得到值，并落迁移标记
+    func testLegacyMigrateFirstRun() {
+        let (target, tName, lName) = makeLegacyPair("first")
+        defer { dropSuites(tName, lName) }
+        let k = "testLegacyMigrateFirstRun_key"
+        legacyStore(lName).set("v1", forKey: k)
+
+        target.migrateFromLegacyIfNeeded(keys: [k], fromLegacySuite: lName)
+
+        XCTAssertEqual(target.defaults.string(forKey: k), "v1", "首次迁移应把旧值带过来")
+        XCTAssertTrue(target.defaults.bool(forKey: "didMigrateFromLegacy"), "迁移后应落标记")
+    }
+
+    /// 重复执行：第二次不覆盖新域中用户改过的值
+    func testLegacyMigrateIsIdempotent() {
+        let (target, tName, lName) = makeLegacyPair("idem")
+        defer { dropSuites(tName, lName) }
+        let k = "testLegacyMigrateIsIdempotent_key"
+        legacyStore(lName).set("v1", forKey: k)
+
+        target.migrateFromLegacyIfNeeded(keys: [k], fromLegacySuite: lName)
+        target.defaults.set("v2", forKey: k) // 用户在新域改了值
+        target.migrateFromLegacyIfNeeded(keys: [k], fromLegacySuite: lName)
+
+        XCTAssertEqual(target.defaults.string(forKey: k), "v2", "重复迁移不应覆盖新域用户新值")
+    }
+
+    /// 旧域不存在：不崩溃，照写迁移标记（避免每次启动都空跑）
+    func testLegacyMigrateMissingLegacySuite() {
+        let (target, tName, lName) = makeLegacyPair("missing")
+        defer { dropSuites(tName, lName) }
+
+        target.migrateFromLegacyIfNeeded(keys: ["testLegacyMigrateMissing_key"], fromLegacySuite: lName)
+
+        XCTAssertTrue(target.defaults.bool(forKey: "didMigrateFromLegacy"), "旧域缺失也应落标记")
+    }
+
+    /// 旧域有值但新域已有值：保留新域的（迁移只填空，不覆盖）
+    func testLegacyMigrateKeepsExistingNewValues() {
+        let (target, tName, lName) = makeLegacyPair("keep")
+        defer { dropSuites(tName, lName) }
+        let k = "testLegacyMigrateKeeps_key"
+        target.defaults.set("mine", forKey: k)
+        legacyStore(lName).set("theirs", forKey: k)
+
+        target.migrateFromLegacyIfNeeded(keys: [k], fromLegacySuite: lName)
+
+        XCTAssertEqual(target.defaults.string(forKey: k), "mine", "新域已有值时应保留")
+    }
 }

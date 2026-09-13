@@ -2292,8 +2292,10 @@ class PowerStateScanControlIntegrationTests: XCTestCase {
                        "onSystemWake 立即调用后 system 仍应为 sleeping")
 
         // 4. 等待系统唤醒完成
+        // 移植注（工单 02）：onSystemWake 内部是 1 秒延迟 Task；原 1.2 秒等待在满负载跑全量
+        // 套件时余量不足导致偶发失败（单跑 3/3 通过）。此处只放宽等待窗口，不改任何断言。
         let expectation = XCTestExpectation(description: "full power cycle")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             XCTAssertEqual(self.manager.state.system, .awake,
                            "延迟后 system 应恢复为 awake")
 
@@ -2304,7 +2306,7 @@ class PowerStateScanControlIntegrationTests: XCTestCase {
                           "完整电源循环后应恢复解锁能力")
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: 2.0)
+        wait(for: [expectation], timeout: 3.0)
     }
 
     /// 场景：系统休眠时设备靠近不应触发解锁

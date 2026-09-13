@@ -119,7 +119,7 @@ final class DecisionLogger: ObservableObject {
     @Published private(set) var events: [DecisionEvent] = []
 
     private var ring = RingBuffer<DecisionEvent>(capacity: DecisionLogger.capacity)
-    private let queue = DispatchQueue(label: "com.funlock.decisions", qos: .utility)
+    private let queue = DispatchQueue(label: "com.hahappyfu.NotchEvery.decisions", qos: .utility)
     private var nowProvider: () -> Date = { Date() }
 
     init(testLogDirectory: URL? = nil, nowProvider: @escaping () -> Date = { Date() }) {
@@ -132,7 +132,7 @@ final class DecisionLogger: ObservableObject {
     var logDirectory: URL {
         if let testDir = testLogDirectory { return testDir }
         let home = FileManager.default.homeDirectoryForCurrentUser
-        return home.appendingPathComponent("Library/Logs/FUnlock")
+        return home.appendingPathComponent("Library/Logs/NotchEvery")
     }
 
     var logFile: URL {

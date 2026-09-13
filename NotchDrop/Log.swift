@@ -6,7 +6,7 @@ import os
 /// - .error  异常与权限失败（CGEvent 失败、连接超时、DB prepare 失败）
 /// - .fault  需人工介入的严重异常（暂未使用）
 enum Log {
-    static let sm  = Logger(subsystem: "com.funlock.app", category: "StateMachine")
-    static let ble = Logger(subsystem: "com.funlock.app", category: "BLE")
-    static let dev = Logger(subsystem: "com.funlock.app", category: "Device")
+    static let sm  = Logger(subsystem: "com.hahappyfu.NotchEvery", category: "StateMachine")
+    static let ble = Logger(subsystem: "com.hahappyfu.NotchEvery", category: "BLE")
+    static let dev = Logger(subsystem: "com.hahappyfu.NotchEvery", category: "Device")
 }

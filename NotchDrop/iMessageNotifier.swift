@@ -18,7 +18,7 @@ final class iMessageNotifier {
         static let enabled = "iMessageNotify"
     }
 
-    private let queue = DispatchQueue(label: "com.funlock.imessage", qos: .utility)
+    private let queue = DispatchQueue(label: "com.hahappyfu.NotchEvery.imessage", qos: .utility)
     private let debounceInterval: TimeInterval = 30.0
     private var lastSendTime: [String: Date] = [:]
     private let lock = NSLock()
