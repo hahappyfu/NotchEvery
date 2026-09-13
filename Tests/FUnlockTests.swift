@@ -1832,7 +1832,8 @@ class KeychainSecurityTests: XCTestCase {
 
     func testFetchPasswordReturnsResultType() {
         let service = SecurityService.shared
-        let result = service.fetchPassword()
+        // 移植注（工单 04）：原无参调用依赖已删除的默认值，补显式 warn:false，行为一致。
+        let result = service.fetchPassword(warn: false)
         // 验证返回类型是 Result<String?, KeychainError>
         switch result {
         case .success(let pw):

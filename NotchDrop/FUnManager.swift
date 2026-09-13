@@ -114,6 +114,8 @@ final class FUnManager: ObservableObject {
     let fun: FUn
     let stateMachine: FUnlockStateMachine
     let decisionLogger: DecisionLogger
+    /// 系统副作用边界（工单 04 经构造注入；默认 live 实现，测试注入假实现）
+    let system: SystemEffects
     var inputMonitor: InputActivityMonitor?
     var isSelfLocking = false  // 区分 FUnlock 自动锁屏 vs 用户手动锁屏
     private let prefs = ConfigStore.shared.defaults
@@ -188,11 +190,13 @@ final class FUnManager: ObservableObject {
 
     // MARK: Init
 
-    init(fun: FUn, nowProvider: @escaping () -> Date = { Date() }, decisionLogger: DecisionLogger = .shared) {
+    init(fun: FUn, nowProvider: @escaping () -> Date = { Date() }, decisionLogger: DecisionLogger = .shared,
+         system: SystemEffects = SystemInteractionService.shared) {
         self.fun = fun
         self.stateMachine = FUnlockStateMachine(nowProvider: nowProvider)
         self.nowProvider = nowProvider
         self.decisionLogger = decisionLogger
+        self.system = system
         self.lockRSSI = fun.lockRSSI
         self.unlockRSSI = fun.unlockRSSI
 
@@ -365,7 +369,7 @@ final class FUnManager: ObservableObject {
         timingLog("onDeviceApproached | screen=\(state.screen) eff=\(String(format: "%.1f", smoothed)) preWake=\(fun.preWakeThreshold) stair=\(fun.unlockStairThreshold) wakeOnProx=\(prefs.bool(forKey: "wakeOnProximity"))")
 
         // 清除锁屏通知
-        SystemInteractionService.shared.clearLockNotification()
+        self.system.clearLockNotification()
 
         // 阶梯唤醒：平滑信号达到 preWakeThreshold（-60dBm）时唤醒显示器
         if state.screen == .displaySleeping
@@ -403,7 +407,7 @@ final class FUnManager: ObservableObject {
         state.screen = .displaySleeping
         lastLockTime = now
         isSelfLocking = true
-        let sys = SystemInteractionService.shared
+        let sys = system
         // 空跑门（工单 03）：判定照常记录（recordLock 在下方），但不锁屏、不通知、不推送
         if !isDryRun {
             sys.lockOrSaveScreen(useScreensaver: prefs.bool(forKey: "screensaver"),
@@ -491,14 +495,14 @@ final class FUnManager: ObservableObject {
     // MARK: - 用户操作
 
     func lockNow() {
-        guard !SystemInteractionService.shared.isScreenLocked(screenState: state.screen) else { return }
+        guard !self.system.isScreenLocked(screenState: state.screen) else { return }
         // 手动锁定：永久阻止自动解锁，直到用户下次手动解锁（onUnlock 重置 intent）
         state.intent = .manualLock(deadline: Date().addingTimeInterval(86400))
         state.screen = .locked(reason: .manual)
         lastLockTime = now
         // 空跑门：手动锁定同样不实际锁屏（03 尚无调用它的 UI，此处为防御）
         if !isDryRun {
-            SystemInteractionService.shared.lockOrSaveScreen(
+            self.system.lockOrSaveScreen(
                 useScreensaver: prefs.bool(forKey: "screensaver"),
                 sleepDisplayAfter: prefs.bool(forKey: "sleepDisplay"))
         }
@@ -515,7 +519,7 @@ final class FUnManager: ObservableObject {
 
     func attemptAutoUnlock() {
         let snap = fun.signalSnapshot()
-        let sys = SystemInteractionService.shared
+        let sys = system
         let screenLocked = sys.isScreenLocked(screenState: state.screen)
         timingLog("attemptAutoUnlock | presence=\(snap.presence) screen=\(state.screen) system=\(state.system) rssi=\(String(format: "%.1f", snap.effectiveRSSI)) locked=\(screenLocked)")
         Log.sm.debug("attemptAutoUnlock presence=\(snap.presence) screen=\(self.state.screen) wakeWO=\(self.prefs.bool(forKey: "wakeWithoutUnlocking")) locked=\(screenLocked)")
@@ -597,12 +601,12 @@ final class FUnManager: ObservableObject {
         let delay: UInt64 = 300_000_000
         unlockTask?.cancel()
         unlockTask = Task {
-            Log.sm.debug("unlockTask STARTED — sleeping \(delay / 1_000_000)ms, isScreenLocked=\(SystemInteractionService.shared.isScreenLocked(screenState: self.state.screen))")
+            Log.sm.debug("unlockTask STARTED — sleeping \(delay / 1_000_000)ms, isScreenLocked=\(self.system.isScreenLocked(screenState: self.state.screen))")
             timingLog("delayed unlock task started | sleep 0.3s")
             try? await Task.sleep(nanoseconds: UInt64(delay))
             guard !Task.isCancelled else { Log.sm.debug("unlockTask CANCELLED after sleep"); timingLog("delayed unlock task cancelled"); return }
             guard self.isSystemReadyForUnlock() else { Log.sm.debug("SKIP: system not ready in delayed unlock task"); timingLog("SKIP systemNotReady in delayed task"); recordUnlock(reason: .systemNotReady); return }
-            Log.sm.debug("unlockTask WOKE — isScreenLocked=\(SystemInteractionService.shared.isScreenLocked(screenState: self.state.screen))")
+            Log.sm.debug("unlockTask WOKE — isScreenLocked=\(self.system.isScreenLocked(screenState: self.state.screen))")
             timingLog("delayed unlock task fired | tryUnlock")
             // 空跑门：全部检查已通过，此处本应注入解锁；只记录、不执行
             if self.isDryRun {
@@ -622,8 +626,7 @@ final class FUnManager: ObservableObject {
 
     /// 前置门控 + 密码获取：任一检查失败即记录原因并返回 nil
     private func guardFetchPassword() -> String? {
-        let sys = SystemInteractionService.shared
-        let sec = SecurityService.shared
+        let sys = system
         let locked = sys.isScreenLocked(screenState: state.screen)
         timingLog("guardFetchPassword | locked=\(locked) frontmost=\(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "nil")")
         logDebug(component: "FUnManager", "tryUnlock() START - screen=\(state.screen), locked=\(locked)")
@@ -640,7 +643,7 @@ final class FUnManager: ObservableObject {
             recordUnlock(reason: .recentlyUnlocked, detail: "\(String(format: "%.1f", sinceUnlock)) 秒前解锁过")
             return nil
         }
-        let fetchResult = sec.fetchPassword(warn: true)
+        let fetchResult = self.system.fetchPassword(warn: true)
         guard case .success(let password) = fetchResult, let password = password else {
             if case .failure(let error) = fetchResult {
                 Log.sm.debug("SKIP: Keychain error - \(error)")
@@ -662,7 +665,7 @@ final class FUnManager: ObservableObject {
 
     /// 密码注入 + 乐观确认 + 双保险验证
     private func performInjectionAndVerify(password: String) {
-        let sys = SystemInteractionService.shared
+        let sys = system
         let snap = fun.signalSnapshot()
         timingLog("performInjectionAndVerify | injecting password")
         Log.sm.debug("typing password with Shift prelude")
@@ -688,7 +691,7 @@ final class FUnManager: ObservableObject {
             // 双保险验证：通知 + CGSession 竞速（withTaskGroup）
             // iMessage / unlock_success / 遥测 / 自定义脚本 必须等验证通过后再执行，避免密码还在输入框就误报解锁
             Task { [weak self] in
-                let sys = SystemInteractionService.shared
+                let sys = system
                 let verification = await sys.verifyUnlock(timeout: 2.0, notificationTimeout: 1.0)
                 guard let self else { return }
                 timingLog("verifyUnlock done | unlock=\(verification.unlock)")
@@ -766,10 +769,10 @@ final class FUnManager: ObservableObject {
                 guard !Task.isCancelled else { return }
                 funlock_wakeDisplay()
                 try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s（优化：从 1s 降到 0.5s）
-                timingLog("wake attempt=\(attempt) done | locked=\(!SystemInteractionService.shared.isScreenLocked(screenState: self.state.screen))")
+                timingLog("wake attempt=\(attempt) done | locked=\(!self.system.isScreenLocked(screenState: self.state.screen))")
                 // wakeDisplay() 不一定触发 screensDidWakeNotification，
                 // 直接检测屏幕是否已解锁
-                if state.wake == .succeeded || !SystemInteractionService.shared.isScreenLocked(screenState: state.screen) {
+                if state.wake == .succeeded || !self.system.isScreenLocked(screenState: state.screen) {
                     state.wake = .succeeded
                     timingLog("wake succeeded")
                     self.attemptAutoUnlock()
@@ -818,7 +821,7 @@ final class FUnManager: ObservableObject {
         if unlockAttemptTimestamps.count >= maxAttemptsInWindow {
             let timeSinceLastAlert = now.timeIntervalSince(lastAbnormalAlertTime)
             if timeSinceLastAlert > 3600 {  // 1小时内最多告警一次
-                SystemInteractionService.shared.showAbnormalUnlockAlert(
+                self.system.showAbnormalUnlockAlert(
                     count: unlockAttemptTimestamps.count, window: Int(detectionWindow))
                 lastAbnormalAlertTime = now
             }

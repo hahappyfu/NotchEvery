@@ -47,7 +47,8 @@ final class SecurityService {
 
     /// Fetch password from Keychain.
     /// - Returns: password string on success, nil on not-found (shows modal if warn=true), KeychainError on security error.
-    func fetchPassword(warn: Bool = false) -> Result<String?, KeychainError> {
+    /// 无默认值是故意的：SystemEffects 协议要求显式传参（协议方法不允许默认值）。
+    func fetchPassword(warn: Bool) -> Result<String?, KeychainError> {
         let query: [String: Any] = [
             String(kSecClass): kSecClassGenericPassword,
             String(kSecAttrAccount): NSUserName(),
@@ -104,8 +105,8 @@ final class SecurityService {
 
     /// Handle system password change notification: clear old password and prompt user
     func handlePasswordChanged() {
-        if case .failure = fetchPassword() { return }
-        if case .success(nil) = fetchPassword() { return }
+        if case .failure = fetchPassword(warn: false) { return }
+        if case .success(nil) = fetchPassword(warn: false) { return }
         Log.sm.debug("system password changed, clearing stored password")
         deletePassword()
 

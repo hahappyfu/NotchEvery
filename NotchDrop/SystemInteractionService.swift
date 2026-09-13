@@ -499,4 +499,12 @@ final class SystemInteractionService {
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
     }
+
+    // MARK: - Keychain 转发（工单 04）
+
+    /// 取密码是执行链的一环（tryUnlock 卡在它后面）；为让 SystemEffects 覆盖完整执行链，
+    /// 此处只做一层转发，逻辑仍在 SecurityService。测试注入假实现后不再碰真 Keychain。
+    func fetchPassword(warn: Bool) -> Result<String?, KeychainError> {
+        SecurityService.shared.fetchPassword(warn: warn)
+    }
 }

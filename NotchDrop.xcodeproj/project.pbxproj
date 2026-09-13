@@ -97,6 +97,8 @@
 		F101CE000000000000000039 /* GuardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000003A /* GuardStore.swift */; };
 		F101CE00000000000000003B /* GuardCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000003C /* GuardCardView.swift */; };
 		F101CE00000000000000003D /* GuardStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000003E /* GuardStoreTests.swift */; };
+		F101CE00000000000000003F /* SystemEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000040 /* SystemEffects.swift */; };
+		F101CE000000000000000041 /* SystemEffectsFakeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000042 /* SystemEffectsFakeTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -198,6 +200,8 @@
 		F101CE00000000000000003A /* GuardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardStore.swift; sourceTree = "<group>"; };
 		F101CE00000000000000003C /* GuardCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardCardView.swift; sourceTree = "<group>"; };
 		F101CE00000000000000003E /* GuardStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardStoreTests.swift; sourceTree = "<group>"; };
+		F101CE000000000000000040 /* SystemEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEffects.swift; sourceTree = "<group>"; };
+		F101CE000000000000000042 /* SystemEffectsFakeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEffectsFakeTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -288,6 +292,7 @@
 				D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */,
 				F101CE00000000000000003A /* GuardStore.swift */,
 				F101CE00000000000000003C /* GuardCardView.swift */,
+				F101CE000000000000000040 /* SystemEffects.swift */,
 				F101CE000000000000000002 /* FUn.swift */,
 				F101CE000000000000000004 /* SignalPipeline.swift */,
 				F101CE000000000000000006 /* FUnlockStateMachine.swift */,
@@ -333,6 +338,7 @@
 				7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */,
 				7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */,
 				F101CE00000000000000003E /* GuardStoreTests.swift */,
+				F101CE000000000000000042 /* SystemEffectsFakeTests.swift */,
 				F101CE00000000000000002A /* FUnlockTests.swift */,
 				F101CE00000000000000002C /* ConfigStoreTests.swift */,
 				F101CE00000000000000002E /* DecisionLoggerTests.swift */,
@@ -520,6 +526,7 @@
 				F101CE000000000000000025 /* lowlevel.c in Sources */,
 				F101CE000000000000000039 /* GuardStore.swift in Sources */,
 				F101CE00000000000000003B /* GuardCardView.swift in Sources */,
+				F101CE00000000000000003F /* SystemEffects.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -545,6 +552,7 @@
 				F101CE000000000000000035 /* ReasonActionMappingTests.swift in Sources */,
 				F101CE000000000000000037 /* iMessageNotifierTests.swift in Sources */,
 				F101CE00000000000000003D /* GuardStoreTests.swift in Sources */,
+				F101CE000000000000000041 /* SystemEffectsFakeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
