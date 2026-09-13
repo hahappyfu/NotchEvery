@@ -54,6 +54,10 @@ enum DecisionReason: String, Codable, CaseIterable {
     case systemWake
     case userUnlocked
     case userLocked
+    // 空跑与蓝牙状态（工单 03 新增；action 均为 nil，纯信息展示）
+    case dryRun
+    case bluetoothOff
+    case bluetoothUnauthorized
 }
 
 /// 操作提示：由 reason 派生，UI 据此渲染按钮
@@ -310,6 +314,9 @@ extension DecisionReason {
         case .systemWake: return "reason_system_wake"
         case .userUnlocked: return "reason_user_unlocked"
         case .userLocked: return "reason_user_locked"
+        case .dryRun: return "reason_dry_run"
+        case .bluetoothOff: return "reason_bluetooth_off"
+        case .bluetoothUnauthorized: return "reason_bluetooth_unauthorized"
         }
     }
 

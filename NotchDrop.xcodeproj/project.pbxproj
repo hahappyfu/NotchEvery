@@ -94,6 +94,9 @@
 		F101CE000000000000000033 /* IMMessageComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000034 /* IMMessageComposerTests.swift */; };
 		F101CE000000000000000035 /* ReasonActionMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000036 /* ReasonActionMappingTests.swift */; };
 		F101CE000000000000000037 /* iMessageNotifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000038 /* iMessageNotifierTests.swift */; };
+		F101CE000000000000000039 /* GuardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000003A /* GuardStore.swift */; };
+		F101CE00000000000000003B /* GuardCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000003C /* GuardCardView.swift */; };
+		F101CE00000000000000003D /* GuardStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000003E /* GuardStoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -192,6 +195,9 @@
 		F101CE000000000000000034 /* IMMessageComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMMessageComposerTests.swift; sourceTree = "<group>"; };
 		F101CE000000000000000036 /* ReasonActionMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReasonActionMappingTests.swift; sourceTree = "<group>"; };
 		F101CE000000000000000038 /* iMessageNotifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iMessageNotifierTests.swift; sourceTree = "<group>"; };
+		F101CE00000000000000003A /* GuardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardStore.swift; sourceTree = "<group>"; };
+		F101CE00000000000000003C /* GuardCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardCardView.swift; sourceTree = "<group>"; };
+		F101CE00000000000000003E /* GuardStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -280,6 +286,8 @@
 				502E41D52C3CEC990060660E /* Ext+NSAlert.swift */,
 				5044EE9F2C3B116000071C5C /* PublishedPersist.swift */,
 				D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */,
+				F101CE00000000000000003A /* GuardStore.swift */,
+				F101CE00000000000000003C /* GuardCardView.swift */,
 				F101CE000000000000000002 /* FUn.swift */,
 				F101CE000000000000000004 /* SignalPipeline.swift */,
 				F101CE000000000000000006 /* FUnlockStateMachine.swift */,
@@ -324,6 +332,7 @@
 				7AE10C0220260AB000000C8 /* UsageStoreTests.swift */,
 				7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */,
 				7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */,
+				F101CE00000000000000003E /* GuardStoreTests.swift */,
 				F101CE00000000000000002A /* FUnlockTests.swift */,
 				F101CE00000000000000002C /* ConfigStoreTests.swift */,
 				F101CE00000000000000002E /* DecisionLoggerTests.swift */,
@@ -509,6 +518,8 @@
 				F101CE000000000000000021 /* SystemInteractionService.swift in Sources */,
 				F101CE000000000000000023 /* SecurityService.swift in Sources */,
 				F101CE000000000000000025 /* lowlevel.c in Sources */,
+				F101CE000000000000000039 /* GuardStore.swift in Sources */,
+				F101CE00000000000000003B /* GuardCardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -533,6 +544,7 @@
 				F101CE000000000000000033 /* IMMessageComposerTests.swift in Sources */,
 				F101CE000000000000000035 /* ReasonActionMappingTests.swift in Sources */,
 				F101CE000000000000000037 /* iMessageNotifierTests.swift in Sources */,
+				F101CE00000000000000003D /* GuardStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -123,6 +123,9 @@ protocol FUnDelegate {
     func updatePresence(presence: Bool, reason: String)
     func bluetoothPowerWarn()
     func onDeviceApproached()
+    /// 蓝牙未授权（工单 03 新增）：与 bluetoothPowerWarn 区分——前者要去系统设置授权，
+    /// 后者是去打开蓝牙开关。两者在守夜卡上是不同的提示。
+    func bluetoothUnauthorized()
 }
 
 class FUn: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeripheralDelegate {
@@ -392,6 +395,14 @@ class FUn: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeripheralDel
                 DispatchQueue.main.async {
                     self.delegate?.bluetoothPowerWarn()
                 }
+            }
+        case .unauthorized:
+            // 工单 03：缺蓝牙权限之前掉进 default 静默分支。
+            // 此处必须给出明确信号（日志 + delegate），否则守夜卡永远显示"一切正常"。
+            Log.ble.error("Bluetooth unauthorized — needs NSBluetoothAlwaysUsageDescription grant")
+            logDebug(component: "FUn", "[DIAG] centralManager unauthorized")
+            DispatchQueue.main.async {
+                self.delegate?.bluetoothUnauthorized()
             }
         default:
             break

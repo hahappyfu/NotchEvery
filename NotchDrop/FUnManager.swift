@@ -57,6 +57,13 @@ enum WakePhase: Equatable {
 
 // MARK: - 聚合状态
 
+/// 蓝牙可用性问题（工单 03）：poweredOff 与 unauthorized 在守夜卡上是不同的提示
+/// （前者去开蓝牙开关，后者去系统设置授权），因此区分建模。
+enum BluetoothIssue {
+    case poweredOff
+    case unauthorized
+}
+
 struct LockScreenState: Equatable {
     var screen: ScreenState = .unlocked
     var system: SystemPowerState = .awake
@@ -94,6 +101,13 @@ final class FUnManager: ObservableObject {
     @Published var lockRSSI: Int = -80
     @Published var unlockRSSI: Int = -60
     @Published var thresholdVersion: Int = 0
+    /// 蓝牙可用性问题（nil 表示正常）；见 bluetoothPowerWarn / bluetoothUnauthorized。
+    /// 有实时信号流入时自动清除（见 onRSSIUpdated）。
+    @Published var bluetoothIssue: BluetoothIssue? = nil
+    /// 空跑模式（工单 03）：只判定与记录，不执行任何系统副作用
+    /// （锁屏/注入/唤醒/通知/推送/告警）。默认开启；工单 09 的接管开关将其关闭。
+    /// Published 化：守夜门面订阅它以刷新派生态。
+    @Published var isDryRun = true
 
     // MARK: Dependencies
 
@@ -390,17 +404,24 @@ final class FUnManager: ObservableObject {
         lastLockTime = now
         isSelfLocking = true
         let sys = SystemInteractionService.shared
-        sys.lockOrSaveScreen(useScreensaver: prefs.bool(forKey: "screensaver"),
-                             sleepDisplayAfter: prefs.bool(forKey: "sleepDisplay"))
-        sys.notifyLock(reason: reason)
+        // 空跑门（工单 03）：判定照常记录（recordLock 在下方），但不锁屏、不通知、不推送
+        if !isDryRun {
+            sys.lockOrSaveScreen(useScreensaver: prefs.bool(forKey: "screensaver"),
+                                 sleepDisplayAfter: prefs.bool(forKey: "sleepDisplay"))
+            sys.notifyLock(reason: reason)
+        }
         let lockReason: DecisionReason = (reason == "lost") ? .lockedLost : .lockedAway
         recordLock(lockReason)
-        iMessageNotifier.shared.send(.locked(reason: reason, rssi: snap.effectiveRSSI, deviceName: monitoredDeviceName))
+        if !isDryRun {
+            iMessageNotifier.shared.send(.locked(reason: reason, rssi: snap.effectiveRSSI, deviceName: monitoredDeviceName))
+        }
 
     }
 
     func onRSSIUpdated(rssi: Int?, active: Bool) {
         self.rssi = rssi
+        // 有实时信号流入即说明蓝牙通路正常，清除之前的问题标记
+        if rssi != nil { bluetoothIssue = nil }
 
         // 预备唤醒：平滑 RSSI >= preWakeThreshold 时唤醒显示器（不等到解锁阈值）
         if let rssi = rssi, !displayWakeRequested,
@@ -475,9 +496,12 @@ final class FUnManager: ObservableObject {
         state.intent = .manualLock(deadline: Date().addingTimeInterval(86400))
         state.screen = .locked(reason: .manual)
         lastLockTime = now
-        SystemInteractionService.shared.lockOrSaveScreen(
-            useScreensaver: prefs.bool(forKey: "screensaver"),
-            sleepDisplayAfter: prefs.bool(forKey: "sleepDisplay"))
+        // 空跑门：手动锁定同样不实际锁屏（03 尚无调用它的 UI，此处为防御）
+        if !isDryRun {
+            SystemInteractionService.shared.lockOrSaveScreen(
+                useScreensaver: prefs.bool(forKey: "screensaver"),
+                sleepDisplayAfter: prefs.bool(forKey: "sleepDisplay"))
+        }
     }
 
     // MARK: - 注入前奏：解锁前置安全检查
@@ -549,6 +573,11 @@ final class FUnManager: ObservableObject {
                     guard let self else { return }
                     timingLog("parallel unlock task fired after 0.8s")
                     guard self.isSystemReadyForUnlock() else { Log.sm.debug("SKIP: system not ready in parallel wake task"); timingLog("SKIP systemNotReady in parallel task"); recordUnlock(reason: .systemNotReady); return }
+                    // 空跑门：全部检查已通过，此处本应注入解锁；只记录、不执行
+                    if self.isDryRun {
+                        recordUnlock(.info, reason: .dryRun, detail: "空跑：信号 \(String(format: "%.1f", snap.effectiveRSSI)) dBm，本应尝试解锁")
+                        return
+                    }
                     self.tryUnlock()
                 }
             } else {
@@ -575,6 +604,11 @@ final class FUnManager: ObservableObject {
             guard self.isSystemReadyForUnlock() else { Log.sm.debug("SKIP: system not ready in delayed unlock task"); timingLog("SKIP systemNotReady in delayed task"); recordUnlock(reason: .systemNotReady); return }
             Log.sm.debug("unlockTask WOKE — isScreenLocked=\(SystemInteractionService.shared.isScreenLocked(screenState: self.state.screen))")
             timingLog("delayed unlock task fired | tryUnlock")
+            // 空跑门：全部检查已通过，此处本应注入解锁；只记录、不执行
+            if self.isDryRun {
+                recordUnlock(.info, reason: .dryRun, detail: "空跑：信号 \(String(format: "%.1f", snap.effectiveRSSI)) dBm，本应尝试解锁")
+                return
+            }
             self.tryUnlock()
         }
     }
@@ -717,6 +751,9 @@ final class FUnManager: ObservableObject {
         state.screen = .locked(reason: .away)
         timingLog("startWakeRetry begin")
 
+        // 空跑门（工单 03）：状态流转照常进行（既有用例与守夜卡依赖它），
+        // 只跳过实际唤醒重试循环（C 调用 funlock_wakeDisplay/releaseWakeAssertion）。
+        guard !isDryRun else { return }
         wakeTask?.cancel()
         wakeTask = Task {
             // defer 兜底：无论取消/成功/失败，都释放 wake assertion 并复位唤醒请求标记，
@@ -814,3 +851,52 @@ final class FUnManager: ObservableObject {
     }
 }
 
+
+// MARK: - FUnDelegate（工单 03）
+
+/// BLE 事件 → 守护策略的转发层。语义逐字沿用 FUnlock 原 AppDelegate 的同名实现
+/// （菜单栏图标更新部分除外——宿主没有菜单栏图标，状态改由守夜卡呈现）；
+/// 新增 bluetoothUnauthorized（原 AppDelegate 没有，03 为权限信号所加）。
+extension FUnManager: FUnDelegate {
+    func newDevice(device: Device) {
+        onDeviceDiscovered(device)
+    }
+
+    func updateDevice(device: Device) {
+        onDeviceUpdated(device)
+    }
+
+    func removeDevice(device: Device) {
+        onDeviceRemoved(device)
+    }
+
+    func updateRSSI(rssi: Int?, active: Bool) {
+        onRSSIUpdated(rssi: rssi, active: active)
+        if rssi != nil {
+            if !connected { updateConnected(true) }
+        } else {
+            if connected { updateConnected(false) }
+        }
+    }
+
+    func updatePresence(presence: Bool, reason: String) {
+        if presence {
+            onDeviceApproached()
+        } else {
+            onDeviceLeft(reason: reason)
+        }
+    }
+
+    func bluetoothPowerWarn() {
+        bluetoothIssue = .poweredOff
+        recordSystem(.bluetoothOff)
+    }
+
+    func bluetoothUnauthorized() {
+        bluetoothIssue = .unauthorized
+        recordSystem(.bluetoothUnauthorized)
+    }
+
+    // 注意：FUnDelegate.onDeviceApproached 由类本体的同名方法（约 343 行）直接充当 witness，
+    // 此处不再包装——包装会导致调自己而无限递归。
+}
