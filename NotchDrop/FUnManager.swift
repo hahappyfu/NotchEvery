@@ -690,8 +690,7 @@ final class FUnManager: ObservableObject {
             Log.sm.debug("unlock attempt posted, waiting for dual verification")
             // 双保险验证：通知 + CGSession 竞速（withTaskGroup）
             // iMessage / unlock_success / 遥测 / 自定义脚本 必须等验证通过后再执行，避免密码还在输入框就误报解锁
-            Task { [weak self] in
-                let sys = system
+            Task { [weak self, sys = self.system] in
                 let verification = await sys.verifyUnlock(timeout: 2.0, notificationTimeout: 1.0)
                 guard let self else { return }
                 timingLog("verifyUnlock done | unlock=\(verification.unlock)")
