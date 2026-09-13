@@ -4,5 +4,7 @@
 <dict>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>NotchEvery uses Bluetooth to detect nearby devices for auto lock and unlock.</string>
 </dict>
 </plist>

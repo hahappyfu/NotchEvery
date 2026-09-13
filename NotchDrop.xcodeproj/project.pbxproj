@@ -67,6 +67,33 @@
 		7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */; };
 		7AE10C0220260AB000000D8 /* UsageStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C8 /* UsageStoreTests.swift */; };
 		7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */; };
+		F101CE000000000000000001 /* FUn.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000002 /* FUn.swift */; };
+		F101CE000000000000000003 /* SignalPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000004 /* SignalPipeline.swift */; };
+		F101CE000000000000000005 /* FUnlockStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000006 /* FUnlockStateMachine.swift */; };
+		F101CE000000000000000007 /* DecisionLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000008 /* DecisionLogger.swift */; };
+		F101CE000000000000000009 /* ConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000000A /* ConfigStore.swift */; };
+		F101CE00000000000000000B /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000000C /* RingBuffer.swift */; };
+		F101CE00000000000000000D /* LEDeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000000E /* LEDeviceInfo.swift */; };
+		F101CE00000000000000000F /* appleDeviceNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000010 /* appleDeviceNames.swift */; };
+		F101CE000000000000000011 /* iMessageNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000012 /* iMessageNotifier.swift */; };
+		F101CE000000000000000013 /* IMMessageComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000014 /* IMMessageComposer.swift */; };
+		F101CE000000000000000015 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000016 /* Log.swift */; };
+		F101CE000000000000000017 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000018 /* DebugLog.swift */; };
+		F101CE000000000000000019 /* InputActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000001A /* InputActivityMonitor.swift */; };
+		F101CE00000000000000001B /* GuardLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000001C /* GuardLocalization.swift */; };
+		F101CE00000000000000001D /* TimingLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000001E /* TimingLog.swift */; };
+		F101CE00000000000000001F /* FUnManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000020 /* FUnManager.swift */; };
+		F101CE000000000000000021 /* SystemInteractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000022 /* SystemInteractionService.swift */; };
+		F101CE000000000000000023 /* SecurityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000024 /* SecurityService.swift */; };
+		F101CE000000000000000025 /* lowlevel.c in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000026 /* lowlevel.c */; };
+		F101CE000000000000000029 /* FUnlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000002A /* FUnlockTests.swift */; };
+		F101CE00000000000000002B /* ConfigStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000002C /* ConfigStoreTests.swift */; };
+		F101CE00000000000000002D /* DecisionLoggerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000002E /* DecisionLoggerTests.swift */; };
+		F101CE00000000000000002F /* DiagnosticsViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000030 /* DiagnosticsViewTests.swift */; };
+		F101CE000000000000000031 /* FUnlockStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000032 /* FUnlockStateMachineTests.swift */; };
+		F101CE000000000000000033 /* IMMessageComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000034 /* IMMessageComposerTests.swift */; };
+		F101CE000000000000000035 /* ReasonActionMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000036 /* ReasonActionMappingTests.swift */; };
+		F101CE000000000000000037 /* iMessageNotifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000038 /* iMessageNotifierTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -136,6 +163,35 @@
 		7AE10C0220260AB000000C8 /* UsageStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStoreTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMetricsTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB0000000A7 /* NotchEveryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchEveryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F101CE000000000000000002 /* FUn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUn.swift; sourceTree = "<group>"; };
+		F101CE000000000000000004 /* SignalPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalPipeline.swift; sourceTree = "<group>"; };
+		F101CE000000000000000006 /* FUnlockStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUnlockStateMachine.swift; sourceTree = "<group>"; };
+		F101CE000000000000000008 /* DecisionLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionLogger.swift; sourceTree = "<group>"; };
+		F101CE00000000000000000A /* ConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStore.swift; sourceTree = "<group>"; };
+		F101CE00000000000000000C /* RingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBuffer.swift; sourceTree = "<group>"; };
+		F101CE00000000000000000E /* LEDeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LEDeviceInfo.swift; sourceTree = "<group>"; };
+		F101CE000000000000000010 /* appleDeviceNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = appleDeviceNames.swift; sourceTree = "<group>"; };
+		F101CE000000000000000012 /* iMessageNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iMessageNotifier.swift; sourceTree = "<group>"; };
+		F101CE000000000000000014 /* IMMessageComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMMessageComposer.swift; sourceTree = "<group>"; };
+		F101CE000000000000000016 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
+		F101CE000000000000000018 /* DebugLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLog.swift; sourceTree = "<group>"; };
+		F101CE00000000000000001A /* InputActivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputActivityMonitor.swift; sourceTree = "<group>"; };
+		F101CE00000000000000001C /* GuardLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardLocalization.swift; sourceTree = "<group>"; };
+		F101CE00000000000000001E /* TimingLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimingLog.swift; sourceTree = "<group>"; };
+		F101CE000000000000000020 /* FUnManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUnManager.swift; sourceTree = "<group>"; };
+		F101CE000000000000000022 /* SystemInteractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemInteractionService.swift; sourceTree = "<group>"; };
+		F101CE000000000000000024 /* SecurityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityService.swift; sourceTree = "<group>"; };
+		F101CE000000000000000026 /* lowlevel.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = lowlevel.c; sourceTree = "<group>"; };
+		F101CE000000000000000027 /* lowlevel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = lowlevel.h; sourceTree = "<group>"; };
+		F101CE000000000000000028 /* NotchEvery-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NotchEvery-Bridging-Header.h; sourceTree = "<group>"; };
+		F101CE00000000000000002A /* FUnlockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUnlockTests.swift; sourceTree = "<group>"; };
+		F101CE00000000000000002C /* ConfigStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStoreTests.swift; sourceTree = "<group>"; };
+		F101CE00000000000000002E /* DecisionLoggerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionLoggerTests.swift; sourceTree = "<group>"; };
+		F101CE000000000000000030 /* DiagnosticsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsViewTests.swift; sourceTree = "<group>"; };
+		F101CE000000000000000032 /* FUnlockStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUnlockStateMachineTests.swift; sourceTree = "<group>"; };
+		F101CE000000000000000034 /* IMMessageComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMMessageComposerTests.swift; sourceTree = "<group>"; };
+		F101CE000000000000000036 /* ReasonActionMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReasonActionMappingTests.swift; sourceTree = "<group>"; };
+		F101CE000000000000000038 /* iMessageNotifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iMessageNotifierTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -224,6 +280,27 @@
 				502E41D52C3CEC990060660E /* Ext+NSAlert.swift */,
 				5044EE9F2C3B116000071C5C /* PublishedPersist.swift */,
 				D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */,
+				F101CE000000000000000002 /* FUn.swift */,
+				F101CE000000000000000004 /* SignalPipeline.swift */,
+				F101CE000000000000000006 /* FUnlockStateMachine.swift */,
+				F101CE000000000000000008 /* DecisionLogger.swift */,
+				F101CE00000000000000000A /* ConfigStore.swift */,
+				F101CE00000000000000000C /* RingBuffer.swift */,
+				F101CE00000000000000000E /* LEDeviceInfo.swift */,
+				F101CE000000000000000010 /* appleDeviceNames.swift */,
+				F101CE000000000000000012 /* iMessageNotifier.swift */,
+				F101CE000000000000000014 /* IMMessageComposer.swift */,
+				F101CE000000000000000016 /* Log.swift */,
+				F101CE000000000000000018 /* DebugLog.swift */,
+				F101CE00000000000000001A /* InputActivityMonitor.swift */,
+				F101CE00000000000000001C /* GuardLocalization.swift */,
+				F101CE00000000000000001E /* TimingLog.swift */,
+				F101CE000000000000000020 /* FUnManager.swift */,
+				F101CE000000000000000022 /* SystemInteractionService.swift */,
+				F101CE000000000000000024 /* SecurityService.swift */,
+				F101CE000000000000000026 /* lowlevel.c */,
+				F101CE000000000000000027 /* lowlevel.h */,
+				F101CE000000000000000028 /* NotchEvery-Bridging-Header.h */,
 			);
 			path = NotchDrop;
 			sourceTree = "<group>";
@@ -247,6 +324,14 @@
 				7AE10C0220260AB000000C8 /* UsageStoreTests.swift */,
 				7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */,
 				7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */,
+				F101CE00000000000000002A /* FUnlockTests.swift */,
+				F101CE00000000000000002C /* ConfigStoreTests.swift */,
+				F101CE00000000000000002E /* DecisionLoggerTests.swift */,
+				F101CE000000000000000030 /* DiagnosticsViewTests.swift */,
+				F101CE000000000000000032 /* FUnlockStateMachineTests.swift */,
+				F101CE000000000000000034 /* IMMessageComposerTests.swift */,
+				F101CE000000000000000036 /* ReasonActionMappingTests.swift */,
+				F101CE000000000000000038 /* iMessageNotifierTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -405,6 +490,25 @@
 				A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */,
 				A1B2C3D4E5F6071829304053 /* SpinnerView.swift in Sources */,
 				D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */,
+				F101CE000000000000000001 /* FUn.swift in Sources */,
+				F101CE000000000000000003 /* SignalPipeline.swift in Sources */,
+				F101CE000000000000000005 /* FUnlockStateMachine.swift in Sources */,
+				F101CE000000000000000007 /* DecisionLogger.swift in Sources */,
+				F101CE000000000000000009 /* ConfigStore.swift in Sources */,
+				F101CE00000000000000000B /* RingBuffer.swift in Sources */,
+				F101CE00000000000000000D /* LEDeviceInfo.swift in Sources */,
+				F101CE00000000000000000F /* appleDeviceNames.swift in Sources */,
+				F101CE000000000000000011 /* iMessageNotifier.swift in Sources */,
+				F101CE000000000000000013 /* IMMessageComposer.swift in Sources */,
+				F101CE000000000000000015 /* Log.swift in Sources */,
+				F101CE000000000000000017 /* DebugLog.swift in Sources */,
+				F101CE000000000000000019 /* InputActivityMonitor.swift in Sources */,
+				F101CE00000000000000001B /* GuardLocalization.swift in Sources */,
+				F101CE00000000000000001D /* TimingLog.swift in Sources */,
+				F101CE00000000000000001F /* FUnManager.swift in Sources */,
+				F101CE000000000000000021 /* SystemInteractionService.swift in Sources */,
+				F101CE000000000000000023 /* SecurityService.swift in Sources */,
+				F101CE000000000000000025 /* lowlevel.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -421,6 +525,14 @@
 				7AE10C0220260AB000000D8 /* UsageStoreTests.swift in Sources */,
 				7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */,
+				F101CE000000000000000029 /* FUnlockTests.swift in Sources */,
+				F101CE00000000000000002B /* ConfigStoreTests.swift in Sources */,
+				F101CE00000000000000002D /* DecisionLoggerTests.swift in Sources */,
+				F101CE00000000000000002F /* DiagnosticsViewTests.swift in Sources */,
+				F101CE000000000000000031 /* FUnlockStateMachineTests.swift in Sources */,
+				F101CE000000000000000033 /* IMMessageComposerTests.swift in Sources */,
+				F101CE000000000000000035 /* ReasonActionMappingTests.swift in Sources */,
+				F101CE000000000000000037 /* iMessageNotifierTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -593,6 +705,7 @@
 				MARKETING_VERSION = 2.16;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hahappyfu.NotchEvery;
 				PRODUCT_NAME = NotchEvery;
+				SWIFT_OBJC_BRIDGING_HEADER = "NotchDrop/NotchEvery-Bridging-Header.h";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -632,6 +745,7 @@
 				MARKETING_VERSION = 2.16;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hahappyfu.NotchEvery;
 				PRODUCT_NAME = NotchEvery;
+				SWIFT_OBJC_BRIDGING_HEADER = "NotchDrop/NotchEvery-Bridging-Header.h";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
