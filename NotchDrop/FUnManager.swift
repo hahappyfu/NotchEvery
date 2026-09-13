@@ -752,6 +752,7 @@ final class FUnManager: ObservableObject {
         state.wake = .pending
         state.screen = .locked(reason: .away)
         timingLog("startWakeRetry begin")
+        let sys = system
 
         // 空跑门（工单 03）：状态流转照常进行（既有用例与守夜卡依赖它），
         // 只跳过实际唤醒重试循环（C 调用 funlock_wakeDisplay/releaseWakeAssertion）。
@@ -761,17 +762,17 @@ final class FUnManager: ObservableObject {
             // defer 兜底：无论取消/成功/失败，都释放 wake assertion 并复位唤醒请求标记，
             // 防止 assertion 泄漏（显示器无法自动熄屏）与 displayWakeRequested 卡死（唤醒功能失效）
             defer {
-                funlock_releaseWakeAssertion()
+                sys.releaseWakeAssertion()
                 self.displayWakeRequested = false
             }
             for attempt in 0..<10 {
                 guard !Task.isCancelled else { return }
-                funlock_wakeDisplay()
+                sys.wakeDisplay()
                 try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s（优化：从 1s 降到 0.5s）
-                timingLog("wake attempt=\(attempt) done | locked=\(!self.system.isScreenLocked(screenState: self.state.screen))")
+                timingLog("wake attempt=\(attempt) done | locked=\(!sys.isScreenLocked(screenState: self.state.screen))")
                 // wakeDisplay() 不一定触发 screensDidWakeNotification，
                 // 直接检测屏幕是否已解锁
-                if state.wake == .succeeded || !self.system.isScreenLocked(screenState: state.screen) {
+                if state.wake == .succeeded || !sys.isScreenLocked(screenState: state.screen) {
                     state.wake = .succeeded
                     timingLog("wake succeeded")
                     self.attemptAutoUnlock()

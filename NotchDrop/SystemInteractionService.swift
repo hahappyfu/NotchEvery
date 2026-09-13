@@ -507,4 +507,11 @@ final class SystemInteractionService {
     func fetchPassword(warn: Bool) -> Result<String?, KeychainError> {
         SecurityService.shared.fetchPassword(warn: warn)
     }
+
+    // MARK: - 唤醒断言释放（工单 05）
+
+    /// startWakeRetry 的 defer 兜底经此释放 assertion；唤醒动作本身复用既有 wakeDisplay()。
+    func releaseWakeAssertion() {
+        funlock_releaseWakeAssertion()
+    }
 }

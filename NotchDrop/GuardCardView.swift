@@ -22,6 +22,16 @@ struct GuardCardView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.92))
                 Spacer(minLength: 8)
+                Text("真执行")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.white.opacity(0.52))
+                Toggle("", isOn: Binding(
+                    get: { store.realExecution },
+                    set: { store.realExecution = $0 }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.mini)
                 Toggle("", isOn: Binding(
                     get: { store.enabled },
                     set: { store.enabled = $0 }

@@ -107,4 +107,35 @@ final class GuardStoreTests: XCTestCase {
     func testEmptyLoggerGivesNilJudgement() {
         XCTAssertNil(makeStore().lastJudgement)
     }
+
+    // MARK: - 真执行开关（工单 05 S2）
+
+    /// 默认关闭：缺键即空跑观察
+    func testRealExecutionDefaultsOff() {
+        let store = makeStore()
+        XCTAssertFalse(store.realExecution, "真执行默认关闭")
+        XCTAssertTrue(store.isDryRun)
+        XCTAssertEqual(store.guardState, .observing)
+    }
+
+    /// 打开 → 守护中；再关 → 回空跑观察（切换立即生效）
+    func testRealExecutionFlipReachesGuarding() {
+        let store = makeStore()
+        store.realExecution = true
+        XCTAssertFalse(store.isDryRun)
+        XCTAssertEqual(store.guardState, .guarding)
+        store.realExecution = false
+        XCTAssertTrue(store.isDryRun)
+        XCTAssertEqual(store.guardState, .observing)
+    }
+
+    /// 选择持久化：同域名新门面读到上次的选择（下次启动照旧）
+    func testRealExecutionPersistsAcrossStores() {
+        makeStore().realExecution = true
+        let freshManager = FUnManager(fun: FUn(), nowProvider: { Date() }, decisionLogger: logger)
+        let reopened = GuardStore(manager: freshManager, config: config, logger: logger)
+        XCTAssertTrue(reopened.realExecution)
+        XCTAssertFalse(reopened.isDryRun)
+        XCTAssertEqual(reopened.guardState, .guarding)
+    }
 }

@@ -10,7 +10,7 @@
 //  - 启动装配（delegate 接线、输入监听、设备恢复、开始扫描）——复刻 FUnlock 原
 //    AppDelegate.setupManager / restoreSavedDevice 的语义（菜单栏 UI 部分除外）；
 //  - 状态映射（guardState / 设备名 / 信号 / 双阈值 / 最近一条判定 / 蓝牙问题）；
-//  - 总开关（enabled）读写；空跑模式只读透出（03 恒为真，09 的接管开关负责翻转）。
+//  - 总开关（enabled）读写；真执行开关（realExecution）读写与持久化（05）。
 //
 
 import Combine
@@ -53,7 +53,8 @@ final class GuardStore: ObservableObject {
         self.manager = m
         self.config = config
         self.logger = logger ?? m.decisionLogger
-        m.isDryRun = true
+        // 真执行默认关闭（空跑观察）；用户在守护卡打开后持久化，下次启动照旧。
+        m.isDryRun = !config.bool(forKey: "realExecution")
         subscribe()
         refresh()
     }
@@ -74,8 +75,19 @@ final class GuardStore: ObservableObject {
         }
     }
 
-    /// 空跑模式（只读透出；03 恒为 true，09 翻转）。
+    /// 空跑模式（只读透出；真执行开关负责翻转，见 realExecution）。
     var isDryRun: Bool { manager.isDryRun }
+
+    /// 真执行开关（工单 05）：默认关闭（空跑观察，只记录不执行）。
+    /// 打开后判定真的驱动锁屏/解锁/唤醒；写 manager.isDryRun（@Published）并 refresh，切换立即生效并持久化。
+    var realExecution: Bool {
+        get { config.bool(forKey: "realExecution") }
+        set {
+            config.set(newValue, forKey: "realExecution")
+            manager.isDryRun = !newValue
+            refresh()
+        }
+    }
 
     // MARK: - 生命周期
 

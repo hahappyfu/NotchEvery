@@ -27,6 +27,8 @@ final class FakeSystemEffects: SystemEffects {
     var abnormalAlerts = 0
     var mismatchAlerts = 0
     var clearedNotifications = 0
+    var wakeRequests = 0
+    var wakeReleases = 0
     var onInject: (() -> Void)?
 
     func isScreenLocked(screenState: ScreenState?) -> Bool { screenLocked }
@@ -37,6 +39,9 @@ final class FakeSystemEffects: SystemEffects {
     func notifyLock(reason: String) { notifyReasons.append(reason) }
     func lockOrSaveScreen(useScreensaver: Bool, sleepDisplayAfter: Bool) { lockRequests += 1 }
     func injectPasswordWithPrelude(_ string: String, isSecureCheck: @escaping () -> Bool) -> Bool {
+        // 与 live 契约一致：先查再发；检查失败即停且不记录密码
+        //（指纹中途解锁即走此路——密码不出、不落盘）。
+        guard isSecureCheck() else { return false }
         injectRequests += 1
         injectedPasswords.append(string)
         onInject?()
@@ -45,6 +50,8 @@ final class FakeSystemEffects: SystemEffects {
     func showAbnormalUnlockAlert(count: Int, window: Int) { abnormalAlerts += 1 }
     func clearLockNotification() { clearedNotifications += 1 }
     func fetchPassword(warn: Bool) -> Result<String?, KeychainError> { passwordResult }
+    func wakeDisplay() { wakeRequests += 1 }
+    func releaseWakeAssertion() { wakeReleases += 1 }
 }
 
 @MainActor
@@ -68,8 +75,8 @@ final class SystemEffectsFakeTests: XCTestCase {
         manager.isDryRun = false
         manager.fun.unlockRSSI = -60
         manager.fun.lockRSSI = -70
-        // 确定性优先：与机器真实配置解耦；缺键按启用处理，因此只固定三处
-        for key in ["enabled", "iMessageNotify", "wakeWithoutUnlocking"] {
+        // 确定性优先：与机器真实配置解耦；缺键按启用处理，因此只固定四处
+        for key in ["enabled", "iMessageNotify", "wakeWithoutUnlocking", "wakeOnProximity"] {
             if let v = ConfigStore.shared.defaults.object(forKey: key) {
                 savedPrefs[key] = v
             } else {
@@ -79,6 +86,7 @@ final class SystemEffectsFakeTests: XCTestCase {
         ConfigStore.shared.defaults.set(true, forKey: "enabled")
         ConfigStore.shared.defaults.set(false, forKey: "iMessageNotify")
         ConfigStore.shared.defaults.set(false, forKey: "wakeWithoutUnlocking")
+        ConfigStore.shared.defaults.set(false, forKey: "wakeOnProximity")
     }
 
     override func tearDown() {
@@ -92,8 +100,13 @@ final class SystemEffectsFakeTests: XCTestCase {
         super.tearDown()
     }
 
-    /// 驱动一次完整解锁尝试（含 0.3s 延迟任务），等待注入发生后再留出验证与记账时间。
-    private func driveUnlockAttempt(injectTimeout: TimeInterval = 5.0) {
+    /// 驱动一次完整解锁尝试（含 0.8s 并行任务），等待注入发生后再留出验证与记账时间。
+    /// 从锁屏态起步（与真机一致）：先离开锁屏（screen → .displaySleeping），再靠近——
+    /// 注入检查闭包依赖 state.screen != .unlocked，从 .unlocked 起步永远到不了注入。
+    private func driveUnlockAttempt(injectTimeout: TimeInterval = 6.0) {
+        withWakeOnProximity(true)
+        manager.onDeviceLeft(reason: "away")
+        advance(1) // 跳过 0.8s 锁缓冲
         manager.fun.presence = true
         manager.fun.effectiveRSSI = -45.0
         let exp = expectation(description: "inject requested")
@@ -111,6 +124,13 @@ final class SystemEffectsFakeTests: XCTestCase {
         currentTime = currentTime.addingTimeInterval(seconds)
     }
 
+    /// 无注入可等的纯等待（唤醒循环是时间驱动）：与 driveUnlockAttempt 同一写法。
+    private func settle(_ seconds: TimeInterval) {
+        let done = expectation(description: "settle")
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { done.fulfill() }
+        wait(for: [done], timeout: seconds + 2.0)
+    }
+
     private func hasEvent(outcome: DecisionOutcome, reason: DecisionReason) -> Bool {
         logger.events.contains { $0.outcome == outcome && $0.reason == reason }
     }
@@ -125,6 +145,51 @@ final class SystemEffectsFakeTests: XCTestCase {
         XCTAssertTrue(hasEvent(outcome: .success, reason: .lockedAway), "应记录锁定决策")
         XCTAssertEqual(manager.state.screen, .displaySleeping)
         XCTAssertEqual(fake.mismatchAlerts, 0, "锁屏不应触发密码告警")
+    }
+
+    /// 忘带设备（无信号）：第二次离开因屏已非 unlocked 被拦下，只锁一次、不反复锁屏。
+    func testNoRepeatedLockWithoutSignal() {
+        manager.isDryRun = false
+        manager.onDeviceLeft(reason: "lost")
+        manager.onDeviceLeft(reason: "lost")
+
+        XCTAssertEqual(fake.lockRequests, 1, "只锁一次")
+        XCTAssertEqual(fake.notifyReasons, ["lost"])
+    }
+
+    // MARK: - 抑制路径（工单 05 S4：code-review 跟进）
+
+    /// 手动锁屏后不自动解锁（须手动解锁才重置），且留下可诊断的抑制记录。
+    func testManualLockSuppressesAutoUnlock() {
+        fake.screenLocked = false // lockNow 只在未锁屏时接受手动锁定
+        manager.isDryRun = false
+        manager.lockNow()
+        advance(1) // 跳过 lockNow 自带的 0.8s 锁缓冲，走到手动锁屏抑制门
+        manager.fun.presence = true
+        manager.fun.effectiveRSSI = -45.0
+        manager.attemptAutoUnlock()
+        settle(1.0)
+
+        XCTAssertEqual(fake.injectRequests, 0, "手动锁屏后不自动解锁")
+        XCTAssertTrue(
+            logger.events.contains { $0.reason == .manualLockActive },
+            "抑制必须留下记录，不静默")
+    }
+
+    /// 成功解锁紧接着再试：冷却期内不重复注入，且成功只记一次。
+    func testUnlockCooldownSuppressesImmediateRetry() {
+        driveUnlockAttempt()
+        XCTAssertEqual(fake.injectRequests, 1)
+
+        manager.fun.presence = true
+        manager.fun.effectiveRSSI = -45.0
+        manager.attemptAutoUnlock()
+        settle(1.0)
+
+        XCTAssertEqual(fake.injectRequests, 1, "冷却期内不重复注入")
+        XCTAssertEqual(
+            logger.events.filter { $0.outcome == .success && $0.reason == .unlockSuccess }.count,
+            1, "成功只记一次")
     }
 
     // MARK: - 注入成功
@@ -183,5 +248,61 @@ final class SystemEffectsFakeTests: XCTestCase {
         driveFailures(3)
 
         XCTAssertEqual(manager.stateMachine.currentState, .degraded, "连续失败应进入降级")
+    }
+
+    // MARK: - 指纹中断（工单 05 S3）
+
+    /// 指纹在注入前解开屏幕（已不再适合注入）→ 密码不出、不记成功。
+    /// 不等注入（永远等不到）：0.3s/0.8s 任务跑完后直接断言。
+    func testFingerprintUnlockStopsInjection() {
+        fake.secureToInject = false // 模拟指纹已解开：继续注入即泄漏到前台应用
+        manager.fun.presence = true
+        manager.fun.effectiveRSSI = -45.0
+        manager.attemptAutoUnlock()
+        settle(1.5)
+
+        XCTAssertTrue(fake.injectedPasswords.isEmpty, "密码不得外发")
+        XCTAssertFalse(hasEvent(outcome: .success, reason: .unlockSuccess), "不得记成功")
+    }
+
+    // MARK: - 唤醒收编（工单 05 S1）
+
+    /// 真执行 + 显示器休眠 + 系统醒着 + 允许接近唤醒 → 唤醒被请求且 assertion 被释放。
+    /// 只断言外部可观察结局（请求计数、释放计数、唤醒相位），不断言重试轮次。
+    func testWakeRequestedAndReleasedInRealMode() {
+        withWakeOnProximity(true)
+        fake.screenLocked = false // 假装唤醒即见解锁：首轮检查即成功，不空转 10 轮
+        manager.isDryRun = false
+        manager.onDeviceLeft(reason: "away") // screen → .displaySleeping
+        advance(2) // 跳过 0.8s 锁缓冲
+        manager.fun.presence = true
+        manager.fun.effectiveRSSI = -45.0
+        manager.attemptAutoUnlock()
+        settle(2.0)
+
+        XCTAssertGreaterThanOrEqual(fake.wakeRequests, 1, "真执行应请求唤醒")
+        XCTAssertEqual(manager.state.wake, .succeeded, "假装已解锁应一次成功")
+        XCTAssertGreaterThanOrEqual(fake.wakeReleases, 1, "defer 应释放 assertion")
+    }
+
+    /// 空跑仍不实际唤醒（03 既有语义），但状态流转照常（wake → .pending）。
+    func testDryRunSkipsWake() {
+        withWakeOnProximity(true)
+        fake.screenLocked = false
+        manager.isDryRun = true
+        manager.onDeviceLeft(reason: "away")
+        advance(2)
+        manager.fun.presence = true
+        manager.fun.effectiveRSSI = -45.0
+        manager.attemptAutoUnlock()
+        settle(1.5)
+
+        XCTAssertEqual(fake.wakeRequests, 0, "空跑不应实际唤醒")
+        XCTAssertEqual(manager.state.wake, .pending, "状态流转照常进行")
+    }
+
+    /// wakeOnProximity 非既有用例依赖项：setUp 固定 false 并负责恢复，此处仅按需打开。
+    private func withWakeOnProximity(_ value: Bool) {
+        ConfigStore.shared.defaults.set(value, forKey: "wakeOnProximity")
     }
 }

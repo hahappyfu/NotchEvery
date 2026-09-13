@@ -30,6 +30,9 @@ protocol SystemEffects {
     func showAbnormalUnlockAlert(count: Int, window: Int)
     func clearLockNotification()
     func fetchPassword(warn: Bool) -> Result<String?, KeychainError>
+    // 唤醒也在边界内（工单 05）：重试循环经此驱动，假实现可断言唤醒被请求与释放。
+    func wakeDisplay()
+    func releaseWakeAssertion()
 }
 
 extension SystemInteractionService: SystemEffects {}
