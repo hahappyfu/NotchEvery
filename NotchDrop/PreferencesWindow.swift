@@ -29,6 +29,17 @@ enum PreferencesTab: String, CaseIterable, Identifiable {
         case .diagnostics: return "waveform.path.ecg"
         }
     }
+
+    var color: Color {
+        switch self {
+        case .general: return Color.gray
+        case .unlock: return StudioColor.emerald
+        case .lock: return StudioColor.amber
+        case .notification: return StudioColor.rose
+        case .calibration: return Color.blue
+        case .diagnostics: return StudioColor.indigo
+        }
+    }
 }
 
 struct PreferencesWindow: View {
@@ -37,8 +48,19 @@ struct PreferencesWindow: View {
     var body: some View {
         NavigationSplitView {
             List(PreferencesTab.allCases, selection: $selectedTab) { tab in
-                Label(tab.rawValue, systemImage: tab.icon)
-                    .tag(tab)
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(tab.color)
+                        .frame(width: 20, height: 20)
+                        .overlay(
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.white)
+                        )
+                    Text(tab.rawValue)
+                        .font(.system(size: 13))
+                }
+                .tag(tab)
             }
             .navigationSplitViewColumnWidth(min: 150, ideal: 170, max: 200)
         } detail: {
@@ -66,6 +88,38 @@ struct PreferencesWindow: View {
     }
 }
 
+// MARK: - Studio Section Group Component
+
+struct StudioSectionGroup<Content: View>: View {
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey?
+    @ViewBuilder let content: () -> Content
+
+    init(_ title: LocalizedStringKey, subtitle: LocalizedStringKey? = nil, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.primary)
+            if let subtitle {
+                Text(subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            VStack(spacing: 0) {
+                content()
+            }
+            .studioCard(radius: 10)
+        }
+        .padding(.horizontal)
+    }
+}
+
 // MARK: - Tab 1: 通用
 
 struct GeneralSettingsTab: View {
@@ -87,71 +141,119 @@ struct GeneralSettingsTab: View {
 
     var body: some View {
         ScrollView {
-            Form {
-                Section("开机与交互") {
-                    LaunchAtLogin.Toggle {
-                        Text("开机自动启动")
-                    }
-                    Toggle("触觉振动反馈", isOn: $hapticFeedback)
-                        .onChange(of: hapticFeedback) { newValue in
-                            if let vm = (NSApp.delegate as? AppDelegate)?.mainWindowController?.vm {
-                                vm.hapticFeedback = newValue
-                            } else if let data = try? JSONEncoder().encode(newValue) {
-                                FileStorage().set(data, forKey: "hapticFeedback")
-                            }
+            VStack(spacing: 16) {
+                StudioSectionGroup("开机与交互") {
+                    VStack(spacing: 0) {
+                        LaunchAtLogin.Toggle {
+                            Text("开机自动启动")
                         }
-                    Picker("语言设置", selection: $selectedLanguage) {
-                        ForEach(Language.allCases) { lang in
-                            Text(lang.localized).tag(lang)
-                        }
-                    }
-                    .onChange(of: selectedLanguage) { newValue in
-                        if let vm = (NSApp.delegate as? AppDelegate)?.mainWindowController?.vm {
-                            vm.selectedLanguage = newValue
-                        } else if let data = try? JSONEncoder().encode(newValue) {
-                            FileStorage().set(data, forKey: "selectedLanguage")
-                        }
-                        newValue.apply()
-                    }
-                }
+                        .toggleStyle(.switch)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
 
-                Section("暂存区管理") {
-                    Picker("文件暂存保留时长", selection: $tvm.selectedFileStorageTime) {
-                        ForEach(TrayDrop.FileStorageTime.allCases) { time in
-                            Text(time.localized).tag(time)
-                        }
-                    }
-                    if tvm.selectedFileStorageTime == .custom {
-                        HStack {
-                            TextField("时长", value: $tvm.customStorageTime, formatter: NumberFormatter())
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 60)
-                            Picker("单位", selection: $tvm.customStorageTimeUnit) {
-                                ForEach(TrayDrop.CustomStorageTimeUnit.allCases) { unit in
-                                    Text(unit.localized).tag(unit)
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        Toggle("触觉振动反馈", isOn: $hapticFeedback)
+                            .toggleStyle(.switch)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .onChange(of: hapticFeedback) { newValue in
+                                if let vm = (NSApp.delegate as? AppDelegate)?.mainWindowController?.vm {
+                                    vm.hapticFeedback = newValue
+                                } else if let data = try? JSONEncoder().encode(newValue) {
+                                    FileStorage().set(data, forKey: "hapticFeedback")
                                 }
                             }
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        HStack {
+                            Text("语言设置")
+                            Spacer()
+                            Picker("", selection: $selectedLanguage) {
+                                ForEach(Language.allCases) { lang in
+                                    Text(lang.localized).tag(lang)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 140)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .onChange(of: selectedLanguage) { newValue in
+                            if let vm = (NSApp.delegate as? AppDelegate)?.mainWindowController?.vm {
+                                vm.selectedLanguage = newValue
+                            } else if let data = try? JSONEncoder().encode(newValue) {
+                                FileStorage().set(data, forKey: "selectedLanguage")
+                            }
+                            newValue.apply()
                         }
                     }
                 }
 
-                Section("关于 NotchEvery") {
-                    HStack {
-                        Text("当前版本")
-                        Spacer()
-                        Text(appVersion)
-                            .foregroundStyle(.secondary)
+                StudioSectionGroup("暂存区管理") {
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("文件暂存保留时长")
+                            Spacer()
+                            Picker("", selection: $tvm.selectedFileStorageTime) {
+                                ForEach(TrayDrop.FileStorageTime.allCases) { time in
+                                    Text(time.localized).tag(time)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 140)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        if tvm.selectedFileStorageTime == .custom {
+                            Divider().overlay(StudioMaterial.strokeNormal)
+                            HStack {
+                                Text("自定义时长")
+                                Spacer()
+                                TextField("时长", value: $tvm.customStorageTime, formatter: NumberFormatter())
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 60)
+                                Picker("", selection: $tvm.customStorageTimeUnit) {
+                                    ForEach(TrayDrop.CustomStorageTimeUnit.allCases) { unit in
+                                        Text(unit.localized).tag(unit)
+                                    }
+                                }
+                                .labelsHidden()
+                                .frame(width: 80)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                        }
                     }
-                    HStack {
-                        Text("反代数据源")
-                        Spacer()
-                        Text("Antigravity Tools")
-                            .foregroundStyle(.secondary)
+                }
+
+                StudioSectionGroup("关于 NotchEvery") {
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("当前版本")
+                            Spacer()
+                            Text(appVersion)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        HStack {
+                            Text("反代数据源")
+                            Spacer()
+                            Text("Antigravity Tools")
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
                     }
                 }
             }
-            .formStyle(.grouped)
-            .padding()
+            .padding(.vertical)
             .onAppear {
                 if let vm = (NSApp.delegate as? AppDelegate)?.mainWindowController?.vm {
                     hapticFeedback = vm.hapticFeedback
@@ -172,22 +274,41 @@ struct UnlockSettingsTab: View {
 
     var body: some View {
         ScrollView {
-            Form {
-                Section("靠近唤醒机制") {
-                    Toggle("接近自动唤醒屏幕", isOn: $wakeOnProximity)
-                    Text("当 Apple Watch 靠近至解锁距离时，提前点亮屏幕。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            VStack(spacing: 16) {
+                StudioSectionGroup("靠近唤醒机制") {
+                    VStack(spacing: 0) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("接近自动唤醒屏幕", isOn: $wakeOnProximity)
+                                .toggleStyle(.switch)
+                            Text("当 Apple Watch 靠近至解锁距离时，提前点亮屏幕。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
 
-                    Toggle("允许仅唤醒屏幕不自动解锁", isOn: $wakeWithoutUnlocking)
-                    Text("点亮屏幕供查看锁屏小组件或时间，不自动输入密码。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        Divider().overlay(StudioMaterial.strokeNormal)
 
-                    Toggle("使用屏幕保护程序替代熄屏", isOn: $screensaver)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("允许仅唤醒屏幕不自动解锁", isOn: $wakeWithoutUnlocking)
+                                .toggleStyle(.switch)
+                            Text("点亮屏幕供查看锁屏小组件或时间，不自动输入密码。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        Toggle("使用屏幕保护程序替代熄屏", isOn: $screensaver)
+                            .toggleStyle(.switch)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                    }
                 }
 
-                Section("锁屏密码与安全") {
+                StudioSectionGroup("锁屏密码与安全") {
                     HStack {
                         Text("钥匙串密码状态")
                         Spacer()
@@ -198,10 +319,11 @@ struct UnlockSettingsTab: View {
                         }
                         .controlSize(.small)
                     }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
                 }
             }
-            .formStyle(.grouped)
-            .padding()
+            .padding(.vertical)
         }
     }
 }
@@ -215,26 +337,46 @@ struct LockSettingsTab: View {
 
     var body: some View {
         ScrollView {
-            Form {
-                Section("离席锁定动作") {
-                    Toggle("离开后立即熄灭显示器", isOn: $sleepDisplay)
-                    Text("检测到远离时不仅锁屏，同时让屏幕进入休眠节电。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            VStack(spacing: 16) {
+                StudioSectionGroup("离席锁定动作") {
+                    VStack(spacing: 0) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("离开后立即熄灭显示器", isOn: $sleepDisplay)
+                                .toggleStyle(.switch)
+                            Text("检测到远离时不仅锁屏，同时让屏幕进入休眠节电。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
 
-                    Toggle("锁屏时暂停媒体播放", isOn: $pauseItunes)
-                    Text("自动暂停正在播放的音乐或视频。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        Divider().overlay(StudioMaterial.strokeNormal)
 
-                    Toggle("键盘鼠标输入中防误锁", isOn: $lockOnIdle)
-                    Text("若当前正在敲击键盘或移动鼠标，即便蓝牙信号瞬时衰减也不触发锁屏。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("锁屏时暂停媒体播放", isOn: $pauseItunes)
+                                .toggleStyle(.switch)
+                            Text("自动暂停正在播放的音乐或视频。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("键盘鼠标输入中防误锁", isOn: $lockOnIdle)
+                                .toggleStyle(.switch)
+                            Text("若当前正在敲击键盘或移动鼠标，即便蓝牙信号瞬时衰减也不触发锁屏。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                    }
                 }
             }
-            .formStyle(.grouped)
-            .padding()
+            .padding(.vertical)
         }
     }
 }
@@ -250,39 +392,55 @@ struct NotificationSettingsTab: View {
 
     var body: some View {
         ScrollView {
-            Form {
-                Section("iMessage 远程异常告警") {
-                    Toggle("开启解锁异常 iMessage 推送", isOn: $iMessageNotify)
-                    Text("在多次解锁失败、密码错误或可能被触碰入侵时向手机发送告警。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            VStack(spacing: 16) {
+                StudioSectionGroup("iMessage 远程异常告警") {
+                    VStack(spacing: 0) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("开启解锁异常 iMessage 推送", isOn: $iMessageNotify)
+                                .toggleStyle(.switch)
+                            Text("在多次解锁失败、密码错误或可能被触碰入侵时向手机发送告警。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
 
-                    if iMessageNotify {
-                        TextField("收件人手机号或 Apple ID 邮箱", text: $recipient)
-                            .textFieldStyle(.roundedBorder)
+                        if iMessageNotify {
+                            Divider().overlay(StudioMaterial.strokeNormal)
 
-                        HStack {
-                            Button("发送测试通知") {
-                                runTest()
-                            }
-                            .disabled(isTesting || recipient.isEmpty)
-
-                            if isTesting {
-                                ProgressView()
-                                    .controlSize(.small)
-                            }
-
-                            if let res = testResult {
-                                Text(res)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("收件人手机号或 Apple ID 邮箱")
                                     .font(.caption)
-                                    .foregroundStyle(testSuccess ? .green : .red)
+                                    .foregroundStyle(.secondary)
+                                TextField("收件人手机号或 Apple ID 邮箱", text: $recipient)
+                                    .textFieldStyle(.roundedBorder)
+
+                                HStack {
+                                    Button("发送测试通知") {
+                                        runTest()
+                                    }
+                                    .disabled(isTesting || recipient.isEmpty)
+
+                                    if isTesting {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    }
+
+                                    if let res = testResult {
+                                        Text(res)
+                                            .font(.caption)
+                                            .foregroundStyle(testSuccess ? .green : .red)
+                                    }
+                                }
+                                .padding(.top, 4)
                             }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
                         }
                     }
                 }
             }
-            .formStyle(.grouped)
-            .padding()
+            .padding(.vertical)
         }
     }
 
@@ -314,48 +472,70 @@ struct CalibrationSettingsTab: View {
 
     var body: some View {
         ScrollView {
-            Form {
-                Section("当前信号阈值") {
-                    HStack {
-                        Text("当前绑定设备")
-                        Spacer()
-                        Text(store.deviceName ?? "未绑定设备")
-                            .foregroundStyle(.secondary)
-                    }
-                    HStack {
-                        Text("当前信号强度 (RSSI)")
-                        Spacer()
-                        Text(store.rssi.map { "\($0) dBm" } ?? "--")
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                    HStack {
-                        Text("解锁阈值")
-                        Spacer()
-                        Text("\(store.unlockRSSI) dBm")
-                            .font(.system(.body, design: .monospaced))
-                    }
-                    HStack {
-                        Text("锁定阈值")
-                        Spacer()
-                        Text("\(store.lockRSSI) dBm")
-                            .font(.system(.body, design: .monospaced))
+            VStack(spacing: 16) {
+                StudioSectionGroup("当前信号阈值") {
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("当前绑定设备")
+                            Spacer()
+                            Text(store.deviceName ?? "未绑定设备")
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        HStack {
+                            Text("当前信号强度 (RSSI)")
+                            Spacer()
+                            Text(store.rssi.map { "\($0) dBm" } ?? "--")
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        HStack {
+                            Text("解锁阈值")
+                            Spacer()
+                            Text("\(store.unlockRSSI) dBm")
+                                .font(.system(.body, design: .monospaced))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        HStack {
+                            Text("锁定阈值")
+                            Spacer()
+                            Text("\(store.lockRSSI) dBm")
+                                .font(.system(.body, design: .monospaced))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
                     }
                 }
 
-                Section("向导式校准") {
-                    Text("如果当前距离下经常出现误锁或无法及时解锁，建议运行测距校准向导，通过采样计算适合当前办公环境的信号阈值。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                StudioSectionGroup("向导式校准") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("如果当前距离下经常出现误锁或无法及时解锁，建议运行测距校准向导，通过采样计算适合当前办公环境的信号阈值。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
 
-                    Button("启动空间测距校准向导...") {
-                        isPresentingWizard = true
+                        Button("启动空间测距校准向导...") {
+                            isPresentingWizard = true
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
                 }
             }
-            .formStyle(.grouped)
-            .padding()
+            .padding(.vertical)
             .sheet(isPresented: $isPresentingWizard) {
                 CalibrationWizardView(manager: store.funManager, isPresented: $isPresentingWizard)
             }
