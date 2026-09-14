@@ -91,6 +91,14 @@ final class SecurityService {
         }
     }
 
+    /// 检查 Keychain 中是否存在非空锁屏密码
+    var hasPassword: Bool {
+        if case .success(let pw) = fetchPassword(warn: false), let pw, !pw.isEmpty {
+            return true
+        }
+        return false
+    }
+
     /// Delete stored password from Keychain
     func deletePassword() {
         let query: [String: Any] = [
@@ -125,7 +133,8 @@ final class SecurityService {
 
     // MARK: - Password Dialog
 
-    func askPassword() {
+    @discardableResult
+    func askPassword() -> Bool {
         let msg = NSAlert()
         msg.addButton(withTitle: t("ok"))
         msg.addButton(withTitle: t("cancel"))
@@ -141,8 +150,11 @@ final class SecurityService {
             let err = storePassword(txt.stringValue)
             if let err = err {
                 UIHelper.errorModal(t("failed_store_password"), info: err)
+                return false
             }
+            return true
         }
+        return false
     }
 }
 

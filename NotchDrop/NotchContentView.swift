@@ -13,6 +13,7 @@ struct NotchContentView: View {
 
     var body: some View {
         NotchRootView(vm: vm)
+        .preferredColorScheme(.dark)
         .animation(vm.animation, value: vm.contentType)
         // 尺寸上报：内容自然大小驱动面板（ADR-0008），见 ZoneSizeGuard.swift
         .onPreferenceChange(ZoneNaturalSizeKey.self) { natural in

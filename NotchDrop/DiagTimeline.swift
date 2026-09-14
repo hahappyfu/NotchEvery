@@ -20,8 +20,9 @@ struct DiagEntry: Equatable {
     var signalText: String?
     var reasonText: String
     var hintText: String?
-    /// v1 唯一可执行的建议：去系统设置开辅助功能（其余只给文案）
-    var hasExecutableAction: Bool
+    /// 可执行的操作（辅助功能设置、重录密码等；无则为 nil）
+    var action: ActionHint?
+    var hasExecutableAction: Bool { action != nil }
 }
 
 enum DiagTimeline {
@@ -30,6 +31,13 @@ enum DiagTimeline {
         var days: [DiagDay] = []
         for event in sorted {
             let day = calendar.startOfDay(for: event.timestamp)
+            let executableAction: ActionHint?
+            switch event.reason?.action {
+            case .openAccessibilitySettings, .reEnterPassword:
+                executableAction = event.reason?.action
+            default:
+                executableAction = nil
+            }
             let entry = DiagEntry(
                 event: event,
                 timeText: timeFormatter.string(from: event.timestamp),
@@ -37,7 +45,7 @@ enum DiagTimeline {
                 reasonText: event.detail.isEmpty
                     ? (event.reason.map { t($0.titleKey) } ?? "") : event.detail,
                 hintText: event.reason?.action.map { t($0.labelKey) },
-                hasExecutableAction: event.reason?.action == .openAccessibilitySettings
+                action: executableAction
             )
             if days.last?.day == day {
                 days[days.count - 1].entries.append(entry)

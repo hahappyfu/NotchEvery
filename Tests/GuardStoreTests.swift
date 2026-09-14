@@ -233,4 +233,29 @@ final class GuardStoreTests: XCTestCase {
                       rssi: -50, device: "Watch", screen: "unlocked", detail: "")
         XCTAssertNil(makeStore().lastUnlockFailure)
     }
+
+    // MARK: - 密码状态与接管（工单 09）
+
+    /// 初始密码状态透出 checker 闭包返回值
+    func testHasPasswordMirrorsChecker() {
+        var pwExists = false
+        let store = GuardStore(manager: manager, config: config, logger: logger,
+                               passwordChecker: { pwExists },
+                               passwordPrompter: { pwExists = true; return true })
+        XCTAssertFalse(store.hasPassword)
+        pwExists = true
+        store.checkPassword()
+        XCTAssertTrue(store.hasPassword)
+    }
+
+    /// setOrChangePassword 调用 prompter 并在成功后更新 hasPassword
+    func testSetOrChangePasswordPromptsAndUpdates() {
+        var pwExists = false
+        let store = GuardStore(manager: manager, config: config, logger: logger,
+                               passwordChecker: { pwExists },
+                               passwordPrompter: { pwExists = true; return true })
+        XCTAssertFalse(store.hasPassword)
+        store.setOrChangePassword()
+        XCTAssertTrue(store.hasPassword)
+    }
 }

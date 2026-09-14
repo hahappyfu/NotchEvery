@@ -71,17 +71,21 @@ final class DiagTimelineTests: XCTestCase {
         XCTAssertEqual(days[0].entries[1].signalText, "-58 dBm")
     }
 
-    /// 无 action 的原因不给建议；axRevoked 给建议且唯一可执行
+    /// 无 action 的原因不给建议；axRevoked 与 reEnterPassword 给建议且可执行
     func testHintsOnlyWhenActionExists() {
         let days = DiagTimeline.build(from: [
             event(at: 0, reason: .noPresence),
             event(at: 1, reason: .axRevoked),
+            event(at: 2, reason: .unlockFailed),
         ])
-        let plain = days[0].entries[1]
+        let plain = days[0].entries[2]
         XCTAssertNil(plain.hintText)
         XCTAssertFalse(plain.hasExecutableAction)
-        let ax = days[0].entries[0]
+        let ax = days[0].entries[1]
         XCTAssertNotNil(ax.hintText)
-        XCTAssertTrue(ax.hasExecutableAction, "v1 唯一可执行：辅助功能设置")
+        XCTAssertTrue(ax.hasExecutableAction, "可执行：辅助功能设置")
+        let pw = days[0].entries[0]
+        XCTAssertNotNil(pw.hintText)
+        XCTAssertTrue(pw.hasExecutableAction, "09 可执行：重录密码")
     }
 }

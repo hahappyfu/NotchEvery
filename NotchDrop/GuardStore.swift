@@ -37,6 +37,7 @@ final class GuardStore: ObservableObject {
     @Published private(set) var unlockRSSI: Int = -60
     @Published private(set) var lastJudgement: String?
     @Published private(set) var bluetoothIssue: BluetoothIssue?
+    @Published private(set) var hasPassword: Bool = false
 
     private let manager: FUnManager
     private let config: ConfigStore
@@ -44,13 +45,32 @@ final class GuardStore: ObservableObject {
     private let monitor = InputActivityMonitor()
     private var cancellables = Set<AnyCancellable>()
 
+    /// 检查密码状态（从 Keychain 确认）
+    func checkPassword() {
+        hasPassword = passwordChecker()
+    }
+
+    /// 弹出密码录入框并在成功录入后刷新状态
+    func setOrChangePassword() {
+        if passwordPrompter() {
+            checkPassword()
+        }
+    }
+
+    private let passwordChecker: () -> Bool
+    private let passwordPrompter: () -> Bool
+
     /// - Parameters:
     ///   - manager: 守护管理器（测试时注入可控实例；默认现建）。
     ///   - config: 配置存储（测试时注入隔离域名）。
     ///   - logger: 决策日志（默认与 manager 共用同一个；测试时注入内存实例）。
     ///   - guide: 权限检查器（默认 live：AX/FDA 走系统 API，蓝牙走管理器状态；测试注入 stub）。
+    ///   - passwordChecker: 密码检查闭包（默认走 SecurityService.shared.hasPassword；测试注入 stub）。
+    ///   - passwordPrompter: 密码录入弹窗闭包（默认走 SecurityService.shared.askPassword；测试注入 stub）。
     init(manager: FUnManager? = nil, config: ConfigStore = .shared,
-         logger: DecisionLogger? = nil, guide: PermissionGuide? = nil) {
+         logger: DecisionLogger? = nil, guide: PermissionGuide? = nil,
+         passwordChecker: (() -> Bool)? = nil,
+         passwordPrompter: (() -> Bool)? = nil) {
         let m = manager ?? FUnManager(fun: FUn())
         self.manager = m
         self.config = config
@@ -58,11 +78,14 @@ final class GuardStore: ObservableObject {
         self.permissionGuide = guide ?? PermissionGuide(isBluetoothAuthorized: { [weak m] in
             m?.bluetoothIssue != .unauthorized
         })
+        self.passwordChecker = passwordChecker ?? { SecurityService.shared.hasPassword }
+        self.passwordPrompter = passwordPrompter ?? { SecurityService.shared.askPassword() }
         // 真执行默认关闭（空跑观察）；用户在守护卡打开后持久化，下次启动照旧。
         m.isDryRun = !config.bool(forKey: "realExecution")
         subscribe()
         refresh()
         refreshPermissions()
+        checkPassword()
     }
 
     // MARK: - 总开关
@@ -144,6 +167,7 @@ final class GuardStore: ObservableObject {
         DispatchQueue.main.async { [weak self] in self?.monitor.start() }
         refresh()
         refreshPermissions()
+        checkPassword()
     }
 
     func stop() {
@@ -228,5 +252,6 @@ final class GuardStore: ObservableObject {
         bluetoothIssue = manager.bluetoothIssue
         refreshJudgement(logger.events)
         refreshUnlockFailure(logger.events)
+        checkPassword()
     }
 }

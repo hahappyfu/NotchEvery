@@ -28,7 +28,7 @@ struct GuardCardView: View {
                     .foregroundStyle(Color.white.opacity(0.52))
                 Toggle("", isOn: Binding(
                     get: { store.realExecution },
-                    set: { store.realExecution = $0 }
+                    set: { handleRealExecutionToggle($0) }
                 ))
                 .labelsHidden()
                 .toggleStyle(.switch)
@@ -53,6 +53,20 @@ struct GuardCardView: View {
                     .foregroundStyle(Color.white.opacity(0.52))
                     .lineLimit(1)
                     .truncationMode(.tail)
+            }
+            // 密码录入引导行（工单 09）：未录入锁屏密码时提示，单行省略
+            if !store.hasPassword {
+                HStack(spacing: 6) {
+                    Text("未录入锁屏密码（自动解锁需要）")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Color.orange.opacity(0.9))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Spacer(minLength: 6)
+                    Button("去录入") { store.setOrChangePassword() }
+                        .font(.system(size: 11))
+                        .controlSize(.mini)
+                }
             }
             // 上次未解锁回显（工单 08）：单行省略，点进诊断分区；无失败时不占行
             if let failure = store.lastUnlockFailure {
@@ -135,5 +149,58 @@ struct GuardCardView: View {
     private func openSettings(_ issue: PermissionIssue) {
         guard let url = issue.settingsURL else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    /// 切换真执行开关：开启前做安全风险提示与接管检查（工单 09）
+    private func handleRealExecutionToggle(_ newValue: Bool) {
+        if !newValue {
+            // 关闭真执行直接生效回空跑
+            store.realExecution = false
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "开启真执行守护"
+        alert.alertStyle = .warning
+
+        var infoLines: [String] = []
+        infoLines.append("开启后 NotchEvery 将真正执行锁屏与自动密码解锁，不再仅是空跑观察。")
+        infoLines.append("")
+
+        let isFUnlockRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: "com.fuhahah.FUnlock").isEmpty
+        if isFUnlockRunning {
+            infoLines.append("⚠️ 检测到原 FUnlock 正在运行！请先手动退出原 FUnlock（状态栏点退出或强制退出），避免两个应用同时测距与注入冲突。")
+            infoLines.append("")
+        } else {
+            infoLines.append("⚠️ 如果原 FUnlock 仍在运行，请务必先手动退出，避免两个应用同时测距与注入冲突。")
+            infoLines.append("")
+        }
+
+        infoLines.append("接管准备确认：")
+        infoLines.append("1. 【重录密码】macOS Keychain 隔离不同应用，原 FUnlock 密码无法自动迁移，必须在此录入。")
+        infoLines.append("2. 【系统权限】需确保辅助功能、蓝牙与完全磁盘访问三项权限均已开启。")
+
+        alert.informativeText = infoLines.joined(separator: "\n")
+
+        if !store.hasPassword {
+            alert.addButton(withTitle: "录入密码并开启")
+            alert.addButton(withTitle: "取消")
+        } else {
+            alert.addButton(withTitle: "确认开启")
+            alert.addButton(withTitle: "取消")
+        }
+
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            if !store.hasPassword {
+                store.setOrChangePassword()
+                if store.hasPassword {
+                    store.realExecution = true
+                }
+            } else {
+                store.realExecution = true
+            }
+        }
     }
 }

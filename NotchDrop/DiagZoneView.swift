@@ -117,7 +117,7 @@ struct DiagEntryView: View {
                 }
                 if let hint = entry.hintText {
                     if entry.hasExecutableAction {
-                        Button(action: openAccessibilitySettings) {
+                        Button(action: { handleAction(entry.action) }) {
                             Text(hint)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
@@ -135,6 +135,17 @@ struct DiagEntryView: View {
         }
         .font(.system(size: 11))
         .monospacedDigit()
+    }
+
+    private func handleAction(_ action: ActionHint?) {
+        switch action {
+        case .openAccessibilitySettings:
+            openAccessibilitySettings()
+        case .reEnterPassword:
+            SecurityService.shared.askPassword()
+        default:
+            break
+        }
     }
 
     private func openAccessibilitySettings() {
