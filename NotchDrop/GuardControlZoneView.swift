@@ -185,7 +185,7 @@ struct GuardControlZoneView: View {
                     Text(outcomeText(latest.outcome))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(outcomeColor(latest.outcome))
-                    Text(latest.detail.isEmpty ? (latest.reason?.rawValue ?? "") : latest.detail)
+                    Text(latest.detail.isEmpty ? (latest.reason?.localizedTitle ?? latest.reason?.rawValue ?? "") : latest.detail)
                         .font(.system(size: 11))
                         .foregroundStyle(Color.white.opacity(0.85))
                         .lineLimit(1)

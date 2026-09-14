@@ -69,7 +69,21 @@ struct PreferencesWindow: View {
 // MARK: - Tab 1: 通用
 
 struct GeneralSettingsTab: View {
-    @AppStorage("hapticFeedback") private var hapticFeedback = true
+    @State private var hapticFeedback: Bool = {
+        if let data = FileStorage().data(forKey: "hapticFeedback"),
+           let val = try? JSONDecoder().decode(Bool.self, from: data) {
+            return val
+        }
+        return true
+    }()
+    @StateObject private var tvm = TrayDrop.shared
+    @State private var selectedLanguage: Language = {
+        if let data = FileStorage().data(forKey: "selectedLanguage"),
+           let val = try? JSONDecoder().decode(Language.self, from: data) {
+            return val
+        }
+        return .system
+    }()
 
     var body: some View {
         ScrollView {
@@ -79,6 +93,46 @@ struct GeneralSettingsTab: View {
                         Text("开机自动启动")
                     }
                     Toggle("触觉振动反馈", isOn: $hapticFeedback)
+                        .onChange(of: hapticFeedback) { newValue in
+                            if let vm = (NSApp.delegate as? AppDelegate)?.mainWindowController?.vm {
+                                vm.hapticFeedback = newValue
+                            } else if let data = try? JSONEncoder().encode(newValue) {
+                                FileStorage().set(data, forKey: "hapticFeedback")
+                            }
+                        }
+                    Picker("语言设置", selection: $selectedLanguage) {
+                        ForEach(Language.allCases) { lang in
+                            Text(lang.localized).tag(lang)
+                        }
+                    }
+                    .onChange(of: selectedLanguage) { newValue in
+                        if let vm = (NSApp.delegate as? AppDelegate)?.mainWindowController?.vm {
+                            vm.selectedLanguage = newValue
+                        } else if let data = try? JSONEncoder().encode(newValue) {
+                            FileStorage().set(data, forKey: "selectedLanguage")
+                        }
+                        newValue.apply()
+                    }
+                }
+
+                Section("暂存区管理") {
+                    Picker("文件暂存保留时长", selection: $tvm.selectedFileStorageTime) {
+                        ForEach(TrayDrop.FileStorageTime.allCases) { time in
+                            Text(time.localized).tag(time)
+                        }
+                    }
+                    if tvm.selectedFileStorageTime == .custom {
+                        HStack {
+                            TextField("时长", value: $tvm.customStorageTime, formatter: NumberFormatter())
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 60)
+                            Picker("单位", selection: $tvm.customStorageTimeUnit) {
+                                ForEach(TrayDrop.CustomStorageTimeUnit.allCases) { unit in
+                                    Text(unit.localized).tag(unit)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Section("关于 NotchEvery") {
@@ -98,6 +152,12 @@ struct GeneralSettingsTab: View {
             }
             .formStyle(.grouped)
             .padding()
+            .onAppear {
+                if let vm = (NSApp.delegate as? AppDelegate)?.mainWindowController?.vm {
+                    hapticFeedback = vm.hapticFeedback
+                    selectedLanguage = vm.selectedLanguage
+                }
+            }
         }
     }
 }
@@ -339,12 +399,12 @@ struct DiagnosticsSettingsTab: View {
                     Text(timeText(event.timestamp))
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(.secondary)
-                    Text(event.category.rawValue)
+                    Text(categoryText(event.category))
                         .font(.system(size: 11, weight: .medium))
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
                         .background(Color.secondary.opacity(0.15), in: RoundedRectangle(cornerRadius: 4))
-                    Text(event.detail.isEmpty ? (event.reason?.rawValue ?? "") : event.detail)
+                    Text(event.detail.isEmpty ? (event.reason?.localizedTitle ?? event.reason?.rawValue ?? "") : event.detail)
                         .font(.system(size: 11.5))
                         .lineLimit(1)
                     Spacer()
@@ -372,6 +432,15 @@ struct DiagnosticsSettingsTab: View {
 
     private func timeText(_ date: Date) -> String {
         Self.timeFormatter.string(from: date)
+    }
+
+    private func categoryText(_ cat: DecisionCategory) -> String {
+        switch cat {
+        case .unlock: return "解锁"
+        case .lock: return "锁屏"
+        case .system: return "系统"
+        case .user: return "用户"
+        }
     }
 
     private static let timeFormatter: DateFormatter = {

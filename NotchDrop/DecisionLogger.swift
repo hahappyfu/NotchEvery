@@ -280,6 +280,49 @@ final class DecisionLogger: ObservableObject {
 // MARK: - 原因 → 文案 / 操作映射
 
 extension DecisionReason {
+    /// 中文可读说明（用于刘海控制台卡片与偏好设置日志列表回显）
+    var localizedTitle: String {
+        switch self {
+        case .noPresence: return "未检测到在场设备"
+        case .signalBelowThreshold: return "信号未达到解锁阈值"
+        case .unlockCooldownActive: return "解锁冷却中"
+        case .lockBufferActive: return "锁定缓冲中"
+        case .manualLockActive: return "手动锁屏保护中"
+        case .wifiPaused: return "连接指定网络时暂停"
+        case .disabled: return "功能已停用"
+        case .unlockDisabled: return "自动解锁已关闭"
+        case .stateMachineBlocked: return "状态机拦截"
+        case .axRevoked: return "辅助功能权限缺失"
+        case .noPassword: return "未录入锁屏密码"
+        case .keychainColdBoot: return "冷启动钥匙串未就绪"
+        case .notSecureForInjection: return "输入环境不安全"
+        case .displaySleeping: return "屏幕休眠中"
+        case .systemNotReady: return "系统未就绪"
+        case .wakeWithoutUnlocking: return "仅唤醒屏幕不解锁"
+        case .recentlyUnlocked: return "近期已成功解锁"
+        case .screenNotLocked: return "屏幕未处于锁定状态"
+        case .inputActive: return "检测到键鼠操作防误锁"
+        case .gracePeriod: return "锁定缓冲宽限期内"
+        case .signalBelowLockThreshold: return "信号低于锁定阈值"
+        case .unlockSuccess: return "解锁成功"
+        case .unlockFailed: return "解锁失败"
+        case .unlockTimeout: return "解锁操作超时"
+        case .passwordMismatch: return "密码验证错误"
+        case .lockedAway: return "因远离设备自动锁屏"
+        case .lockedLost: return "因信号丢失自动锁屏"
+        case .displaySleep: return "显示器进入休眠"
+        case .displayWake: return "显示器已被唤醒"
+        case .systemSleep: return "系统休眠"
+        case .systemWake: return "系统唤醒"
+        case .userUnlocked: return "用户手动解锁"
+        case .userLocked: return "用户手动锁定"
+        case .dryRun: return "空跑观察模式"
+        case .bluetoothOff: return "蓝牙未开启"
+        case .bluetoothUnauthorized: return "蓝牙权限未授予"
+        case .iMessageFailed: return "iMessage 告警发送失败"
+        }
+    }
+
     /// 本地化 key（各语言见 Base.lproj / zh-Hans.lproj）
     var titleKey: String {
         switch self {

@@ -28,6 +28,9 @@ final class PreferencesWindowController: NSWindowController {
 
     func show() {
         NSApp.activate(ignoringOtherApps: true)
+        if window?.isMiniaturized == true {
+            window?.deminiaturize(nil)
+        }
         window?.makeKeyAndOrderFront(nil)
     }
 }
