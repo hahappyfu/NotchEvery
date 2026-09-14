@@ -8,6 +8,7 @@ import SwiftUI
 struct NotchRootView: View {
     @StateObject var vm: NotchViewModel
     @StateObject private var usage = UsageStore.shared
+    @StateObject private var decisions = DecisionLogger.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// 中央禁放区两侧边距（ADR-0009）：禁放区总宽 = 挖槽宽 + 2×margin，只画背景
     private let deadZoneMargin: CGFloat = 8
@@ -16,7 +17,7 @@ struct NotchRootView: View {
         // 黑岛（ADR-0010）：内容透明直接坐岛上，岛体由 NotchView 的 RoundedRectangle 绘制
         VStack(spacing: 0) {
             pages
-            SmoothPageIndicator(pageCount: 2, currentPage: Binding(
+            SmoothPageIndicator(pageCount: NotchViewModel.zoneOrder.count, currentPage: Binding(
                 get: { NotchViewModel.pageIndex(for: vm.contentType) },
                 set: { vm.jumpToZone(NotchViewModel.zone(for: $0)) }
             ))
@@ -87,6 +88,21 @@ struct NotchRootView: View {
             .truncationMode(.tail)
             .minimumScaleFactor(0.8)
         }
+        // 左耳（诊断）：事件条数，有记录才显
+        if vm.contentType == .diagnostics, !decisions.events.isEmpty {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 8, height: 8)
+                Text("诊断 · \(decisions.events.count)条")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.primary)
+            }
+            .monospacedDigit()
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .minimumScaleFactor(0.8)
+        }
     }
 
     @ViewBuilder
@@ -101,6 +117,24 @@ struct NotchRootView: View {
             }
             .lineLimit(1)
         }
+        // 右耳（诊断）：最近一条结论（与守护卡判定文案同规则）
+        if vm.contentType == .diagnostics, let latest = latestDiagText {
+            HStack(spacing: 4) {
+                Text("最近")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                Text(latest)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .lineLimit(1)
+            .truncationMode(.tail)
+        }
+    }
+
+    /// 诊断右耳：最近一条结论（行模型首条，与时间线同口径）
+    private var latestDiagText: String? {
+        DiagTimeline.build(from: decisions.events).first?.entries.first?.reasonText
     }
 
     private var pages: some View {
@@ -114,6 +148,11 @@ struct NotchRootView: View {
             case .token:
                 TokenZoneView()
                     // 横向填充（余宽由列间距均分）；纵向自然高
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
+            case .diagnostics:
+                DiagZoneView()
+                    // 纵向自然高（内部滚动定高）；横向按行列宽自然撑宽
                     .frame(maxWidth: .infinity, alignment: .top)
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             }

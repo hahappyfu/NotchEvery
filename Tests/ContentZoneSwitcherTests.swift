@@ -3,23 +3,36 @@ import XCTest
 
 final class ContentZoneSwitcherTests: XCTestCase {
     func testNextZoneWrapsAround() {
+        // 诊断分区（工单 06）进循环：末区之后回到概览
         let vm = NotchViewModel(events: MockEventMonitors())
-        vm.jumpToZone(.token)
+        vm.jumpToZone(.diagnostics)
         vm.nextZone()
         XCTAssertEqual(vm.contentType, .normal)
     }
 
     func testPreviousZoneWrapsAround() {
+        // 诊断分区（工单 06）进循环：概览之前是诊断
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.normal)
         vm.previousZone()
-        XCTAssertEqual(vm.contentType, .token)
+        XCTAssertEqual(vm.contentType, .diagnostics)
     }
 
     func testNextZoneAdvancesInOrder() {
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.normal)
         vm.nextZone()
+        XCTAssertEqual(vm.contentType, .token)
+    }
+
+    /// 诊断分区横扫双向可达（06 工单验收：横扫到达）
+    func testDiagnosticsReachableBySwipe() {
+        let vm = NotchViewModel(events: MockEventMonitors())
+        vm.jumpToZone(.normal)
+        vm.nextZone()
+        vm.nextZone()
+        XCTAssertEqual(vm.contentType, .diagnostics)
+        vm.previousZone()
         XCTAssertEqual(vm.contentType, .token)
     }
 
