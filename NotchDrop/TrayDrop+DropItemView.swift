@@ -28,18 +28,19 @@ struct DropItemView: View {
                 .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
             Text(item.fileName)
                 .multilineTextAlignment(.center)
-                .font(.system(.footnote, design: .rounded))
+                .font(.system(.footnote, design: .rounded).monospacedDigit())
                 .foregroundStyle(.primary)
                 .frame(maxWidth: 64)
                 .lineLimit(2)
         }
         .padding(8)
         .background(cardBackground)
+        .shadow(color: Color.white.opacity(hover ? 0.15 : 0), radius: 1, x: 0, y: 0)
         .contentShape(Rectangle())
         .transition(Self.itemTransition)
         .onHover { hover = $0 }
         .scaleEffect(hover ? 1.06 : 1.0)
-        .animation(vm.animation, value: hover)
+        .animation(StudioAnimation.interactiveSpring, value: hover)
         .draggable(item)
         .onTapGesture {
             guard !vm.optionKeyPressed else { return }
@@ -76,12 +77,7 @@ struct DropItemView: View {
     }
 
     private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(.clear)
-            .glassCard(cornerRadius: 12)
-            .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.white.opacity(hover ? 0.25 : 0.1), lineWidth: hover ? 0.8 : 0.4)
-            }
+        Color.clear
+            .studioCard(radius: 12, isHovered: hover)
     }
 }

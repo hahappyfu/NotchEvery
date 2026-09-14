@@ -12,6 +12,8 @@ struct TrayView: View {
     @StateObject var tvm = TrayDrop.shared
 
     @State private var targeting = false
+    @State private var clearHovered = false
+    @State private var packHovered = false
 
     var storageTime: String {
         switch tvm.selectedFileStorageTime {
@@ -52,15 +54,19 @@ struct TrayView: View {
                 RoundedRectangle(cornerRadius: vm.cornerRadius)
                     .strokeBorder(
                         LinearGradient(
-                            colors: [
-                                Color.white.opacity(targeting ? 0.25 : 0.08),
-                                Color.white.opacity(targeting ? 0.15 : 0.04)
+                            colors: targeting ? [
+                                StudioColor.cyan.opacity(0.85),
+                                StudioMaterial.strokeActive
+                            ] : [
+                                Color.white.opacity(0.08),
+                                Color.white.opacity(0.04)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
                         lineWidth: targeting ? 1.5 : 0.5
                     )
+                    .shadow(color: targeting ? StudioColor.cyan.opacity(0.4) : .clear, radius: targeting ? 8 : 0)
             }
             .overlay {
                 content
@@ -69,7 +75,7 @@ struct TrayView: View {
             }
             .overlay(loadingIndicator)
             .scaleEffect(targeting ? 1.02 : 1.0)
-            .animation(vm.animation, value: targeting)
+            .animation(StudioAnimation.interactiveSpring, value: targeting)
             .animation(vm.animation, value: tvm.items)
             .animation(vm.animation, value: tvm.isLoading)
     }
@@ -89,7 +95,8 @@ struct TrayView: View {
                 VStack(spacing: 10) {
                     Image(systemName: "tray.and.arrow.down")
                         .font(.system(size: 28, weight: .light))
-                        .foregroundStyle(.secondary.opacity(0.7))
+                        .foregroundStyle(targeting ? StudioColor.cyan : .secondary.opacity(0.7))
+                        .shadow(color: targeting ? StudioColor.cyan.opacity(0.5) : .clear, radius: targeting ? 6 : 0)
                     VStack(spacing: 3) {
                         Text(String(format: NSLocalizedString("Drag files here to keep them for %@", comment: ""), storageTime))
                             .font(.system(.subheadline, design: .rounded))
@@ -100,17 +107,61 @@ struct TrayView: View {
                             .multilineTextAlignment(.center)
                     }
                 }
+                .animation(StudioAnimation.interactiveSpring, value: targeting)
             } else {
-                ScrollView(.horizontal) {
-                    HStack(spacing: vm.spacing) {
-                        ForEach(tvm.items) { item in
-                            DropItemView(item: item, vm: vm, tvm: tvm)
+                VStack(spacing: 8) {
+                    ScrollView(.horizontal) {
+                        HStack(spacing: vm.spacing) {
+                            ForEach(tvm.items) { item in
+                                DropItemView(item: item, vm: vm, tvm: tvm)
+                            }
                         }
+                        .padding(vm.spacing)
                     }
-                    .padding(vm.spacing)
+                    .padding(-vm.spacing)
+                    .scrollIndicators(.never)
+
+                    HStack(spacing: 8) {
+                        Spacer()
+
+                        Button(action: {
+                            let urls = tvm.items.map(\.storageURL)
+                            guard !urls.isEmpty else { return }
+                            let share = Share(files: urls)
+                            share.begin()
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "archivebox")
+                                    .font(.system(size: 10, weight: .medium))
+                                Text(LocalizedStringKey("Pack"))
+                                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .studioCard(radius: 6, isHovered: packHovered)
+                        }
+                        .buttonStyle(.plain)
+                        .onHover { packHovered = $0 }
+
+                        Button(action: {
+                            tvm.removeAll()
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 10, weight: .medium))
+                                Text(LocalizedStringKey("Clear"))
+                                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                            }
+                            .foregroundStyle(StudioColor.rose.opacity(0.85))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .studioCard(radius: 6, isHovered: clearHovered)
+                        }
+                        .buttonStyle(.plain)
+                        .onHover { clearHovered = $0 }
+                    }
                 }
-                .padding(-vm.spacing)
-                .scrollIndicators(.never)
             }
         }
     }
