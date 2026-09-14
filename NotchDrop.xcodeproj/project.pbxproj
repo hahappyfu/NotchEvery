@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7B01000120260CD000000002 /* CalibrationWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000001 /* CalibrationWizardView.swift */; };
+		7B01000120260CD000000004 /* GuardControlZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000003 /* GuardControlZoneView.swift */; };
+		7B01000120260CD000000006 /* PreferencesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000005 /* PreferencesWindow.swift */; };
+		7B01000120260CD000000008 /* PreferencesWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000007 /* PreferencesWindowController.swift */; };
 		148901532DC9149900F2E06C /* Share.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148901512DC9149900F2E06C /* Share.swift */; };
 		148901542DC9149900F2E06C /* Share+View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148901522DC9149900F2E06C /* Share+View.swift */; };
 		2700D8EE2C3CFD37005ACDDF /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 2700D8ED2C3CFD37005ACDDF /* Localizable.xcstrings */; };
@@ -116,6 +120,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7B01000120260CD000000001 /* CalibrationWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationWizardView.swift; sourceTree = "<group>"; };
+		7B01000120260CD000000003 /* GuardControlZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardControlZoneView.swift; sourceTree = "<group>"; };
+		7B01000120260CD000000005 /* PreferencesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindow.swift; sourceTree = "<group>"; };
+		7B01000120260CD000000007 /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
 		148901512DC9149900F2E06C /* Share.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Share.swift; sourceTree = "<group>"; };
 		148901522DC9149900F2E06C /* Share+View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Share+View.swift"; sourceTree = "<group>"; };
 		2700D8ED2C3CFD37005ACDDF /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
@@ -267,6 +275,10 @@
 				504381A32C3A8C7E000ED325 /* NotchWindowController.swift */,
 				5043819F2C3A8BA1000ED325 /* NotchView.swift */,
 				C1D2E3F4A506172839404156 /* AntigravityAccountsCardView.swift */,
+				7B01000120260CD000000001 /* CalibrationWizardView.swift */,
+				7B01000120260CD000000003 /* GuardControlZoneView.swift */,
+				7B01000120260CD000000005 /* PreferencesWindow.swift */,
+				7B01000120260CD000000007 /* PreferencesWindowController.swift */,
 				C1D2E3F4A506172839404154 /* AntigravityStore.swift */,
 				C1D2E3F4A506172839404200 /* UsageStore.swift */,
 				B1C2D3E4F506172839404152 /* AppPaths.swift */,
@@ -510,6 +522,10 @@
 				504381A82C3A926E000ED325 /* NotchViewModel.swift in Sources */,
 				5044EEA02C3B116000071C5C /* PublishedPersist.swift in Sources */,
 				C1D2E3F4A506172839404157 /* AntigravityAccountsCardView.swift in Sources */,
+				7B01000120260CD000000002 /* CalibrationWizardView.swift in Sources */,
+				7B01000120260CD000000004 /* GuardControlZoneView.swift in Sources */,
+				7B01000120260CD000000006 /* PreferencesWindow.swift in Sources */,
+				7B01000120260CD000000008 /* PreferencesWindowController.swift in Sources */,
 				C1D2E3F4A506172839404155 /* AntigravityStore.swift in Sources */,
 				C1D2E3F4A506172839404201 /* UsageStore.swift in Sources */,
 				B1C2D3E4F506172839404153 /* AppPaths.swift in Sources */,

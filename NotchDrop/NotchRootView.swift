@@ -88,13 +88,13 @@ struct NotchRootView: View {
             .truncationMode(.tail)
             .minimumScaleFactor(0.8)
         }
-        // 左耳（诊断）：事件条数，有记录才显
-        if vm.contentType == .diagnostics, !decisions.events.isEmpty {
+        // 左耳（第三页守护控制）：展示当前守护模式
+        if vm.contentType == .diagnostics {
             HStack(spacing: 6) {
                 Circle()
                     .fill(Color.green)
                     .frame(width: 8, height: 8)
-                Text("诊断 · \(decisions.events.count)条")
+                Text("守护控制")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.primary)
             }
@@ -117,18 +117,33 @@ struct NotchRootView: View {
             }
             .lineLimit(1)
         }
-        // 右耳（诊断）：最近一条结论（与守护卡判定文案同规则）
-        if vm.contentType == .diagnostics, let latest = latestDiagText {
-            HStack(spacing: 4) {
-                Text("最近")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-                Text(latest)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
+        // 右耳（第三页守护控制）：展示设备与信号，无设备展示最近判定
+        if vm.contentType == .diagnostics {
+            if let name = GuardStore.shared.deviceName {
+                HStack(spacing: 4) {
+                    Text(name)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.tertiary)
+                    if let rssi = GuardStore.shared.rssi {
+                        Text("\(rssi) dBm")
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .lineLimit(1)
+                .truncationMode(.tail)
+            } else if let latest = latestDiagText {
+                HStack(spacing: 4) {
+                    Text("最近")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.tertiary)
+                    Text(latest)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .lineLimit(1)
+                .truncationMode(.tail)
             }
-            .lineLimit(1)
-            .truncationMode(.tail)
         }
     }
 
@@ -151,9 +166,8 @@ struct NotchRootView: View {
                     .frame(maxWidth: .infinity, alignment: .top)
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             case .diagnostics:
-                DiagZoneView()
-                    // 纵向自然高（内部滚动定高）；横向按行列宽自然撑宽
-                    .frame(maxWidth: .infinity, alignment: .top)
+                GuardControlZoneView(vm: vm)
+                    // 第三页：守护控制台（定宽 360，自然高度）
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             }
         }

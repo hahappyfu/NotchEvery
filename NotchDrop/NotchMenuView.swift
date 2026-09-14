@@ -53,7 +53,10 @@ struct NotchMenuView: View {
             tint: .accentColor
         )
         .onTapGesture {
-            vm.showSettings = true
+            vm.notchClose()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                PreferencesWindowController.shared.show()
+            }
         }
     }
 }

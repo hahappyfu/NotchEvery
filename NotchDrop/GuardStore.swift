@@ -39,11 +39,27 @@ final class GuardStore: ObservableObject {
     @Published private(set) var bluetoothIssue: BluetoothIssue?
     @Published private(set) var hasPassword: Bool = false
 
-    private let manager: FUnManager
+    let manager: FUnManager
     private let config: ConfigStore
     private let logger: DecisionLogger
     private let monitor = InputActivityMonitor()
     private var cancellables = Set<AnyCancellable>()
+
+    /// 暴露底层 FUnManager 供校准向导与高级设置使用
+    var funManager: FUnManager { manager }
+
+    /// 设置解锁阈值
+    func setUnlockRSSI(_ value: Int) {
+        manager.setUnlockRSSI(value)
+        unlockRSSI = manager.unlockRSSI
+        lockRSSI = manager.lockRSSI
+    }
+
+    /// 设置锁定阈值
+    func setLockRSSI(_ value: Int) {
+        manager.setLockRSSI(value)
+        lockRSSI = manager.lockRSSI
+    }
 
     /// 检查密码状态（从 Keychain 确认）
     func checkPassword() {
