@@ -1,12 +1,12 @@
 # NotchEvery
 
-把 MacBook 的刘海变成状态栏：OpenCode Go 额度一眼可见，文件随手暂存。
+把 MacBook 的刘海变成状态栏：Antigravity Tools 4 账号池额度一眼可见，文件随手暂存。
 
 [简体中文 🇨🇳](./Resources/i18n/zh-Hans/README.md)
 
 ## 👀 这是什么
 
-- **额度卡**：5h 大环 + 周/月小行 + 重置倒计时，鼠标划过刘海即展开查看（30 秒自动刷新）
+- **账号池卡**：4 账号微型额度环 + 当前活跃高亮 + 重置倒计时，鼠标划过刘海即展开查看（15 秒自动刷新）
 - **蓝牙守护与自动解锁**：监测 Apple Watch / BLE 设备信号，离席自动锁屏、靠近自动解锁唤醒（集成 FUnlock 守护能力与诊断时间线）
 - **Token 监控**：调用请求列表与缓存命中率 KPI 展示
 - **文件暂存**：拖文件到刘海存起来，可配置保留时长，点击打开，Option + 点击删除
@@ -14,13 +14,14 @@
 
 ## 🔌 额度数据来源
 
-额度卡读取本机 bridge 缓存，不碰网络：
+账号池卡直读本机 Antigravity Tools 本地配置，不碰网络：
 
 ```
-~/.clawd/opencode-go-bridge-cache.json
+~/.antigravity_tools/accounts.json
+~/.antigravity_tools/accounts/*.json
 ```
 
-没有这个文件时额度卡显示 `--%` 占位，文件暂存不受影响。
+没有配置时显示占位提示，其它功能不受影响。
 
 ## 🔨 从源码构建
 
