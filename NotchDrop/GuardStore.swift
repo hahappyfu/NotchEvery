@@ -2,7 +2,7 @@
 //  GuardStore.swift
 //  NotchEvery
 //
-//  守护门面（工单 03）：视图读取守护状态的唯一入口，与 QuotaStore / UsageStore 同构
+//  守护门面（工单 03）：视图读取守护状态的唯一入口，与 AntigravityStore / UsageStore 同构
 //  （`@StateObject var store = GuardStore.shared`）。它持有 FUnManager，把后者的
 //  @Published 状态映射成视图直接可用的只读数据；视图不直接接触管理器的内部实现。
 //

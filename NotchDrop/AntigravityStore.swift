@@ -242,15 +242,3 @@ public final class AntigravityStore: ObservableObject {
         return formatter.date(from: string)
     }
 }
-
-// MARK: - Compatibility Shim for QuotaCardView (To be removed in Task 3)
-
-final class QuotaStore: ObservableObject {
-    static let shared = QuotaStore()
-    @Published var snapshot: QuotaSnapshot = .empty
-    func start() {}
-    func stop() {}
-    func seedForPreview(_ snapshot: QuotaSnapshot) {
-        self.snapshot = snapshot
-    }
-}
