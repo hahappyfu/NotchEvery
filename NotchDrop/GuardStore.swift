@@ -48,15 +48,21 @@ final class GuardStore: ObservableObject {
     ///   - manager: 守护管理器（测试时注入可控实例；默认现建）。
     ///   - config: 配置存储（测试时注入隔离域名）。
     ///   - logger: 决策日志（默认与 manager 共用同一个；测试时注入内存实例）。
-    init(manager: FUnManager? = nil, config: ConfigStore = .shared, logger: DecisionLogger? = nil) {
+    ///   - guide: 权限检查器（默认 live：AX/FDA 走系统 API，蓝牙走管理器状态；测试注入 stub）。
+    init(manager: FUnManager? = nil, config: ConfigStore = .shared,
+         logger: DecisionLogger? = nil, guide: PermissionGuide? = nil) {
         let m = manager ?? FUnManager(fun: FUn())
         self.manager = m
         self.config = config
         self.logger = logger ?? m.decisionLogger
+        self.permissionGuide = guide ?? PermissionGuide(isBluetoothAuthorized: { [weak m] in
+            m?.bluetoothIssue != .unauthorized
+        })
         // 真执行默认关闭（空跑观察）；用户在守护卡打开后持久化，下次启动照旧。
         m.isDryRun = !config.bool(forKey: "realExecution")
         subscribe()
         refresh()
+        refreshPermissions()
     }
 
     // MARK: - 总开关
@@ -89,6 +95,36 @@ final class GuardStore: ObservableObject {
         }
     }
 
+    // MARK: - 权限引导（工单 07）
+
+    /// 缺失的授权（已确认过的不再出现）；卡片据此渲染引导行。
+    @Published private(set) var permissionIssues: [PermissionIssue] = []
+    private var permissionGuide: PermissionGuide
+
+    /// 重检三项授权：启动、面板展开、用户点"重新检测"时调；免重启就绪。
+    func recheckPermissions() {
+        refreshPermissions()
+    }
+
+    /// 记下"知道了"：迁移后不重复骚扰（key 随配置域名走）。
+    /// 修好即自动清除确认：再坏才重现骚扰；一直坏则确认保留。
+    func acknowledgePermission(_ kind: PermissionKind) {
+        config.set(true, forKey: ackKey(for: kind))
+        refreshPermissions()
+    }
+
+    private func ackKey(for kind: PermissionKind) -> String { "permAck_\(kind.rawValue)" }
+
+    private func refreshPermissions() {
+        let missing = permissionGuide.missing()
+        for kind in PermissionKind.allCases where !missing.contains(kind) {
+            config.removeObject(forKey: ackKey(for: kind))
+        }
+        permissionIssues = missing
+            .filter { !config.bool(forKey: ackKey(for: $0)) }
+            .map(PermissionGuide.issue(for:))
+    }
+
     // MARK: - 生命周期
 
     /// 启动装配：delegate 接线 + 输入监听 + 设备恢复 + 开始扫描。
@@ -104,6 +140,7 @@ final class GuardStore: ObservableObject {
         // Sequoia TCC 兼容：输入监听不在调用栈上同步启动，原实现因此崩溃过。
         DispatchQueue.main.async { [weak self] in self?.monitor.start() }
         refresh()
+        refreshPermissions()
     }
 
     func stop() {
@@ -130,6 +167,12 @@ final class GuardStore: ObservableObject {
         manager.$lockRSSI.assign(to: &$lockRSSI)
         manager.$unlockRSSI.assign(to: &$unlockRSSI)
         manager.$bluetoothIssue.assign(to: &$bluetoothIssue)
+        // 蓝牙授权翻转（系统弹窗回调）即重检引导行，免重启。
+        // 注：@Published 在 willSet 时机投递，同步重读 manager 拿到的是旧值，
+        // 下一跳主队列再读即新值（一跳延迟，UI 无感）。
+        manager.$bluetoothIssue.sink { [weak self] _ in
+            DispatchQueue.main.async { [weak self] in self?.refreshPermissions() }
+        }.store(in: &cancellables)
         manager.$isDryRun.sink { [weak self] dryRun in self?.refreshState(dryRun: dryRun) }.store(in: &cancellables)
         logger.$events.sink { [weak self] events in self?.refreshJudgement(events) }.store(in: &cancellables)
     }

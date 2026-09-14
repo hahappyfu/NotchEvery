@@ -31,8 +31,12 @@ final class GuardStoreTests: XCTestCase {
         super.tearDown()
     }
 
-    private func makeStore() -> GuardStore {
-        GuardStore(manager: manager, config: config, logger: logger)
+    private func makeStore(guide: PermissionGuide? = nil) -> GuardStore {
+        // 默认 stub 全授权（确定性；live 检查由 PermissionGuideTests 覆盖）
+        let stub = PermissionGuide(isAXTrusted: { true },
+                                   isBluetoothAuthorized: { true },
+                                   hasFullDiskAccess: { true })
+        return GuardStore(manager: manager, config: config, logger: logger, guide: guide ?? stub)
     }
 
     /// 初始态：开关默认开 + 空跑默认开 → 空跑观察
@@ -137,5 +141,68 @@ final class GuardStoreTests: XCTestCase {
         XCTAssertTrue(reopened.realExecution)
         XCTAssertFalse(reopened.isDryRun)
         XCTAssertEqual(reopened.guardState, .guarding)
+    }
+
+    // MARK: - 权限引导（工单 07 S2）
+
+    func testPermissionsEmptyWhenAllGranted() {
+        XCTAssertTrue(makeStore().permissionIssues.isEmpty)
+    }
+
+    /// 缺 AX 即 surface：标题/跳转齐备
+    func testMissingAXSurfaced() {
+        let guide = PermissionGuide(isAXTrusted: { false },
+                                    isBluetoothAuthorized: { true },
+                                    hasFullDiskAccess: { true })
+        let issues = makeStore(guide: guide).permissionIssues
+        XCTAssertEqual(issues.map { $0.kind }, [.ax])
+        XCTAssertNotNil(issues[0].settingsURL)
+    }
+
+    /// "知道了"后不再出现，且同域名新门面照旧（迁移不骚扰）
+    func testAcknowledgeHidesIssuePersistently() {
+        let guide = PermissionGuide(isAXTrusted: { false },
+                                    isBluetoothAuthorized: { true },
+                                    hasFullDiskAccess: { true })
+        let store = makeStore(guide: guide)
+        XCTAssertEqual(store.permissionIssues.count, 1)
+        store.acknowledgePermission(.ax)
+        XCTAssertTrue(store.permissionIssues.isEmpty)
+        XCTAssertTrue(makeStore(guide: guide).permissionIssues.isEmpty, "持久化：新门面也不再骚扰")
+    }
+
+    /// 蓝牙授权翻转（系统回调）即重检引导行，免重启
+    func testBluetoothUnauthorizedSurfacedReactively() {
+        let guide = PermissionGuide(isAXTrusted: { true },
+                                    isBluetoothAuthorized: { [weak manager = self.manager] in
+                                        manager?.bluetoothIssue != .unauthorized
+                                    },
+                                    hasFullDiskAccess: { true })
+        let store = makeStore(guide: guide)
+        XCTAssertTrue(store.permissionIssues.isEmpty)
+        manager.bluetoothIssue = .unauthorized
+        // 订阅投递在 willSet 时机，重检在下一跳主队列：等一拍再断言
+        let done = expectation(description: "recheck")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { done.fulfill() }
+        wait(for: [done], timeout: 2.0)
+        XCTAssertEqual(store.permissionIssues.map { $0.kind }, [.bluetooth])
+    }
+
+    /// 修好即清确认：再坏重现骚扰（code-review 跟进：ack 不得永久过滤）
+    func testGrantClearsAckSoRepeatOffenseResurfaces() {
+        let denied = PermissionGuide(isAXTrusted: { false },
+                                     isBluetoothAuthorized: { true },
+                                     hasFullDiskAccess: { true })
+        let store = makeStore(guide: denied)
+        store.acknowledgePermission(.ax)
+        XCTAssertTrue(store.permissionIssues.isEmpty)
+
+        let granted = PermissionGuide(isAXTrusted: { true },
+                                      isBluetoothAuthorized: { true },
+                                      hasFullDiskAccess: { true })
+        XCTAssertTrue(makeStore(guide: granted).permissionIssues.isEmpty, "修好即清确认")
+
+        XCTAssertEqual(makeStore(guide: denied).permissionIssues.map { $0.kind },
+                       [.ax], "再坏重现骚扰")
     }
 }

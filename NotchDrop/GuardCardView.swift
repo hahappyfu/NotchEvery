@@ -6,6 +6,7 @@
 //  两行均单行不折行，超长走省略号——折行会自己给自己加高度（原型阶段已验证）。
 //
 
+import AppKit
 import SwiftUI
 
 struct GuardCardView: View {
@@ -53,6 +54,30 @@ struct GuardCardView: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
+            // 权限引导行（工单 07）：缺失项各一行（单行省略）+ 去开启/知道了；
+            // 另起 slim 行重检。只在缺失时出现，不撑常态高度。
+            ForEach(store.permissionIssues, id: \.kind) { issue in
+                HStack(spacing: 6) {
+                    Text("\(issue.title)：\(issue.reason)")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Color.orange.opacity(0.9))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Spacer(minLength: 6)
+                    if issue.settingsURL != nil {
+                        Button("去开启") { openSettings(issue) }
+                            .font(.system(size: 11))
+                    }
+                    Button("知道了") { store.acknowledgePermission(issue.kind) }
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.white.opacity(0.52))
+                }
+            }
+            if !store.permissionIssues.isEmpty {
+                Button("重新检测授权状态") { store.recheckPermissions() }
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.white.opacity(0.52))
+            }
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 12)
@@ -94,5 +119,10 @@ struct GuardCardView: View {
         case .poweredOff: return "蓝牙未开启，去系统设置打开蓝牙"
         case .unauthorized: return "未授予蓝牙权限，去系统设置授权"
         }
+    }
+
+    private func openSettings(_ issue: PermissionIssue) {
+        guard let url = issue.settingsURL else { return }
+        NSWorkspace.shared.open(url)
     }
 }
