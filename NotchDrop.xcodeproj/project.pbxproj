@@ -103,7 +103,6 @@
 		F101CE00000000000000003F /* SystemEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000040 /* SystemEffects.swift */; };
 		F101CE000000000000000041 /* SystemEffectsFakeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000042 /* SystemEffectsFakeTests.swift */; };
 		F101CE000000000000000043 /* DiagTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000044 /* DiagTimeline.swift */; };
-		F101CE000000000000000047 /* DiagZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000048 /* DiagZoneView.swift */; };
 		F101CE000000000000000049 /* PermissionGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000050 /* PermissionGuide.swift */; };
 		F101CE000000000000000051 /* PermissionGuideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000052 /* PermissionGuideTests.swift */; };
 		F101CE000000000000000045 /* DiagTimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000046 /* DiagTimelineTests.swift */; };
@@ -214,7 +213,6 @@
 		F101CE000000000000000040 /* SystemEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEffects.swift; sourceTree = "<group>"; };
 		F101CE000000000000000042 /* SystemEffectsFakeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEffectsFakeTests.swift; sourceTree = "<group>"; };
 		F101CE000000000000000044 /* DiagTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagTimeline.swift; sourceTree = "<group>"; };
-		F101CE000000000000000048 /* DiagZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagZoneView.swift; sourceTree = "<group>"; };
 		F101CE000000000000000050 /* PermissionGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionGuide.swift; sourceTree = "<group>"; };
 		F101CE000000000000000052 /* PermissionGuideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionGuideTests.swift; sourceTree = "<group>"; };
 		F101CE000000000000000046 /* DiagTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagTimelineTests.swift; sourceTree = "<group>"; };
@@ -313,7 +311,6 @@
 				F101CE00000000000000003C /* GuardCardView.swift */,
 				F101CE000000000000000040 /* SystemEffects.swift */,
 				F101CE000000000000000044 /* DiagTimeline.swift */,
-				F101CE000000000000000048 /* DiagZoneView.swift */,
 				F101CE000000000000000050 /* PermissionGuide.swift */,
 				F101CE000000000000000002 /* FUn.swift */,
 				F101CE000000000000000004 /* SignalPipeline.swift */,
@@ -555,7 +552,6 @@
 				F101CE00000000000000003B /* GuardCardView.swift in Sources */,
 				F101CE00000000000000003F /* SystemEffects.swift in Sources */,
 				F101CE000000000000000043 /* DiagTimeline.swift in Sources */,
-				F101CE000000000000000047 /* DiagZoneView.swift in Sources */,
 				F101CE000000000000000049 /* PermissionGuide.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
