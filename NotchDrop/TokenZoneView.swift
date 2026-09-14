@@ -56,7 +56,7 @@ struct RollupText: View {
 }
 private func tokenStatusColor(_ status: Int) -> Color {
     // 状态色：圆点 + 文字用色（白字实心 pill 已删）
-    status >= 400 ? Color(red: 0.75, green: 0.20, blue: 0.18) : Color(red: 0.16, green: 0.55, blue: 0.32)
+    status >= 400 ? StudioColor.rose : StudioColor.emerald
 }
 
 private struct TokenRowView: View {
@@ -107,8 +107,13 @@ private struct TokenRowView: View {
         .monospacedDigit()
         .padding(.vertical, 8)
         .contentShape(Rectangle())
-        .background(hovering ? Color.white.opacity(0.06) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
-        .background(Color.green.opacity(flashOpacity), in: RoundedRectangle(cornerRadius: 6))
+        .background(hovering ? StudioMaterial.cardHoverBackground : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+        .background(StudioColor.emerald.opacity(flashOpacity), in: RoundedRectangle(cornerRadius: 6))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(StudioMaterial.strokeNormal)
+                .frame(height: 0.5)
+        }
         .onHover { hovering = $0 }
         .onAppear {
             // 新行入场：绿闪一下后渐隐（B 柔闪）；reduceMotion 下不闪
@@ -192,13 +197,13 @@ struct TokenZoneView: View {
                 Text("缓存命中率")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                RollupText(text: store.summary.cacheRate, font: .system(size: 14, weight: .bold, design: .rounded), color: .green)
+                RollupText(text: store.summary.cacheRate, font: .system(size: 14, weight: .bold, design: .rounded), color: StudioColor.emerald)
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.green.opacity(0.2))
+                        .fill(StudioColor.emerald.opacity(0.2))
                         .frame(width: 64, height: 4)
                     Capsule()
-                        .fill(Color.green.opacity(0.9))
+                        .fill(StudioColor.emerald.opacity(0.9))
                         .frame(width: 64 * min(1, max(0, store.cacheRateFraction)), height: 4)
                 }
                 .offset(y: -1)
@@ -217,8 +222,8 @@ struct TokenZoneView: View {
         .minimumScaleFactor(0.85)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
+        .background(StudioMaterial.cardBackground, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(StudioMaterial.strokeNormal, lineWidth: 0.5))
         .padding(.bottom, 12)
     }
 
@@ -239,7 +244,7 @@ struct TokenZoneView: View {
         .padding(.vertical, 5)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(Color.white.opacity(0.08))
+                .fill(StudioMaterial.strokeNormal)
                 .frame(height: 0.5)
         }
         .padding(.bottom, 5)

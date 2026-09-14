@@ -15,9 +15,9 @@ struct AntigravityAccountsCardView: View {
 
     static func ringColor(_ percent: Int, isDisabled: Bool) -> Color {
         if isDisabled { return Color.white.opacity(0.2) }
-        if percent >= 70 { return Color(red: 0.16, green: 0.75, blue: 0.38) }
-        if percent >= 30 { return Color.orange }
-        return Color(red: 0.85, green: 0.25, blue: 0.2)
+        if percent >= 70 { return StudioColor.emerald }
+        if percent >= 30 { return StudioColor.amber }
+        return StudioColor.rose
     }
 
     var body: some View {
@@ -41,7 +41,7 @@ struct AntigravityAccountsCardView: View {
     private var header: some View {
         HStack(spacing: 8) {
             Circle()
-                .fill(Color(red: 0.16, green: 0.75, blue: 0.38))
+                .fill(StudioColor.emerald)
                 .frame(width: 7, height: 7)
             Text("Antigravity 账号池")
                 .font(.system(size: 13, weight: .semibold))
@@ -102,24 +102,27 @@ struct AntigravityAccountsCardView: View {
 
                 Text("\(account.percentage)%")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .monospacedDigit()
                     .foregroundStyle(account.isDisabled ? Color.white.opacity(0.35) : Color.white.opacity(0.92))
             }
             .overlay(
                 Group {
                     if account.isCurrent {
                         Circle()
-                            .stroke(Color(red: 0.16, green: 0.75, blue: 0.38).opacity(0.4), lineWidth: 1.5)
+                            .stroke(StudioColor.emerald.opacity(0.4), lineWidth: 1.5)
                             .frame(width: 52, height: 52)
                     }
                 }
             )
 
             Text(account.isDisabled ? "已禁用" : (account.percentage == 100 ? "已就绪" : account.resetCountdownText))
-                .font(.system(size: 10))
-                .foregroundStyle(account.isDisabled ? Color.white.opacity(0.35) : (account.percentage == 100 ? Color(red: 0.16, green: 0.75, blue: 0.38) : Color.white.opacity(0.45)))
+                .studioPillBadge(color: account.isDisabled ? Color.white.opacity(0.35) : (account.percentage == 100 ? StudioColor.emerald : StudioColor.amber))
                 .lineLimit(1)
         }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 4)
         .frame(maxWidth: .infinity)
+        .studioCard(radius: 8, isSelected: account.isCurrent)
         .opacity(account.isDisabled ? 0.6 : 1.0)
     }
 }
