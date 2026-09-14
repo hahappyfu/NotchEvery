@@ -28,6 +28,11 @@ struct CalibrationWizardView: View {
         VStack(spacing: 0) {
             headerBar
 
+            // 流线型步骤指示器 (1 → 2 → 3)
+            stepProgressIndicator
+                .padding(.horizontal, 20)
+                .padding(.bottom, 6)
+
             Form {
                 switch step {
                 case 0: welcomeSection
@@ -41,11 +46,94 @@ struct CalibrationWizardView: View {
             }
             .formStyle(.grouped)
         }
-        .frame(width: 380, height: 430)
+        .frame(width: 380, height: 465)
         .onDisappear {
             samplingTask?.cancel()
             countdownTask?.cancel()
         }
+    }
+
+    // MARK: - 步骤进度指示器 (1 → 2 → 3)
+
+    private var currentStage: Int {
+        switch step {
+        case 1, 2: return 1
+        case 3, 4: return 2
+        case 5: return 3
+        default: return 0
+        }
+    }
+
+    @ViewBuilder
+    private var stepProgressIndicator: some View {
+        HStack(spacing: 0) {
+            stepNode(number: 1, title: "靠近采样", isActive: currentStage == 1, isCompleted: currentStage > 1)
+
+            stepConnectorLine(isCompleted: currentStage > 1)
+
+            stepNode(number: 2, title: "离席采样", isActive: currentStage == 2, isCompleted: currentStage > 2)
+
+            stepConnectorLine(isCompleted: currentStage > 2)
+
+            stepNode(number: 3, title: "推荐阈值", isActive: currentStage == 3, isCompleted: currentStage == 3 && step == 5)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 14)
+        .background(StudioMaterial.cardBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(StudioMaterial.strokeNormal, lineWidth: 0.5)
+        )
+    }
+
+    private func stepNode(number: Int, title: String, isActive: Bool, isCompleted: Bool) -> some View {
+        VStack(spacing: 3) {
+            ZStack {
+                Circle()
+                    .fill(
+                        isCompleted
+                            ? StudioColor.emerald
+                            : (isActive ? Color.accentColor : StudioMaterial.cardBackground)
+                    )
+                    .frame(width: 20, height: 20)
+                    .overlay(
+                        Circle().strokeBorder(
+                            isActive ? Color.accentColor.opacity(0.8) : StudioMaterial.strokeNormal,
+                            lineWidth: isActive ? 1.5 : 0.5
+                        )
+                    )
+                    .shadow(
+                        color: isActive ? Color.accentColor.opacity(0.4) : (isCompleted ? StudioColor.emerald.opacity(0.3) : .clear),
+                        radius: isActive ? 3 : 1
+                    )
+
+                if isCompleted {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                } else {
+                    Text("\(number)")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(isActive ? .white : .secondary)
+                }
+            }
+
+            Text(title)
+                .font(.system(size: 9.5, weight: (isActive || isCompleted) ? .medium : .regular))
+                .foregroundStyle((isActive || isCompleted) ? .primary : .secondary)
+        }
+    }
+
+    private func stepConnectorLine(isCompleted: Bool) -> some View {
+        VStack {
+            Capsule()
+                .fill(isCompleted ? StudioColor.emerald : StudioMaterial.strokeNormal)
+                .frame(height: 2)
+                .padding(.horizontal, 4)
+                .offset(y: -7)
+        }
+        .frame(maxWidth: .infinity)
+        .animation(.easeInOut(duration: 0.3), value: isCompleted)
     }
 
     // MARK: - Header
@@ -106,8 +194,13 @@ struct CalibrationWizardView: View {
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
 
-                CalibrationRing(progress: Double(countdown) / 5.0,
-                                color: .accentColor, size: 96) {
+                CalibrationRing(
+                    progress: Double(countdown) / 5.0,
+                    size: 96,
+                    rssi: currentRSSI,
+                    isSampling: false,
+                    isProximity: true
+                ) {
                     Text("\(countdown)")
                         .font(.system(size: 34, weight: .bold, design: .monospaced))
                 }
@@ -132,7 +225,13 @@ struct CalibrationWizardView: View {
                     .font(.callout)
                     .foregroundColor(.secondary)
 
-                CalibrationRing(progress: samplingProgress, color: .green, size: 96) {
+                CalibrationRing(
+                    progress: samplingProgress,
+                    size: 96,
+                    rssi: currentRSSI,
+                    isSampling: true,
+                    isProximity: true
+                ) {
                     VStack(spacing: 2) {
                         Text(currentRSSI.map { "\($0)" } ?? "—")
                             .font(.system(size: 26, weight: .bold, design: .monospaced))
@@ -161,8 +260,13 @@ struct CalibrationWizardView: View {
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
 
-                CalibrationRing(progress: Double(countdown) / 10.0,
-                                color: .orange, size: 100) {
+                CalibrationRing(
+                    progress: Double(countdown) / 10.0,
+                    size: 100,
+                    rssi: currentRSSI,
+                    isSampling: false,
+                    isProximity: false
+                ) {
                     VStack(spacing: 2) {
                         Text("\(countdown)")
                             .font(.system(size: 36, weight: .bold, design: .monospaced))
@@ -194,7 +298,13 @@ struct CalibrationWizardView: View {
                     .font(.callout)
                     .foregroundColor(.secondary)
 
-                CalibrationRing(progress: samplingProgress, color: .red, size: 96) {
+                CalibrationRing(
+                    progress: samplingProgress,
+                    size: 96,
+                    rssi: currentRSSI,
+                    isSampling: true,
+                    isProximity: false
+                ) {
                     VStack(spacing: 2) {
                         Text(currentRSSI.map { "\($0)" } ?? "—")
                             .font(.system(size: 26, weight: .bold, design: .monospaced))
@@ -375,25 +485,96 @@ struct CalibrationWizardView: View {
     }
 }
 
-// MARK: - 环形进度组件
+// MARK: - 环形雷达进度组件
 
 private struct CalibrationRing<Content: View>: View {
     let progress: Double
-    let color: Color
+    var color: Color? = nil
     let size: CGFloat
+    var rssi: Int? = nil
+    var isSampling: Bool = false
+    var isProximity: Bool = true
     @ViewBuilder var center: () -> Content
+
+    @State private var isBreathing = false
+
+    private var isStrongSignal: Bool {
+        if let rssi = rssi {
+            return rssi >= -68
+        }
+        return isProximity
+    }
+
+    private var activeGradient: LinearGradient {
+        if isStrongSignal {
+            // 测距雷达圆环在信号强时由 StudioColor.cyan 渐变为 StudioColor.emerald
+            return LinearGradient(
+                colors: [StudioColor.cyan, StudioColor.emerald],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else if isProximity {
+            return LinearGradient(
+                colors: [StudioColor.cyan, Color.accentColor],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [StudioColor.amber, StudioColor.rose],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
 
     var body: some View {
         ZStack {
+            // 采样呼吸雷达光晕
+            if isSampling {
+                Circle()
+                    .fill(activeGradient)
+                    .frame(width: size - 12, height: size - 12)
+                    .opacity(isBreathing ? 0.20 : 0.06)
+                    .blur(radius: 6)
+
+                Circle()
+                    .strokeBorder(activeGradient, lineWidth: 1.5)
+                    .frame(width: size + (isBreathing ? 14 : 2), height: size + (isBreathing ? 14 : 2))
+                    .opacity(isBreathing ? 0.0 : 0.55)
+            }
+
+            // 底层轨道
             Circle()
-                .stroke(Color.secondary.opacity(0.2), lineWidth: 7)
+                .stroke(Color.secondary.opacity(0.18), lineWidth: 7)
                 .frame(width: size, height: size)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(color, style: StrokeStyle(lineWidth: 7, lineCap: .round))
-                .frame(width: size, height: size)
-                .rotationEffect(.degrees(-90))
+
+            // 进度圆环
+            if let singleColor = color, !isSampling {
+                Circle()
+                    .trim(from: 0, to: max(0, min(1, progress)))
+                    .stroke(singleColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                    .frame(width: size, height: size)
+                    .rotationEffect(.degrees(-90))
+                    .animation(isSampling ? .linear(duration: 0.1) : .easeInOut(duration: 0.25), value: progress)
+            } else {
+                Circle()
+                    .trim(from: 0, to: max(0, min(1, progress)))
+                    .stroke(activeGradient, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                    .frame(width: size, height: size)
+                    .rotationEffect(.degrees(-90))
+                    .shadow(color: isStrongSignal ? StudioColor.emerald.opacity(0.4) : StudioColor.amber.opacity(0.3), radius: 3)
+                    .animation(isSampling ? .linear(duration: 0.1) : .easeInOut(duration: 0.25), value: progress)
+            }
+
             center()
+        }
+        .onAppear {
+            if isSampling {
+                withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                    isBreathing = true
+                }
+            }
         }
     }
 }
