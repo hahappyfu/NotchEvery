@@ -97,6 +97,9 @@ final class GuardStore: ObservableObject {
 
     // MARK: - 权限引导（工单 07）
 
+    /// 上次未解锁回显（工单 08）：最近一条解锁失败的原因；点进诊断分区
+    @Published private(set) var lastUnlockFailure: String?
+
     /// 缺失的授权（已确认过的不再出现）；卡片据此渲染引导行。
     @Published private(set) var permissionIssues: [PermissionIssue] = []
     private var permissionGuide: PermissionGuide
@@ -174,7 +177,10 @@ final class GuardStore: ObservableObject {
             DispatchQueue.main.async { [weak self] in self?.refreshPermissions() }
         }.store(in: &cancellables)
         manager.$isDryRun.sink { [weak self] dryRun in self?.refreshState(dryRun: dryRun) }.store(in: &cancellables)
-        logger.$events.sink { [weak self] events in self?.refreshJudgement(events) }.store(in: &cancellables)
+        logger.$events.sink { [weak self] events in
+            self?.refreshJudgement(events)
+            self?.refreshUnlockFailure(events)
+        }.store(in: &cancellables)
     }
 
     /// 派生态（enabled × isDryRun）；在 init / setEnabled / start / isDryRun 翻转时刷新。
@@ -191,12 +197,26 @@ final class GuardStore: ObservableObject {
     }
 
     private func refreshJudgement(_ events: [DecisionEvent]) {
-        lastJudgement = events.last.flatMap { event in
-            if !event.detail.isEmpty { return event.detail }
-            guard let reason = event.reason else { return nil }
-            let text = t(reason.titleKey)
-            return text.isEmpty ? nil : text
+        lastJudgement = text(of: events.last)
+    }
+
+    /// 上次未解锁：以最近一条解锁类事件为准——失败则回显，之后成功即清掉，不常驻
+    private func refreshUnlockFailure(_ events: [DecisionEvent]) {
+        guard let latest = events.last(where: { $0.category == .unlock }),
+              latest.outcome == .failed else {
+            lastUnlockFailure = nil
+            return
         }
+        lastUnlockFailure = text(of: latest)
+    }
+
+    /// 事件→展示文本（detail 优先，否则 reason 本地化；取空为 nil）
+    private func text(of event: DecisionEvent?) -> String? {
+        guard let event else { return nil }
+        if !event.detail.isEmpty { return event.detail }
+        guard let reason = event.reason else { return nil }
+        let text = t(reason.titleKey)
+        return text.isEmpty ? nil : text
     }
 
     private func refresh() {
@@ -207,5 +227,6 @@ final class GuardStore: ObservableObject {
         unlockRSSI = manager.unlockRSSI
         bluetoothIssue = manager.bluetoothIssue
         refreshJudgement(logger.events)
+        refreshUnlockFailure(logger.events)
     }
 }

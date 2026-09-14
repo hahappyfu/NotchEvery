@@ -18,6 +18,15 @@ final class IMMessageComposerTests: XCTestCase {
         XCTAssertEqual(title, t("im_title_unlocked"))
     }
 
+    /// 失败标题独立（解锁/锁屏/失败三者可区分，08 工单）
+    func testUnlockFailedComposeTitle() {
+        let (title, body) = IMMessageComposer.compose(.unlockFailed(rssi: -58, deviceName: "Watch"))
+        XCTAssertEqual(title, t("im_title_unlock_failed"))
+        XCTAssertNotEqual(title, t("im_title_unlocked"), "失败不得与成功同文案")
+        XCTAssertTrue(body.contains("Watch"))
+        XCTAssertTrue(body.contains("-58"))
+    }
+
     func testComposeTestEventTitle() {
         let (title, _) = IMMessageComposer.compose(.test)
         XCTAssertEqual(title, t("im_title_unlocked"), "测试事件应与解锁共用文案")

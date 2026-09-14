@@ -109,6 +109,36 @@ final class iMessageNotifierTests: XCTestCase {
         wait(for: [exp], timeout: 2)
     }
 
+    /// 失败事件独立防抖键（unlockFail 不吃 unlock 的 30s 窗口，08 工单）
+    func testUnlockFailedEventDebouncedSeparately() {
+        ConfigStore.shared.defaults.set(true, forKey: "iMessageNotify")
+        ConfigStore.shared.defaults.set("13800138000", forKey: "iMessageNotifyRecipient")
+        var calls = 0
+        iMessageNotifier.shared.scriptRunner = { _, _ in calls += 1; return nil }
+        iMessageNotifier.shared.send(.unlocked(rssi: -42, deviceName: "iPhone"))
+        iMessageNotifier.shared.send(.unlockFailed(rssi: -42, deviceName: "iPhone"))
+        iMessageNotifier.shared.send(.unlockFailed(rssi: -42, deviceName: "iPhone"))
+        let exp = expectation(description: "async")
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) { exp.fulfill() }
+        wait(for: [exp], timeout: 2)
+        XCTAssertEqual(calls, 2, "成功与失败各放行 1 次，失败内防抖，实际: \(calls)")
+    }
+
+    /// 失败回执钩子：静默丢弃的同时把原因交出去（诊断记账用，不阻塞主流程）
+    func testSendFailureInvokesHook() {
+        ConfigStore.shared.defaults.set(true, forKey: "iMessageNotify")
+        ConfigStore.shared.defaults.set("13800138000", forKey: "iMessageNotifyRecipient")
+        iMessageNotifier.shared.scriptRunner = { _, _ in "Messages 未授权" }
+        var received: String?
+        iMessageNotifier.shared.onSendFailure = { received = $0 }
+        defer { iMessageNotifier.shared.onSendFailure = nil }
+        iMessageNotifier.shared.send(.locked(reason: "lost", rssi: -88, deviceName: "iPhone"))
+        let exp = expectation(description: "async")
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) { exp.fulfill() }
+        wait(for: [exp], timeout: 2)
+        XCTAssertEqual(received, "Messages 未授权")
+    }
+
     func testLockedEventComposesLocalizedText() {
         ConfigStore.shared.defaults.set(true, forKey: "iMessageNotify")
         ConfigStore.shared.defaults.set("13800138000", forKey: "iMessageNotifyRecipient")

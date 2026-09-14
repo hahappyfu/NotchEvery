@@ -192,6 +192,17 @@ final class SystemEffectsFakeTests: XCTestCase {
             1, "成功只记一次")
     }
 
+    // MARK: - 推送失败落诊断（工单 08 S2）
+
+    /// 推送钩子记账：失败原因进诊断时间线，主流程不阻塞（此处直调记账方法）
+    func testIMSendFailureRecordedToDiagnostics() {
+        manager.recordIMSendFailure("Messages 未授权")
+
+        XCTAssertTrue(hasEvent(outcome: .failed, reason: .iMessageFailed))
+        XCTAssertTrue(logger.events.contains { $0.detail == "Messages 未授权" },
+                      "失败原因须在诊断里看到")
+    }
+
     // MARK: - 注入成功
 
     func testInjectSuccessPath() {

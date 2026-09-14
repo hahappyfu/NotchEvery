@@ -2274,6 +2274,22 @@
         }
       }
     },
+    "im_title_unlock_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NotchEvery: Unlock Failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NotchEvery：解锁失败"
+          }
+        }
+      }
+    },
     "im_body_signal": {
       "localizations": {
         "en": {
@@ -2434,8 +2450,23 @@
         }
       }
     },
-    "default_paired_device": {
+    "reason_imessage_failed": {
       "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iMessage send failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iMessage 发送失败"
+          }
+        }
+      }
+    },
+    "default_paired_device": {      "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",

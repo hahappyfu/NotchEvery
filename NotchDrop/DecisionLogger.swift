@@ -58,6 +58,8 @@ enum DecisionReason: String, Codable, CaseIterable {
     case dryRun
     case bluetoothOff
     case bluetoothUnauthorized
+    // 推送失败（工单 08 新增；action 为 nil，原因文本即诊断）
+    case iMessageFailed
 }
 
 /// 操作提示：由 reason 派生，UI 据此渲染按钮
@@ -317,6 +319,7 @@ extension DecisionReason {
         case .dryRun: return "reason_dry_run"
         case .bluetoothOff: return "reason_bluetooth_off"
         case .bluetoothUnauthorized: return "reason_bluetooth_unauthorized"
+        case .iMessageFailed: return "reason_imessage_failed"
         }
     }
 

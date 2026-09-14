@@ -170,10 +170,17 @@ final class FUnManager: ObservableObject {
                               screen: state.screen.description, detail: detail)
     }
 
-    private func recordSystem(_ reason: DecisionReason) {
-        decisionLogger.record(category: .system, outcome: .info, reason: reason,
+    private func recordSystem(_ reason: DecisionReason, outcome: DecisionOutcome = .info) {
+        decisionLogger.record(category: .system, outcome: outcome, reason: reason,
                               rssi: rssi, device: monitoredDeviceName,
                               screen: state.screen.description)
+    }
+
+    /// iMessage 发送失败落诊断（工单 08）：由推送钩子调用，不阻塞主流程
+    func recordIMSendFailure(_ message: String) {
+        decisionLogger.record(category: .system, outcome: .failed, reason: .iMessageFailed,
+                              rssi: rssi, device: monitoredDeviceName,
+                              screen: state.screen.description, detail: message)
     }
 
     private func recordUser(_ reason: DecisionReason) {
@@ -199,6 +206,10 @@ final class FUnManager: ObservableObject {
         self.system = system
         self.lockRSSI = fun.lockRSSI
         self.unlockRSSI = fun.unlockRSSI
+        // 推送失败落诊断（工单 08）：单例钩子弱持，manager 析构即自动摘除
+        iMessageNotifier.shared.onSendFailure = { [weak self] message in
+            self?.recordIMSendFailure(message)
+        }
 
     }
 
@@ -713,6 +724,7 @@ final class FUnManager: ObservableObject {
                         self.recordUnlockAttempt()
                         Log.sm.debug("dual verify: still locked → #\(self.consecutiveUnlockAttempts)/\(self.maxUnlockAttempts)")
                         recordUnlock(.failed, reason: .unlockFailed, detail: "第 \(self.consecutiveUnlockAttempts)/\(self.maxUnlockAttempts) 次尝试")
+                        iMessageNotifier.shared.send(.unlockFailed(rssi: snap.effectiveRSSI, deviceName: monitoredDeviceName))
                         logDebug(component: "FUnManager", "tryUnlock() - dual verify failed, attempts=\(self.consecutiveUnlockAttempts)/\(self.maxUnlockAttempts)")
                         Task { self.stateMachine.handleUnlockFailure() }
                         let failExtras = self.unlockEventExtras(result: "fail")

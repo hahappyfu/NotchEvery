@@ -43,8 +43,12 @@ final class iMessageNotifier {
         ConfigStore.shared.string(forKey: Keys.recipient)
     }
 
+    /// 失败回执钩子（工单 08）：send 静默丢弃的同时把原因交出去记诊断；
+    /// 不阻塞守护主流程（后台队列调用）。默认 nil，生产由守护装配，测试注入断言。
+    var onSendFailure: ((String) -> Void)?
+
     /// 语义化事件发送：锁屏/解锁时由 FUnManager 调用。失败静默丢弃（锁时不打扰用户）。
-    /// 防抖按事件类型（lock/unlock/test）各 30 秒。
+    /// 防抖按事件类型（lock/unlock/unlockFail/test）各 30 秒。
     func send(_ event: IMEvent) {
         guard enabled else { return }
         guard let recipient = recipient, !recipient.isEmpty else { return }
@@ -53,6 +57,7 @@ final class iMessageNotifier {
         switch event {
         case .locked: typeKey = "lock"
         case .unlocked: typeKey = "unlock"
+        case .unlockFailed: typeKey = "unlockFail"
         case .test: typeKey = "test"
         }
 
@@ -78,6 +83,7 @@ final class iMessageNotifier {
             }
             if let err = err {
                 Log.ble.error("[iMessage] 发送失败（静默丢弃）: \(err)")
+                self.onSendFailure?(err)
             }
         }
     }

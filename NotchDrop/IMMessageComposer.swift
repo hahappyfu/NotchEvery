@@ -8,6 +8,7 @@ import Foundation
 enum IMEvent {
     case locked(reason: String, rssi: Double?, deviceName: String?)
     case unlocked(rssi: Double?, deviceName: String?)
+    case unlockFailed(rssi: Double?, deviceName: String?)
     case test
 }
 
@@ -33,6 +34,10 @@ enum IMMessageComposer {
             deviceName = d
         case .unlocked(let r, let d):
             title = t("im_title_unlocked")
+            rssi = r
+            deviceName = d
+        case .unlockFailed(let r, let d):
+            title = t("im_title_unlock_failed")
             rssi = r
             deviceName = d
         case .test:

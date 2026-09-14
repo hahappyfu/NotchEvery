@@ -205,4 +205,32 @@ final class GuardStoreTests: XCTestCase {
         XCTAssertEqual(makeStore(guide: denied).permissionIssues.map { $0.kind },
                        [.ax], "再坏重现骚扰")
     }
+
+    // MARK: - 上次未解锁回显（工单 08 S3）
+
+    /// 无失败 → 无回显（不占行）
+    func testNoFailureGivesNilEcho() {
+        logger.record(category: .unlock, outcome: .success, reason: .unlockSuccess,
+                      rssi: -50, device: "Watch", screen: "unlocked", detail: "")
+        XCTAssertNil(makeStore().lastUnlockFailure)
+    }
+
+    /// 解锁失败 → 回显 detail；系统类失败（推送）不算未解锁
+    func testUnlockFailureEchoesDetail() {
+        logger.record(category: .system, outcome: .failed, reason: .iMessageFailed,
+                      rssi: nil, device: nil, screen: nil, detail: "Messages 未授权")
+        XCTAssertNil(makeStore().lastUnlockFailure, "推送失败不是未解锁")
+        logger.record(category: .unlock, outcome: .failed, reason: .unlockFailed,
+                      rssi: -60, device: "Watch", screen: "locked", detail: "第 1/3 次尝试")
+        XCTAssertEqual(makeStore().lastUnlockFailure, "第 1/3 次尝试")
+    }
+
+    /// 之后解锁成功 → 回显清掉，不常驻（code-review 跟进）
+    func testSuccessClearsFailureEcho() {
+        logger.record(category: .unlock, outcome: .failed, reason: .unlockFailed,
+                      rssi: -60, device: "Watch", screen: "locked", detail: "第 1/3 次尝试")
+        logger.record(category: .unlock, outcome: .success, reason: .unlockSuccess,
+                      rssi: -50, device: "Watch", screen: "unlocked", detail: "")
+        XCTAssertNil(makeStore().lastUnlockFailure)
+    }
 }
