@@ -135,7 +135,7 @@ struct GuardControlZoneView: View {
                     let next = min(store.unlockRSSI + 1, -30)
                     store.setUnlockRSSI(next)
                 }, onDecrement: {
-                    let next = max(store.unlockRSSI - 1, -95)
+                    let next = max(store.unlockRSSI - 1, -93)
                     store.setUnlockRSSI(next)
                 })
                 .labelsHidden()
@@ -155,8 +155,8 @@ struct GuardControlZoneView: View {
                     .foregroundStyle(Color.white.opacity(0.92))
                 Spacer(minLength: 4)
                 Stepper("", onIncrement: {
-                    let next = min(store.lockRSSI + 1, store.unlockRSSI - 2)
-                    store.setLockRSSI(next)
+                    guard store.lockRSSI + 1 <= store.unlockRSSI - 2 else { return }
+                    store.setLockRSSI(store.lockRSSI + 1)
                 }, onDecrement: {
                     let next = max(store.lockRSSI - 1, -95)
                     store.setLockRSSI(next)

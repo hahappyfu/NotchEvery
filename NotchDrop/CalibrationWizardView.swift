@@ -262,12 +262,13 @@ struct CalibrationWizardView: View {
 
     private var suggestedUnlock: Int {
         let v = avgUnlock - 2
-        return min(max(v, -95), -30)
+        return min(max(v, -93), -30)
     }
 
     private var suggestedLock: Int {
-        let v = avgLock - 2
-        return min(max(v, -95), -30)
+        let rawLock = min(max(avgLock - 2, -95), -30)
+        // 防倒挂约束：锁定阈值必须小于解锁阈值（至少保持 5 dBm 安全迟滞间距）
+        return min(rawLock, max(suggestedUnlock - 5, -95))
     }
 
     // MARK: - 流程控制
@@ -285,6 +286,7 @@ struct CalibrationWizardView: View {
             }
             guard !Task.isCancelled else { return }
             startSampling(duration: 8, completion: {
+                guard !Task.isCancelled else { return }
                 guard let avg = self.averageSamples() else {
                     self.abortCalibration()
                     return
@@ -307,6 +309,7 @@ struct CalibrationWizardView: View {
             }
             guard !Task.isCancelled else { return }
             startSampling(duration: 8, completion: {
+                guard !Task.isCancelled else { return }
                 guard let avg = self.averageSamples() else {
                     self.abortCalibration()
                     return
@@ -333,8 +336,10 @@ struct CalibrationWizardView: View {
                 samplingProgress = Double(i) / Double(totalMs)
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
             }
+            guard !Task.isCancelled else { return }
             samplingProgress = 1.0
             try? await Task.sleep(nanoseconds: 200_000_000)
+            guard !Task.isCancelled else { return }
             completion()
         }
     }
@@ -347,6 +352,8 @@ struct CalibrationWizardView: View {
     private func abortCalibration() {
         samplingTask?.cancel()
         countdownTask?.cancel()
+        samplingTask = nil
+        countdownTask = nil
         samples = []
         currentRSSI = nil
         errorMessage = "未检测到信号，请靠近设备后重试"
@@ -354,17 +361,16 @@ struct CalibrationWizardView: View {
     }
 
     private func applyValues() {
-        let lock = max(min(suggestedLock, -30), -95)
-        let unlock = max(min(suggestedUnlock, -30), -95)
-        let finalUnlock = max(unlock, lock + 5)
-        manager.setUnlockRSSI(finalUnlock)
-        manager.setLockRSSI(lock)
-        isPresented = false
+        manager.setUnlockRSSI(suggestedUnlock)
+        manager.setLockRSSI(suggestedLock)
+        cancelAndClose()
     }
 
     private func cancelAndClose() {
         samplingTask?.cancel()
         countdownTask?.cancel()
+        samplingTask = nil
+        countdownTask = nil
         isPresented = false
     }
 }
