@@ -17,6 +17,63 @@ final class AntigravityStoreTests: XCTestCase {
         XCTAssertEqual(AntigravityStore.formatCountdown(from: soon, now: now), "45m")
     }
 
+    func testFormatCountdownCompact() {
+        let now = Date(timeIntervalSince1970: 1789370000)
+        // 149小时20分 -> 格式化为 6d5h
+        let longFuture = Date(timeIntervalSince1970: 1789370000 + 149 * 3600 + 20 * 60)
+        XCTAssertEqual(AntigravityStore.formatCountdown(from: longFuture, now: now), "6d5h")
+
+        // 36小时10分 -> 格式化为 36h
+        let midFuture = Date(timeIntervalSince1970: 1789370000 + 36 * 3600 + 10 * 60)
+        XCTAssertEqual(AntigravityStore.formatCountdown(from: midFuture, now: now), "36h")
+
+        // 3小时15分 -> 格式化为 3h15m
+        let shortFuture = Date(timeIntervalSince1970: 1789370000 + 3 * 3600 + 15 * 60)
+        XCTAssertEqual(AntigravityStore.formatCountdown(from: shortFuture, now: now), "3h15m")
+    }
+
+    func testSelectAccountUpdatesMemoryAndDisk() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let indexFile = tempDir.appendingPathComponent("accounts.json")
+        let initialIndexJSON = """
+        {
+            "current_account_id": "acc-1",
+            "accounts": [
+                {"id": "acc-1"},
+                {"id": "acc-2"}
+            ]
+        }
+        """
+        try initialIndexJSON.data(using: .utf8)!.write(to: indexFile)
+
+        let store = AntigravityStore(baseDir: tempDir)
+        let acc1 = AntigravityAccount(id: "acc-1", name: "A1", email: "a1@test.com", isCurrent: true, isDisabled: false, percentage: 80, resetTime: nil)
+        let acc2 = AntigravityAccount(id: "acc-2", name: "A2", email: "a2@test.com", isCurrent: false, isDisabled: false, percentage: 90, resetTime: nil)
+
+        // 注入初始内存数据（模拟 loadAccounts 完成后）
+        let (initialAccounts, currentId) = AntigravityStore.loadAccounts(from: tempDir)
+        XCTAssertEqual(currentId, "acc-1")
+
+        // 手动赋值以验证 selectAccount 行为
+        store.selectAccount(id: "acc-2")
+        XCTAssertEqual(store.currentAccountId, "acc-2")
+
+        // 等待异步磁盘写入
+        let exp = expectation(description: "Wait for file write")
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.2) {
+            if let data = try? Data(contentsOf: indexFile),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let currentId = json["current_account_id"] as? String {
+                XCTAssertEqual(currentId, "acc-2")
+                exp.fulfill()
+            }
+        }
+        wait(for: [exp], timeout: 2.0)
+    }
+
     func testParseAccountDetails() throws {
         let jsonStr = """
         {

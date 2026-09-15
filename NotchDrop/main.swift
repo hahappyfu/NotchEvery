@@ -80,39 +80,43 @@ func secureWritePID() {
     }
 }
 
-secureWritePID()
+let isTestingEnvironment = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || NSClassFromString("XCTestCase") != nil
 
-// 清理：异常退出时尽力清理 pidFile
-atexit {
-    try? FileManager.default.removeItem(at: pidFile)
-}
+if !isTestingEnvironment {
+    secureWritePID()
 
-_ = TrayDrop.shared
-// 启动过期清理移后台：避免阻塞首屏（文件遍历 + 可能的重写）
-DispatchQueue.global(qos: .utility).async {
-    TrayDrop.shared.cleanExpiredFiles()
-}
-
-// ——— 修复 #4: O_EVTONLY FD 泄漏 ———
-repeat {
-    let executablePath = ProcessInfo.processInfo.arguments.first!
-    let selfHandle = open(executablePath, O_EVTONLY)
-    guard selfHandle > 0 else { break }
-
-    let monitorSource = DispatchSource.makeFileSystemObjectSource(
-        fileDescriptor: selfHandle,
-        eventMask: .delete
-    )
-    monitorSource.setEventHandler {
-        guard monitorSource.data == .delete else { return }
-        monitorSource.cancel()
-        exit(0)
+    // 清理：异常退出时尽力清理 pidFile
+    atexit {
+        try? FileManager.default.removeItem(at: pidFile)
     }
-    monitorSource.setCancelHandler {
-        close(selfHandle)
+
+    _ = TrayDrop.shared
+    // 启动过期清理移后台：避免阻塞首屏（文件遍历 + 可能的重写）
+    DispatchQueue.global(qos: .utility).async {
+        TrayDrop.shared.cleanExpiredFiles()
     }
-    monitorSource.resume()
-} while false
+
+    // ——— 修复 #4: O_EVTONLY FD 泄漏 ———
+    repeat {
+        let executablePath = ProcessInfo.processInfo.arguments.first!
+        let selfHandle = open(executablePath, O_EVTONLY)
+        guard selfHandle > 0 else { break }
+
+        let monitorSource = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: selfHandle,
+            eventMask: .delete
+        )
+        monitorSource.setEventHandler {
+            guard monitorSource.data == .delete else { return }
+            monitorSource.cancel()
+            exit(0)
+        }
+        monitorSource.setCancelHandler {
+            close(selfHandle)
+        }
+        monitorSource.resume()
+    } while false
+}
 
 private let delegate = AppDelegate()
 NSApplication.shared.delegate = delegate

@@ -15,6 +15,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var mainWindowController: NotchWindowController?
 
     func applicationDidFinishLaunching(_: Notification) {
+        if NSClassFromString("XCTestCase") != nil || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return
+        }
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(rebuildApplicationWindows),
@@ -67,6 +70,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func determineIfProcessIdentifierMatches() {
+        if NSClassFromString("XCTestCase") != nil || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return
+        }
         let pid = String(NSRunningApplication.current.processIdentifier)
         let content = (try? String(contentsOf: pidFile)) ?? ""
         guard pid.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

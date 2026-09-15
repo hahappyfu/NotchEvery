@@ -117,6 +117,36 @@ public final class AntigravityStore: ObservableObject {
         }
     }
 
+    public func selectAccount(id: String) {
+        guard currentAccountId != id else { return }
+        currentAccountId = id
+        // 乐观更新内存中 isCurrent
+        accounts = accounts.map { acc in
+            AntigravityAccount(
+                id: acc.id,
+                name: acc.name,
+                email: acc.email,
+                isCurrent: acc.id == id,
+                isDisabled: acc.isDisabled,
+                percentage: acc.percentage,
+                resetTime: acc.resetTime
+            )
+        }
+
+        let dir = baseDir
+        DispatchQueue.global(qos: .utility).async {
+            let indexFile = dir.appendingPathComponent("accounts.json")
+            guard let data = try? Data(contentsOf: indexFile),
+                  var json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return
+            }
+            json["current_account_id"] = id
+            if let updatedData = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted]) {
+                try? updatedData.write(to: indexFile, options: .atomic)
+            }
+        }
+    }
+
     // MARK: - Static Parsers & Helpers
 
     public static func loadAccounts(from directory: URL) -> ([AntigravityAccount], String?) {
@@ -223,7 +253,13 @@ public final class AntigravityStore: ObservableObject {
         let hours = seconds / 3600
         let minutes = (seconds % 3600) / 60
 
-        if hours > 0 {
+        if hours >= 48 {
+            let days = hours / 24
+            let remHours = hours % 24
+            return "\(days)d\(remHours)h"
+        } else if hours >= 24 {
+            return "\(hours)h"
+        } else if hours > 0 {
             return "\(hours)h\(minutes)m"
         } else if minutes > 0 {
             return "\(minutes)m"
