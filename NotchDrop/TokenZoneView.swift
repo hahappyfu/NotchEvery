@@ -7,28 +7,58 @@
 
 import SwiftUI
 
-/// 单条模型请求（真数据来自 cc-switch 使用统计）。
-struct TokenRequest: Identifiable, Equatable {
-    /// cc-switch 的 request_id（稳定标识，滚动动画依赖）
-    let id: String
-    let time: String
-    let model: String
-    let inputTokens: Int
-    let outputTokens: Int
+/// 单条模型请求（真数据来自 cc-switch 或 antigravity-tools 使用统计）。
+public struct TokenRequest: Identifiable, Equatable {
+    /// cc-switch 的 request_id 或 antigravity 的 id（稳定标识，滚动动画依赖）
+    public let id: String
+    public let time: String
+    public let model: String
+    public let inputTokens: Int
+    public let outputTokens: Int
     /// 耗时存数值（秒），展示层格式化，避免反解析字符串
-    let durationSeconds: Double
-    let cost: String
-    let status: Int
+    public let durationSeconds: Double
+    public let cost: String
+    public let status: Int
+    public var accountEmail: String?
+
+    public init(
+        id: String,
+        time: String,
+        model: String,
+        inputTokens: Int,
+        outputTokens: Int,
+        durationSeconds: Double,
+        cost: String,
+        status: Int,
+        accountEmail: String? = nil
+    ) {
+        self.id = id
+        self.time = time
+        self.model = model
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.durationSeconds = durationSeconds
+        self.cost = cost
+        self.status = status
+        self.accountEmail = accountEmail
+    }
 }
 
 /// KPI 聚合（真数据来自 UsageStore）。
-struct TokenSummary: Equatable {
-    let totalTokens: String
-    let cacheRate: String
-    let calls: String
-    let cost: String
+public struct TokenSummary: Equatable {
+    public let totalTokens: String
+    public let cacheRate: String
+    public let calls: String
+    public let cost: String
 
-    static let empty = TokenSummary(totalTokens: "0", cacheRate: "0.0%", calls: "0次", cost: "$0.00")
+    public init(totalTokens: String, cacheRate: String, calls: String, cost: String) {
+        self.totalTokens = totalTokens
+        self.cacheRate = cacheRate
+        self.calls = calls
+        self.cost = cost
+    }
+
+    public static let empty = TokenSummary(totalTokens: "0", cacheRate: "0.0%", calls: "0次", cost: "$0.00")
 }
 
 /// 数字变化时的滚动过渡：老值上滑出、新值滑入（reduceMotion 降级为直替）。

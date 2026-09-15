@@ -70,6 +70,7 @@
 		7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */; };
 		7AE10C0220260AB000000D8 /* UsageStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C8 /* UsageStoreTests.swift */; };
 		7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */; };
+		7AE10C0220260AB000000DA /* AntigravityProxyStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */; };
 		F101CE000000000000000001 /* FUn.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000002 /* FUn.swift */; };
 		F101CE000000000000000003 /* SignalPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000004 /* SignalPipeline.swift */; };
 		F101CE000000000000000005 /* FUnlockStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000006 /* FUnlockStateMachine.swift */; };
@@ -180,6 +181,7 @@
 		7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneSizeGuardTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C8 /* UsageStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStoreTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMetricsTests.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityProxyStoreTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB0000000A7 /* NotchEveryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchEveryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F101CE000000000000000002 /* FUn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUn.swift; sourceTree = "<group>"; };
 		F101CE000000000000000004 /* SignalPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalPipeline.swift; sourceTree = "<group>"; };
@@ -362,6 +364,7 @@
 				7AE10C0220260AB000000C5 /* TabMetricsTests.swift */,
 				7AE10C0220260AB000000C6 /* TrayDropTests.swift */,
 				7AE10C0220260AB000000C8 /* UsageStoreTests.swift */,
+				7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */,
 				7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */,
 				7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */,
 				F101CE00000000000000003E /* GuardStoreTests.swift */,
@@ -578,6 +581,7 @@
 				7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D6 /* TrayDropTests.swift in Sources */,
 				7AE10C0220260AB000000D8 /* UsageStoreTests.swift in Sources */,
+				7AE10C0220260AB000000DA /* AntigravityProxyStoreTests.swift in Sources */,
 				7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */,
 				F101CE000000000000000029 /* FUnlockTests.swift in Sources */,

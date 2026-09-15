@@ -2,8 +2,8 @@
 //  UsageStore.swift
 //  NotchEvery
 //
-//  用量轮询：只读 cc-switch 的 SQLite → 归一化/格式化 → 主线程发布。
-//  官方口径与 cc-switch usage_stats.rs 对齐（净输入归一、去重过滤、KPI 公式）。
+//  双数据源适配器：支持 Antigravity Tools 原生反代日志与 cc-switch 本地 SQLite 日志。
+//  数据流：只读安全抓取 SQLite → 归一化/格式化 → 主线程发布。
 //
 
 import Combine
@@ -13,58 +13,86 @@ import SQLite3
 
 private let usageLog = Logger(subsystem: Bundle.main.bundleIdentifier ?? "NotchEvery", category: "UsageStore")
 
+// MARK: - 数据源枚举
+
+public enum UsageDataSourceKind: String, Codable, CaseIterable {
+    case antigravityTools
+    case ccSwitch
+}
+
+// MARK: - 数据模型
+
 /// footer 数据（文案格式化在展示层）
-struct UsageFooter: Equatable {
-    var cacheReadTotal: Int = 0
-    var savedUSD: Double = 0
-    var lastRequestAt: Date?
+public struct UsageFooter: Equatable {
+    public var cacheReadTotal: Int = 0
+    public var savedUSD: Double = 0
+    public var lastRequestAt: Date?
+
+    public init(cacheReadTotal: Int = 0, savedUSD: Double = 0, lastRequestAt: Date? = nil) {
+        self.cacheReadTotal = cacheReadTotal
+        self.savedUSD = savedUSD
+        self.lastRequestAt = lastRequestAt
+    }
 }
 
 /// 一次抓取的完整快照
-struct UsageData: Equatable {
-    var recentRequests: [TokenRequest] = []
-    var summary: TokenSummary = .empty
+public struct UsageData: Equatable {
+    public var recentRequests: [TokenRequest] = []
+    public var summary: TokenSummary = .empty
     /// 缓存命中率数值形式（进度条填充用，0.0–1.0）
-    var cacheRateFraction: Double = 0
-    var footer = UsageFooter()
-    var providerName: String?
-    var providerId: String?
+    public var cacheRateFraction: Double = 0
+    public var footer = UsageFooter()
+    public var providerName: String?
+    public var providerId: String?
 
-    static let empty = UsageData()
+    public static let empty = UsageData()
+
+    public init(
+        recentRequests: [TokenRequest] = [],
+        summary: TokenSummary = .empty,
+        cacheRateFraction: Double = 0,
+        footer: UsageFooter = UsageFooter(),
+        providerName: String? = nil,
+        providerId: String? = nil
+    ) {
+        self.recentRequests = recentRequests
+        self.summary = summary
+        self.cacheRateFraction = cacheRateFraction
+        self.footer = footer
+        self.providerName = providerName
+        self.providerId = providerId
+    }
 }
 
-final class UsageStore: ObservableObject {
-    static let shared = UsageStore()
+// MARK: - UsageStore 主门面
 
-    @Published private(set) var recentRequests: [TokenRequest] = []
-    @Published private(set) var summary: TokenSummary = .empty
-    @Published private(set) var cacheRateFraction: Double = 0
-    @Published private(set) var footer = UsageFooter()
-    @Published private(set) var providerName: String?
-    @Published private(set) var providerId: String?
+public final class UsageStore: ObservableObject {
+    public static let shared = UsageStore()
+
+    /// 全局数据源路由开关（默认为 Antigravity Tools 本地反代原生日志）
+    public static var activeSource: UsageDataSourceKind = .antigravityTools
+
+    @Published public private(set) var recentRequests: [TokenRequest] = []
+    @Published public private(set) var summary: TokenSummary = .empty
+    @Published public private(set) var cacheRateFraction: Double = 0
+    @Published public private(set) var footer = UsageFooter()
+    @Published public private(set) var providerName: String?
+    @Published public private(set) var providerId: String?
 
     /// 用 libc 直取真实家目录（不经过沙盒重定向的 Foundation 家目录 API）
-    static let defaultDBPath: URL = {
-        let base: URL
-        if let pw = getpwuid(getuid()), let dir = pw.pointee.pw_dir {
-            base = URL(fileURLWithPath: String(cString: dir))
-        } else {
-            base = FileManager.default.homeDirectoryForCurrentUser
-        }
-        return base.appendingPathComponent(".cc-switch/cc-switch.db")
-    }()
+    public static let defaultDBPath: URL = CCSwitchUsageStore.defaultDBPath
 
     private let dbPath: URL
     private let interval: TimeInterval
     private var timer: Timer?
     private var refreshing = false
 
-    init(dbPath: URL = UsageStore.defaultDBPath, interval: TimeInterval = 3) {
+    public init(dbPath: URL = UsageStore.defaultDBPath, interval: TimeInterval = 3) {
         self.dbPath = dbPath
         self.interval = interval
     }
 
-    func start() {
+    public func start() {
         guard timer == nil else { return }
         refresh()
         let t = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
@@ -72,22 +100,32 @@ final class UsageStore: ObservableObject {
         }
         RunLoop.main.add(t, forMode: .common)
         timer = t
-        usageLog.info("UsageStore started, interval \(self.interval)s")
+        usageLog.info("UsageStore started, interval \(self.interval)s, source: \(Self.activeSource.rawValue)")
     }
 
-    func stop() {
+    public func stop() {
         timer?.invalidate()
         timer = nil
     }
 
-    func refresh() {
+    public func refresh() {
         guard !refreshing else { return }
         refreshing = true
-        let path = dbPath
+        let source = Self.activeSource
+        let ccPath = dbPath
+        let antigravityPath = AntigravityProxyStore.defaultDBPath
+
         DispatchQueue.global(qos: .utility).async { [weak self] in
-            let data = UsageStore.fetch(dbPath: path)
+            let data: UsageData
+            switch source {
+            case .antigravityTools:
+                data = AntigravityProxyStore.fetch(dbPath: antigravityPath)
+            case .ccSwitch:
+                data = CCSwitchUsageStore.fetch(dbPath: ccPath)
+            }
+
             DispatchQueue.main.async {
-                guard let self else { return }
+                guard let self = self else { return }
                 self.refreshing = false
                 // 值级去重：无变化不发布，避免轮询空刷 UI
                 if self.recentRequests != data.recentRequests { self.recentRequests = data.recentRequests }
@@ -99,12 +137,207 @@ final class UsageStore: ObservableObject {
             }
         }
     }
+
+    /// 保持向前兼容的静态抓取入口（直接委托给 CCSwitchUsageStore）
+    public static func fetch(dbPath: URL, now: Date = Date()) -> UsageData {
+        CCSwitchUsageStore.fetch(dbPath: dbPath, now: now)
+    }
+
+    public static func formatCost(usd: Double, priced: Bool) -> String {
+        CCSwitchUsageStore.formatCost(usd: usd, priced: priced)
+    }
+
+    public static func formatTokens(_ value: Int) -> String {
+        CCSwitchUsageStore.formatTokens(value)
+    }
 }
 
-// MARK: - 抓取（纯函数，可注入 db 路径与"现在"）
+// MARK: - AntigravityProxyStore 数据源实现
 
-extension UsageStore {
-    static func fetch(dbPath: URL, now: Date = Date()) -> UsageData {
+public final class AntigravityProxyStore: ObservableObject {
+    public static let shared = AntigravityProxyStore()
+
+    public static let defaultDBPath: URL = {
+        let base: URL
+        if let pw = getpwuid(getuid()), let dir = pw.pointee.pw_dir {
+            base = URL(fileURLWithPath: String(cString: dir))
+        } else {
+            base = FileManager.default.homeDirectoryForCurrentUser
+        }
+        return base.appendingPathComponent(".antigravity_tools/proxy_logs.db")
+    }()
+
+    private let dbPath: URL
+    private let interval: TimeInterval
+
+    public init(dbPath: URL = AntigravityProxyStore.defaultDBPath, interval: TimeInterval = 3) {
+        self.dbPath = dbPath
+        self.interval = interval
+    }
+
+    public func fetchSnapshot(now: Date = Date()) -> UsageData {
+        Self.fetch(dbPath: dbPath, now: now)
+    }
+
+    public static func fetch(dbPath: URL, now: Date = Date()) -> UsageData {
+        guard let db = openReadOnly(dbPath) else { return .empty }
+        defer { sqlite3_close(db) }
+
+        var data = UsageData()
+        data.providerName = "本地反代 :8045"
+        data.providerId = "antigravity-proxy"
+        data.recentRequests = queryRecent(db)
+
+        let startOfDay = Calendar.current.startOfDay(for: now)
+        let (summary, fraction, cacheTotal) = queryTodaySummary(db, since: startOfDay)
+        data.summary = summary
+        data.cacheRateFraction = fraction
+        data.footer.cacheReadTotal = cacheTotal
+        data.footer.savedUSD = 0.0
+        data.footer.lastRequestAt = queryLatestCreatedAt(db)
+        return data
+    }
+
+    private static func openReadOnly(_ url: URL) -> OpaquePointer? {
+        var db: OpaquePointer?
+        let flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX
+        guard sqlite3_open_v2(url.path, &db, flags, nil) == SQLITE_OK else {
+            sqlite3_close(db)
+            usageLog.info("antigravity proxy db unavailable at \(url.path)")
+            return nil
+        }
+        sqlite3_exec(db, "PRAGMA query_only = ON;", nil, nil, nil)
+        sqlite3_busy_timeout(db, 500)
+        return db
+    }
+
+    private static func prepare(_ db: OpaquePointer, _ sql: String) -> OpaquePointer? {
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            usageLog.error("prepare failed: \(String(cString: sqlite3_errmsg(db)))")
+            return nil
+        }
+        return stmt
+    }
+
+    private static func queryRecent(_ db: OpaquePointer) -> [TokenRequest] {
+        let sql = """
+            SELECT id, timestamp, model, input_tokens, output_tokens,
+                   duration, status, account_email, mapped_model, cached_tokens
+            FROM request_logs
+            ORDER BY timestamp DESC
+            LIMIT 5
+            """
+        guard let stmt = prepare(db, sql) else { return [] }
+        defer { sqlite3_finalize(stmt) }
+
+        var rows: [TokenRequest] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let tsRaw = sqlite3_column_int64(stmt, 1)
+            let date = tsRaw > 10_000_000_000
+                ? Date(timeIntervalSince1970: TimeInterval(tsRaw) / 1000.0)
+                : Date(timeIntervalSince1970: TimeInterval(tsRaw))
+
+            let mappedModel = text(stmt, 8)
+            let rawModel = text(stmt, 2)
+            let displayModel = (mappedModel?.isEmpty == false ? mappedModel : rawModel) ?? "unknown"
+            let email = text(stmt, 7)
+
+            rows.append(TokenRequest(
+                id: text(stmt, 0) ?? "",
+                time: timeFormatter.string(from: date),
+                model: displayModel,
+                inputTokens: Int(sqlite3_column_int64(stmt, 3)),
+                outputTokens: Int(sqlite3_column_int64(stmt, 4)),
+                durationSeconds: Double(sqlite3_column_int64(stmt, 5)) / 1000.0,
+                cost: "$0.00",
+                status: Int(sqlite3_column_int64(stmt, 6)),
+                accountEmail: email
+            ))
+        }
+        return rows
+    }
+
+    private static func queryTodaySummary(_ db: OpaquePointer, since: Date) -> (TokenSummary, Double, Int) {
+        let sinceMs = Int64(since.timeIntervalSince1970 * 1000.0)
+        let sinceSec = Int64(since.timeIntervalSince1970)
+
+        let sql = """
+            SELECT COUNT(*),
+                   COALESCE(SUM(input_tokens), 0),
+                   COALESCE(SUM(output_tokens), 0),
+                   COALESCE(SUM(cached_tokens), 0)
+            FROM request_logs
+            WHERE (timestamp >= ? AND timestamp > 10000000000)
+               OR (timestamp >= ? AND timestamp <= 10000000000)
+            """
+        guard let stmt = prepare(db, sql) else { return (.empty, 0, 0) }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_int64(stmt, 1, sinceMs)
+        sqlite3_bind_int64(stmt, 2, sinceSec)
+
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return (.empty, 0, 0) }
+
+        let calls = sqlite3_column_int64(stmt, 0)
+        let inputTokens = sqlite3_column_int64(stmt, 1)
+        let outputTokens = sqlite3_column_int64(stmt, 2)
+        let cachedTokens = sqlite3_column_int64(stmt, 3)
+
+        let total = inputTokens + outputTokens
+        let totalInputWithCached = inputTokens + cachedTokens
+        let fraction = totalInputWithCached > 0 ? Double(cachedTokens) / Double(totalInputWithCached) : 0
+
+        let summary = TokenSummary(
+            totalTokens: total.formatted(),
+            cacheRate: String(format: "%.1f%%", fraction * 100),
+            calls: "\(calls)",
+            cost: "$0.00"
+        )
+        return (summary, fraction, Int(cachedTokens))
+    }
+
+    private static func queryLatestCreatedAt(_ db: OpaquePointer) -> Date? {
+        let sql = """
+            SELECT timestamp
+            FROM request_logs
+            ORDER BY timestamp DESC
+            LIMIT 1
+            """
+        guard let stmt = prepare(db, sql) else { return nil }
+        defer { sqlite3_finalize(stmt) }
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
+        let ts = sqlite3_column_int64(stmt, 0)
+        return ts > 10_000_000_000
+            ? Date(timeIntervalSince1970: TimeInterval(ts) / 1000.0)
+            : Date(timeIntervalSince1970: TimeInterval(ts))
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
+    private static func text(_ stmt: OpaquePointer?, _ column: Int32) -> String? {
+        guard let c = sqlite3_column_text(stmt, column) else { return nil }
+        return String(cString: c)
+    }
+}
+
+// MARK: - CCSwitchUsageStore 完整封装保留（严禁不可逆硬删除）
+
+public enum CCSwitchUsageStore {
+    public static let defaultDBPath: URL = {
+        let base: URL
+        if let pw = getpwuid(getuid()), let dir = pw.pointee.pw_dir {
+            base = URL(fileURLWithPath: String(cString: dir))
+        } else {
+            base = FileManager.default.homeDirectoryForCurrentUser
+        }
+        return base.appendingPathComponent(".cc-switch/cc-switch.db")
+    }()
+
+    public static func fetch(dbPath: URL, now: Date = Date()) -> UsageData {
         guard let db = openReadOnly(dbPath) else { return .empty }
         defer { sqlite3_close(db) }
         sqlite3_busy_timeout(db, 500)
@@ -124,7 +357,6 @@ extension UsageStore {
         return data
     }
 
-    /// claude 系折叠 + 跨源去重（防 session 日志与 proxy 双计），对齐 cc-switch effective_usage_log_filter。
     private static let baseFilter = """
         l.app_type IN ('claude', 'claude-desktop')
         AND NOT (
@@ -146,7 +378,6 @@ extension UsageStore {
         )
         """
 
-    /// 行级净输入：FRESH 直取；TOTAL/LEGACY 归一到"不含缓存"（对齐 cc-switch fresh_input_sql）。
     private static let freshInputSQL = """
         CASE
             WHEN l.input_token_semantics = 2 THEN l.input_tokens
@@ -170,6 +401,7 @@ extension UsageStore {
             usageLog.info("cc-switch db unavailable at \(url.path)")
             return nil
         }
+        sqlite3_exec(db, "PRAGMA query_only = ON;", nil, nil, nil)
         return db
     }
 
@@ -264,7 +496,6 @@ extension UsageStore {
         return Int(sqlite3_column_int64(stmt, 0))
     }
 
-    /// 缓存节省 = Σ 缓存读/1e6 ×（输入单价 − 缓存读单价）；无定价行跳过。
     private static func todayCacheSaved(_ db: OpaquePointer, since: Date, providerId: String?) -> Double {
         let providerClause = providerId.map { " AND l.provider_id = '\($0)'" } ?? ""
         let sql = """
@@ -305,23 +536,20 @@ extension UsageStore {
         return (text(stmt, 1), text(stmt, 0))
     }
 
-    // MARK: - 展示格式化
-
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         return f
     }()
 
-    /// ≥$0.01 两位小数；<$0.01 四位；无定价 → 未定价；零 → $0.00
-    static func formatCost(usd: Double, priced: Bool) -> String {
+    public static func formatCost(usd: Double, priced: Bool) -> String {
         guard priced else { return "未定价" }
         if usd >= 0.01 { return String(format: "$%.2f", usd) }
         if usd > 0 { return String(format: "$%.4f", usd) }
         return "$0.00"
     }
 
-    static func formatTokens(_ value: Int) -> String {
+    public static func formatTokens(_ value: Int) -> String {
         let v = Double(value)
         if v >= 1_000_000 { return String(format: "%.1fM", v / 1_000_000) }
         if v >= 1_000 { return String(format: "%.1fK", v / 1_000) }
