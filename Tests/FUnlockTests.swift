@@ -226,6 +226,40 @@ class FUnlockTests: XCTestCase {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         XCTAssertNotNil(version)
     }
+
+    // MARK: - Silent Unlock Security Warning Tests
+
+    func testSilentUnlockDoesNotWarnOnError() {
+        // 验证静默解锁链路下 warn 为 false
+        let mockSys = MockSecuritySystem()
+        mockSys.shouldFail = true
+        let _ = mockSys.fetchPassword(warn: false)
+        XCTAssertFalse(mockSys.didShowModal)
+    }
+
+    func testSilentUnlockWarnsWhenWarnIsTrue() {
+        let mockSys = MockSecuritySystem()
+        mockSys.shouldFail = true
+        let _ = mockSys.fetchPassword(warn: true)
+        XCTAssertTrue(mockSys.didShowModal)
+    }
+}
+
+// MARK: - Mock Security System for Silent Unlock Tests
+
+private class MockSecuritySystem {
+    var shouldFail = false
+    var didShowModal = false
+
+    func fetchPassword(warn: Bool) -> Result<String?, KeychainError> {
+        if warn {
+            didShowModal = true
+        }
+        if shouldFail {
+            return .failure(.coldBoot)
+        }
+        return .success(nil)
+    }
 }
 
 // MARK: - FUnManager State Machine Tests

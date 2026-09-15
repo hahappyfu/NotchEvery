@@ -655,7 +655,7 @@ final class FUnManager: ObservableObject {
             recordUnlock(reason: .recentlyUnlocked, detail: "\(String(format: "%.1f", sinceUnlock)) 秒前解锁过")
             return nil
         }
-        let fetchResult = self.system.fetchPassword(warn: true)
+        let fetchResult = self.system.fetchPassword(warn: false)
         guard case .success(let password) = fetchResult, let password = password else {
             if case .failure(let error) = fetchResult {
                 Log.sm.debug("SKIP: Keychain error - \(error)")
