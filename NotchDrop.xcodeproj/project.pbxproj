@@ -108,6 +108,7 @@
 		F101CE000000000000000045 /* DiagTimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000046 /* DiagTimelineTests.swift */; };
 		F101CE000000000000000055 /* DesignSystemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000054 /* DesignSystemTests.swift */; };
 		7B01000120260CD00000000A /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000009 /* DesignSystem.swift */; };
+		F101CE000000000000000057 /* SmoothNotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000056 /* SmoothNotchShape.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -220,6 +221,7 @@
 		F101CE000000000000000046 /* DiagTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagTimelineTests.swift; sourceTree = "<group>"; };
 		F101CE000000000000000054 /* DesignSystemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystemTests.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000009 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		F101CE000000000000000056 /* SmoothNotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothNotchShape.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -276,6 +278,7 @@
 				504381982C3A8893000ED325 /* NotchWindow.swift */,
 				504381A32C3A8C7E000ED325 /* NotchWindowController.swift */,
 				5043819F2C3A8BA1000ED325 /* NotchView.swift */,
+				F101CE000000000000000056 /* SmoothNotchShape.swift */,
 				C1D2E3F4A506172839404156 /* AntigravityAccountsCardView.swift */,
 				7B01000120260CD000000001 /* CalibrationWizardView.swift */,
 				7B01000120260CD000000003 /* GuardControlZoneView.swift */,
@@ -502,6 +505,7 @@
 				C9D0E1F2A3B4071829304101 /* NotchRootView.swift in Sources */,
 				C1D2E3F4A506172839404303 /* IslandMetrics.swift in Sources */,
 				504381A02C3A8BA1000ED325 /* NotchView.swift in Sources */,
+				F101CE000000000000000057 /* SmoothNotchShape.swift in Sources */,
 				503D8EBA2C3F838200E173FF /* NotchMenuView.swift in Sources */,
 				50EFDB522C3BF7B4002D3E0F /* Ext+NSImage.swift in Sources */,
 				50E26E272C3AF5E9007CF247 /* TrayDrop.swift in Sources */,

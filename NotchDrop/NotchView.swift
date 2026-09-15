@@ -147,14 +147,11 @@ struct NotchView: View {
     }
 
     var island: some View {
-        // 原型：照抄原版 NotchDrop 外形——凹角遮罩组合逐字移植自原版 notchBackgroundMaskGroup。
-        // 2026-09-11 离屏渲染实测：凹角在本机 macOS 26 SDK 正常渲染，旧「凹角全线失效」结论作废。
+        // 正向平滑连续贝塞尔曲线岛体背景，天然纯黑填充消灭边缘半透明白边
         // 帧尺寸瞬时变更、不叠动画：SwiftUI 帧动画按中心锚定（顶边甩出屏顶），
-        // 且帧理想尺寸若超窗口会触发宿主垂直居中（历史坑）。形变动画由遮罩 body 内部承担。
-        return Rectangle()
-            .foregroundStyle(.black)
-            .mask(notchBackgroundMaskGroup)
-            // frame 瞬时跳终值：所有形变动画由遮罩内部 islandSize 驱动，外层不再追弹簧
+        // 且帧理想尺寸若超窗口会触发宿主垂直居中。形变动画由 notchBackground 内部承担。
+        return notchBackground
+            // frame 瞬时跳终值：所有形变动画由内部 islandSize 驱动，外层不再追弹簧
             .frame(width: islandSize.width + islandCornerRadius * 2, height: islandSize.height)
             .opacity(vm.status == .closed && !vm.hoverGhosting && !vm.ghostFading ? 0.3 : 1)
             .overlay(alignment: .bottom) {
@@ -185,48 +182,24 @@ struct NotchView: View {
     /// 顶部凹角融合深度（"拉长"旋钮）：出挑的 2 倍——比正圆弧更长更丝滑的过渡
     var islandFilletBlend: CGFloat { islandCornerRadius * 2 }
 
-    /// 原版凹角遮罩结构（destinationOut 挖角），切角由圆改为**拉长椭圆**：出挑不变、融合更深更丝滑
+    /// 正向平滑贝塞尔形状岛体背景，消灭原 destinationOut 反向挖切遮罩与边缘白边
+    var notchBackground: some View {
+        SmoothNotchShape(
+            cornerRadius: islandCornerRadius,
+            filletBlend: islandFilletBlend,
+            bottomRadius: islandBottomRadius,
+            isExpanded: vm.status == .opened
+        )
+        .fill(.black)
+        .frame(width: islandSize.width + islandCornerRadius * 2, height: islandSize.height)
+        // 背景在外框内顶部对齐：黑体永远从屏顶向下生长（外框恒定，不参与动画）
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // 弹簧驱动内部 islandSize 变形：过渡期（开/关/切页）才动画，稳态锁定
+        .animation(reduceMotion ? nil : (vm.transitionActive ? (vm.status == .opened ? vm.openAnimation : vm.closeAnimation) : nil), value: islandSize)
+    }
+
     var notchBackgroundMaskGroup: some View {
-        let r = islandCornerRadius
-        let blend = islandFilletBlend
-        let spacing = vm.spacing
-        let cutSide = blend + spacing
-        return Rectangle()
-            .foregroundStyle(.black)
-            .frame(width: islandSize.width, height: islandSize.height)
-            .clipShape(.rect(bottomLeadingRadius: r, bottomTrailingRadius: r))
-            .overlay {
-                ZStack(alignment: .topTrailing) {
-                    Rectangle()
-                        .frame(width: r, height: blend)
-                        .foregroundStyle(.black)
-                    EllipticalCornerCut(rx: r, ry: blend, trailing: true)
-                        .foregroundStyle(.white)
-                        .frame(width: cutSide, height: cutSide)
-                        .blendMode(.destinationOut)
-                }
-                .compositingGroup()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .offset(x: -cutSide + 0.5, y: -0.5)
-            }
-            .overlay {
-                ZStack(alignment: .topLeading) {
-                    Rectangle()
-                        .frame(width: r, height: blend)
-                        .foregroundStyle(.black)
-                    EllipticalCornerCut(rx: r, ry: blend, trailing: false)
-                        .foregroundStyle(.white)
-                        .frame(width: cutSide, height: cutSide)
-                        .blendMode(.destinationOut)
-                }
-                .compositingGroup()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .offset(x: cutSide - 0.5, y: -0.5)
-            }
-            // 遮罩 body 在外框内顶部对齐：黑体永远从屏顶向下生长（外框恒定，不参与动画）
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            // 弹簧驱动遮罩内部 islandSize 变形：过渡期（开/关/切页）才动画，稳态锁定
-            .animation(reduceMotion ? nil : (vm.transitionActive ? (vm.status == .opened ? vm.openAnimation : vm.closeAnimation) : nil), value: islandSize)
+        notchBackground
     }
 
     /// 悬停 peek 提示：今日用量一行小字（真数据）
@@ -286,37 +259,3 @@ struct StaggeredEntry: ViewModifier {    let delay: TimeInterval
     }
 }
 
-/// 右上/左上角为椭圆弧的方形切割：凹角遮罩的 destinationOut 切刀（ry > rx 即为"拉长"的融合弧）
-struct EllipticalCornerCut: Shape {
-    var rx: CGFloat
-    var ry: CGFloat
-    var trailing: Bool
-
-    func path(in rect: CGRect) -> Path {
-        let k: CGFloat = 0.5522847498
-        var p = Path()
-        if trailing {
-            p.move(to: CGPoint(x: rect.minX, y: rect.minY))
-            p.addLine(to: CGPoint(x: rect.maxX - rx, y: rect.minY))
-            p.addCurve(
-                to: CGPoint(x: rect.maxX, y: rect.minY + ry),
-                control1: CGPoint(x: rect.maxX - rx + rx * k, y: rect.minY),
-                control2: CGPoint(x: rect.maxX, y: rect.minY + ry - ry * k)
-            )
-            p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-            p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        } else {
-            p.move(to: CGPoint(x: rect.maxX, y: rect.minY))
-            p.addLine(to: CGPoint(x: rect.minX + rx, y: rect.minY))
-            p.addCurve(
-                to: CGPoint(x: rect.minX, y: rect.minY + ry),
-                control1: CGPoint(x: rect.minX + rx - rx * k, y: rect.minY),
-                control2: CGPoint(x: rect.minX, y: rect.minY + ry - ry * k)
-            )
-            p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-            p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        }
-        p.closeSubpath()
-        return p
-    }
-}
