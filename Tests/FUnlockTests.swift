@@ -2638,17 +2638,18 @@ class LockUnlockEfficiencyTests: XCTestCase {
 
 // MARK: - FUnManager 锁定阈值联动测试
 
-/// 测试 FUnManager 调解解锁阈值时自动联动锁定阈值（解锁-10 迟滞，钳制到滑杆下界）
+/// 测试 FUnManager 调解解锁阈值时自动联动锁定阈值（倒挂冲突时自动下调级联，钳制到滑杆下界）
 @MainActor
 class FUnManagerThresholdLinkTests: XCTestCase {
 
     func testSetUnlockRSSIAutoAdjustsLock() {
         let fun = FUn()
         let manager = FUnManager(fun: fun)
-        manager.setUnlockRSSI(-55)
-        XCTAssertEqual(manager.lockRSSI, -65, "调解解锁阈值后锁定应自动设为解锁-10")
-        XCTAssertEqual(fun.lockRSSI, -65)
-        XCTAssertEqual(ConfigStore.shared.defaults.integer(forKey: "lockRSSI"), -65)
+        manager.setLockRSSI(-60)
+        manager.setUnlockRSSI(-75) // lockRSSI (-60) >= -75 - 1 (-76), 倒挂冲突，自动下调为 max(-75 - 2, -95) = -77
+        XCTAssertEqual(manager.lockRSSI, -77, "调解解锁阈值发生倒挂冲突时锁定应自动下调为解锁-2")
+        XCTAssertEqual(fun.lockRSSI, -77)
+        XCTAssertEqual(ConfigStore.shared.defaults.integer(forKey: "lockRSSI"), -77)
         ConfigStore.shared.defaults.removeObject(forKey: "unlockRSSI")
         ConfigStore.shared.defaults.removeObject(forKey: "lockRSSI")
     }
@@ -2666,7 +2667,8 @@ class FUnManagerThresholdLinkTests: XCTestCase {
     func testSetUnlockRSSIClampToRangeMin() {
         let fun = FUn()
         let manager = FUnManager(fun: fun)
-        manager.setUnlockRSSI(-95)
+        manager.setLockRSSI(-60)
+        manager.setUnlockRSSI(-95) // 倒挂冲突，max(-95 - 2, -95) = -95
         XCTAssertEqual(manager.lockRSSI, -95, "联动值应钳制到滑杆下界 -95")
         ConfigStore.shared.defaults.removeObject(forKey: "unlockRSSI")
         ConfigStore.shared.defaults.removeObject(forKey: "lockRSSI")
