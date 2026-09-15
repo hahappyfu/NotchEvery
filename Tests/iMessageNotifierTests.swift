@@ -20,16 +20,20 @@ final class iMessageNotifierTests: XCTestCase {
             "NSAppleScriptErrorNumber": -1743,
         ]
         let msg = iMessageNotifier.friendlyError(errorInfo: info)
-        XCTAssertTrue(msg.contains("授权"), "未授权应提示授权，实际: \(msg)")
+        XCTAssertTrue(msg.contains("NotchEvery"), "未授权提示应包含 NotchEvery，实际: \(msg)")
+        XCTAssertTrue(msg.contains("“信息”应用未授权"), "未授权应包含“信息”应用未授权，实际: \(msg)")
+        XCTAssertFalse(msg.contains("Funlock"), "不应再包含旧名称 Funlock")
     }
 
     func testBuddyNotFoundMapsToRecipientInvalid() {
         let info: [String: Any] = [
-            "NSAppleScriptErrorNumber": -1708,
+            "NSAppleScriptErrorNumber": -1728,
             "NSAppleScriptErrorMessage": "chat... cannot find buddy \"abc\""
         ]
         let msg = iMessageNotifier.friendlyError(errorInfo: info)
-        XCTAssertTrue(msg.contains("收件人"), "应提示收件人无效，实际: \(msg)")
+        XCTAssertTrue(msg.contains("收件人未建立会话"), "应提示收件人未建立会话，实际: \(msg)")
+        XCTAssertTrue(msg.contains("互发一条消息"), "应提示互发一条消息，实际: \(msg)")
+        XCTAssertFalse(msg.contains("Funlock"), "不应再包含旧名称 Funlock")
     }
 
     func testGenericErrorReturnsMessage() {

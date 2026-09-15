@@ -6,5 +6,7 @@
 	<false/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>NotchEvery uses Bluetooth to detect nearby devices for auto lock and unlock.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>NotchEvery 需要控制“信息”应用，以便在检测到锁屏异常或离席事件时向您的设备发送安全告警通知。</string>
 </dict>
 </plist>
