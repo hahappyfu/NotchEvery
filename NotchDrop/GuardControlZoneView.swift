@@ -3,11 +3,29 @@
 //  NotchEvery
 //
 //  第三页：守护控制台（替换原 DiagZoneView 长列表）。
-//  定宽 360pt，包含 2×2 高频开关、RSSI 阈值快捷步进调节、精简判定卡片与校准向导入口。
+//  定宽 390pt，包含 2×2 高频开关、RSSI 阈值快捷步进调节、精简双行判定卡片与校准向导入口。
 //
 
 import AppKit
 import SwiftUI
+
+// MARK: - 第三页布局常量与指标
+
+enum GuardControlLayout {
+    /// 控制台舒展宽度（增加 30pt 排版余量）
+    static let preferredWidth: CGFloat = 390
+    static let horizontalPadding: CGFloat = 18
+    static let verticalPadding: CGFloat = 12
+    static let toggleGridSpacing: CGFloat = 12
+    static let toggleCardFontSize: CGFloat = 11.5
+    static let judgementDetailLineLimit: Int = 2
+
+    /// 计算出的单列 2x2 开关卡片可用宽度（> 170pt）
+    static var toggleColumnWidth: CGFloat {
+        let available = preferredWidth - (horizontalPadding * 2) - toggleGridSpacing
+        return available / 2
+    }
+}
 
 struct GuardControlZoneView: View {
     @StateObject var vm: NotchViewModel
@@ -40,9 +58,9 @@ struct GuardControlZoneView: View {
             recentJudgementCard
             bottomActions
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 12)
-        .frame(width: 360)
+        .padding(.horizontal, GuardControlLayout.horizontalPadding)
+        .padding(.vertical, GuardControlLayout.verticalPadding)
+        .frame(width: GuardControlLayout.preferredWidth)
         .sheet(isPresented: $showCalibration) {
             CalibrationWizardView(manager: store.funManager, isPresented: $showCalibration)
         }
@@ -72,49 +90,64 @@ struct GuardControlZoneView: View {
         }
     }
 
-    // MARK: - Header 状态行
+    // MARK: - Header 状态行（左状态+中设备+右控制舒展分层）
 
     private var header: some View {
         HStack(spacing: 8) {
-            ZStack {
-                if store.guardState != .disabled {
+            // 左侧：呼吸指示灯与守护状态
+            HStack(spacing: 6) {
+                ZStack {
+                    if store.guardState != .disabled {
+                        Circle()
+                            .stroke(pulseColor.opacity(pulseOpacity), lineWidth: 1.5)
+                            .scaleEffect(pulseScale)
+                    }
                     Circle()
-                        .stroke(pulseColor.opacity(pulseOpacity), lineWidth: 1.5)
-                        .scaleEffect(pulseScale)
+                        .fill(stateColor)
+                        .frame(width: 7, height: 7)
                 }
-                Circle()
-                    .fill(stateColor)
-                    .frame(width: 7, height: 7)
-            }
-            .frame(width: 14, height: 14)
+                .frame(width: 14, height: 14)
 
-            Text("守护控制 · \(stateText)")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.white.opacity(0.92))
+                Text("守护控制 · \(stateText)")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.92))
+                    .fixedSize()
+            }
+
             Spacer(minLength: 4)
+
+            // 中间：设备名与 RSSI，自适应空间避免截断
             Text(deviceSummary)
                 .font(.system(size: 11.5))
                 .foregroundStyle(Color.white.opacity(0.52))
                 .lineLimit(1)
                 .truncationMode(.tail)
-            Text("真执行")
-                .font(.system(size: 11))
-                .foregroundStyle(Color.white.opacity(0.52))
-            Toggle("", isOn: Binding(
-                get: { store.realExecution },
-                set: { store.realExecution = $0 }
-            ))
-            .labelsHidden()
-            .toggleStyle(.switch)
-            .controlSize(.mini)
+                .layoutPriority(1)
 
-            Toggle("", isOn: Binding(
-                get: { store.enabled },
-                set: { store.enabled = $0 }
-            ))
-            .labelsHidden()
-            .toggleStyle(.switch)
-            .controlSize(.mini)
+            Spacer(minLength: 4)
+
+            // 右侧：紧凑控制开关（真执行 + 启用）
+            HStack(spacing: 6) {
+                Text("真执行")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.white.opacity(0.52))
+                    .fixedSize()
+                Toggle("", isOn: Binding(
+                    get: { store.realExecution },
+                    set: { store.realExecution = $0 }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+
+                Toggle("", isOn: Binding(
+                    get: { store.enabled },
+                    set: { store.enabled = $0 }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+            }
         }
     }
 
@@ -145,12 +178,16 @@ struct GuardControlZoneView: View {
         }
     }
 
-    private var stateText: String {
-        switch store.guardState {
+    static func stateText(for state: GuardState) -> String {
+        switch state {
         case .disabled: return "停用"
         case .observing: return "空跑"
         case .guarding: return "生效中"
         }
+    }
+
+    private var stateText: String {
+        Self.stateText(for: store.guardState)
     }
 
     private var stateColor: Color {
@@ -161,21 +198,25 @@ struct GuardControlZoneView: View {
         }
     }
 
-    private var deviceSummary: String {
-        guard let name = store.deviceName else { return "未绑定设备" }
-        let rssi = store.rssi.map { "\($0) dBm" } ?? "-- dBm"
-        return "\(name) · \(rssi)"
+    static func deviceSummary(name: String? = nil, rssi: Int? = nil) -> String {
+        guard let name = name else { return "未绑定设备" }
+        let rssiStr = rssi.map { "\($0) dBm" } ?? "-- dBm"
+        return "\(name) · \(rssiStr)"
     }
 
-    // MARK: - 2×2 高频行为开关
+    private var deviceSummary: String {
+        Self.deviceSummary(name: store.deviceName, rssi: store.rssi)
+    }
+
+    // MARK: - 2×2 高频行为开关（舒展展示，防文字截断）
 
     private var togglesGrid: some View {
         VStack(spacing: 6) {
-            HStack(spacing: 12) {
+            HStack(spacing: GuardControlLayout.toggleGridSpacing) {
                 toggleItem("接近唤醒屏幕", isOn: $wakeOnProximity)
                 toggleItem("离开立即熄屏", isOn: $sleepDisplay)
             }
-            HStack(spacing: 12) {
+            HStack(spacing: GuardControlLayout.toggleGridSpacing) {
                 toggleItem("屏保替代熄屏", isOn: $screensaver)
                 toggleItem("键鼠活动保护", isOn: $lockOnIdle)
             }
@@ -186,9 +227,10 @@ struct GuardControlZoneView: View {
     private func toggleItem(_ title: String, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 6) {
             Text(title)
-                .font(.system(size: 11.5, weight: isOn.wrappedValue ? .medium : .regular))
+                .font(.system(size: GuardControlLayout.toggleCardFontSize, weight: isOn.wrappedValue ? .medium : .regular))
                 .foregroundStyle(Color.white.opacity(isOn.wrappedValue ? 0.95 : 0.80))
                 .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
             Spacer(minLength: 4)
             Toggle("", isOn: Binding(
                 get: { isOn.wrappedValue },
@@ -309,26 +351,32 @@ struct GuardControlZoneView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - 精简最近判定卡片
+    // MARK: - 最近判定事件卡片（双行舒展展示）
 
     private var recentJudgementCard: some View {
         VStack(alignment: .leading, spacing: 4) {
             if let latest = logger.events.last {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(outcomeColor(latest.outcome))
-                        .frame(width: 6, height: 6)
-                    Text(timeString(latest.timestamp))
-                        .font(.system(size: 10.5, design: .monospaced))
-                        .foregroundStyle(Color.white.opacity(0.45))
-                    Text(outcomeText(latest.outcome))
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(outcomeColor(latest.outcome))
-                    Text(latest.detail.isEmpty ? (latest.reason?.localizedTitle ?? latest.reason?.rawValue ?? "") : latest.detail)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(outcomeColor(latest.outcome))
+                            .frame(width: 6, height: 6)
+                        Text(Self.timeString(latest.timestamp))
+                            .font(.system(size: 10.5, design: .monospaced))
+                            .foregroundStyle(Color.white.opacity(0.45))
+                        Text(Self.outcomeText(latest.outcome))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(outcomeColor(latest.outcome))
+                        Spacer()
+                    }
+
+                    let detail = Self.judgementDetail(for: latest)
+                    Text(detail)
                         .font(.system(size: 11))
                         .foregroundStyle(Color.white.opacity(0.85))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                        .lineLimit(GuardControlLayout.judgementDetailLineLimit)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
@@ -344,14 +392,14 @@ struct GuardControlZoneView: View {
                         .foregroundStyle(Color.white.opacity(0.45))
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.vertical, 7)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .studioCard(radius: 8)
             }
         }
     }
 
-    // MARK: - 操作底栏
+    // MARK: - 操作底栏（平分宽度，字号居中）
 
     private var bottomActions: some View {
         HStack(spacing: 10) {
@@ -363,7 +411,7 @@ struct GuardControlZoneView: View {
                         .font(.system(size: 11, weight: .medium))
                 }
                 .foregroundStyle(Color.white.opacity(hoverCalibration ? 0.98 : 0.85))
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 6)
                 .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
@@ -379,7 +427,7 @@ struct GuardControlZoneView: View {
                         .font(.system(size: 11, weight: .medium))
                 }
                 .foregroundStyle(Color.white.opacity(hoverPreferences ? 0.98 : 0.85))
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 6)
                 .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
@@ -396,8 +444,17 @@ struct GuardControlZoneView: View {
         }
     }
 
-    private func timeString(_ date: Date) -> String {
-        Self.timeFormatter.string(from: date)
+    // MARK: - 判定与文本转换纯函数（供内部及测试使用）
+
+    static func judgementDetail(for event: DecisionEvent) -> String {
+        if !event.detail.isEmpty {
+            return event.detail
+        }
+        return event.reason?.localizedTitle ?? event.reason?.rawValue ?? ""
+    }
+
+    static func timeString(_ date: Date) -> String {
+        timeFormatter.string(from: date)
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -414,7 +471,7 @@ struct GuardControlZoneView: View {
         }
     }
 
-    private func outcomeText(_ outcome: DecisionOutcome) -> String {
+    static func outcomeText(_ outcome: DecisionOutcome) -> String {
         switch outcome {
         case .success: return "成功"
         case .skipped: return "跳过"
