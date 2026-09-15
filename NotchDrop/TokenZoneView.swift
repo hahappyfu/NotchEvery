@@ -184,30 +184,32 @@ struct TokenZoneView: View {
         // 安静的两端式 KPI 行：左 Tokens、右缓存命中率+条（去绿色胶囊底，宽面板下更干净）
         // C 档：底部 footer 并入此处第二行，岛体收矮
         VStack(spacing: 8) {
-        HStack(alignment: .firstTextBaseline) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("Tokens")
-                    .font(.system(size: 10, weight: .medium))
-                    .tracking(0.8)
-                    .foregroundStyle(.secondary)
-                RollupText(text: store.summary.totalTokens, font: .system(size: 19, weight: .bold, design: .rounded))
-            }
-            Spacer()
-            HStack(spacing: 8) {
-                Text("缓存命中率")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                RollupText(text: store.summary.cacheRate, font: .system(size: 14, weight: .bold, design: .rounded), color: StudioColor.emerald)
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(StudioColor.emerald.opacity(0.2))
-                        .frame(width: 64, height: 4)
-                    Capsule()
-                        .fill(StudioColor.emerald.opacity(0.9))
-                        .frame(width: 64 * min(1, max(0, store.cacheRateFraction)), height: 4)
+            HStack(alignment: .firstTextBaseline) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("Tokens")
+                        .font(.system(size: 10, weight: .medium))
+                        .tracking(0.8)
+                        .foregroundStyle(.secondary)
+                    RollupText(text: store.summary.totalTokens, font: .system(size: 19, weight: .bold, design: .rounded))
                 }
-                .offset(y: -1)
+                Spacer()
+                HStack(spacing: 8) {
+                    Text("缓存命中率")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    RollupText(text: store.summary.cacheRate, font: .system(size: 14, weight: .bold, design: .rounded), color: StudioColor.emerald)
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(StudioColor.emerald.opacity(0.2))
+                            .frame(width: 64, height: 4)
+                        Capsule()
+                            .fill(StudioColor.emerald.opacity(0.9))
+                            .frame(width: 64 * min(1, max(0, store.cacheRateFraction)), height: 4)
+                    }
+                    .offset(y: -1)
+                }
             }
+
             HStack {
                 Text("缓存命中 \(UsageStore.formatTokens(store.footer.cacheReadTotal))")
                 Spacer()
@@ -215,7 +217,6 @@ struct TokenZoneView: View {
             }
             .font(.system(size: 10))
             .foregroundStyle(.tertiary)
-        }
         }
         .monospacedDigit()
         .lineLimit(1)
