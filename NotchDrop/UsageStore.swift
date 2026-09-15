@@ -147,6 +147,14 @@ public final class UsageStore: ObservableObject {
         CCSwitchUsageStore.formatCost(usd: usd, priced: priced)
     }
 
+    /// 针对最近请求计算的平均延迟文案
+    public var averageLatencyText: String {
+        guard !recentRequests.isEmpty else { return "--" }
+        let total = recentRequests.reduce(0.0) { $0 + $1.durationSeconds }
+        let avg = total / Double(recentRequests.count)
+        return String(format: "%.1fs", avg)
+    }
+
     public static func formatTokens(_ value: Int) -> String {
         CCSwitchUsageStore.formatTokens(value)
     }

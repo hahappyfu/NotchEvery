@@ -55,6 +55,7 @@
 		C1D2E3F4A506172839404155 /* AntigravityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404154 /* AntigravityStore.swift */; };
 		C1D2E3F4A506172839404201 /* UsageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404200 /* UsageStore.swift */; };
 		C1D2E3F4A506172839404157 /* AntigravityAccountsCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404156 /* AntigravityAccountsCardView.swift */; };
+		C1D2E3F4A506172839404159 /* AntigravityProxyCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404158 /* AntigravityProxyCardView.swift */; };
 		D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */; };
 		F1E2D3C4B5A6071829304101 /* TokenZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */; };
 		B7C8D3E4F5A6071829304101 /* iOSPageIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */; };
@@ -166,6 +167,7 @@
 		C1D2E3F4A506172839404154 /* AntigravityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityStore.swift; sourceTree = "<group>"; };
 		C1D2E3F4A506172839404200 /* UsageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStore.swift; sourceTree = "<group>"; };
 		C1D2E3F4A506172839404156 /* AntigravityAccountsCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityAccountsCardView.swift; sourceTree = "<group>"; };
+		C1D2E3F4A506172839404158 /* AntigravityProxyCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityProxyCardView.swift; sourceTree = "<group>"; };
 		D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSwipeResolver.swift; sourceTree = "<group>"; };
 		F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenZoneView.swift; sourceTree = "<group>"; };
 		B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSPageIndicator.swift; sourceTree = "<group>"; };
@@ -282,6 +284,7 @@
 				5043819F2C3A8BA1000ED325 /* NotchView.swift */,
 				F101CE000000000000000056 /* SmoothNotchShape.swift */,
 				C1D2E3F4A506172839404156 /* AntigravityAccountsCardView.swift */,
+				C1D2E3F4A506172839404158 /* AntigravityProxyCardView.swift */,
 				7B01000120260CD000000001 /* CalibrationWizardView.swift */,
 				7B01000120260CD000000003 /* GuardControlZoneView.swift */,
 				7B01000120260CD000000005 /* PreferencesWindow.swift */,
@@ -532,6 +535,7 @@
 				504381A82C3A926E000ED325 /* NotchViewModel.swift in Sources */,
 				5044EEA02C3B116000071C5C /* PublishedPersist.swift in Sources */,
 				C1D2E3F4A506172839404157 /* AntigravityAccountsCardView.swift in Sources */,
+				C1D2E3F4A506172839404159 /* AntigravityProxyCardView.swift in Sources */,
 				7B01000120260CD000000002 /* CalibrationWizardView.swift in Sources */,
 				7B01000120260CD000000004 /* GuardControlZoneView.swift in Sources */,
 				7B01000120260CD000000006 /* PreferencesWindow.swift in Sources */,
