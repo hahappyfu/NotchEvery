@@ -17,7 +17,7 @@ struct GuardControlZoneView: View {
     // 高频行为开关持久化绑定（读取 ConfigStore.shared.defaults）
     @AppStorage("wakeOnProximity", store: ConfigStore.shared.defaults) private var wakeOnProximity = false
     @AppStorage("sleepDisplay", store: ConfigStore.shared.defaults) private var sleepDisplay = true
-    @AppStorage("pauseItunes", store: ConfigStore.shared.defaults) private var pauseItunes = false
+    @AppStorage("screensaver", store: ConfigStore.shared.defaults) private var screensaver = false
     @AppStorage("lockOnIdle", store: ConfigStore.shared.defaults) private var lockOnIdle = true
 
     // 校准向导弹窗
@@ -26,6 +26,7 @@ struct GuardControlZoneView: View {
     // 雷达呼吸微动效
     @State private var pulseScale: CGFloat = 1.0
     @State private var pulseOpacity: Double = 0.65
+    @State private var isPulsing = false
 
     // 底部按钮悬停态
     @State private var hoverCalibration = false
@@ -48,6 +49,26 @@ struct GuardControlZoneView: View {
         .onAppear {
             store.start()
             logger.loadHistory()
+            startPulseAnimation()
+        }
+        .onDisappear {
+            stopPulseAnimation()
+        }
+        .onChange(of: vm.status) { status in
+            if status == .closed {
+                stopPulseAnimation()
+                store.stop()
+            } else {
+                store.start()
+                startPulseAnimation()
+            }
+        }
+        .onChange(of: store.guardState) { state in
+            if state == .disabled {
+                stopPulseAnimation()
+            } else {
+                startPulseAnimation()
+            }
         }
     }
 
@@ -66,27 +87,62 @@ struct GuardControlZoneView: View {
                     .frame(width: 7, height: 7)
             }
             .frame(width: 14, height: 14)
-            .onAppear {
-                withAnimation(.easeOut(duration: 1.8).repeatForever(autoreverses: false)) {
-                    pulseScale = 2.4
-                    pulseOpacity = 0.0
-                }
-            }
 
             Text("守护控制 · \(stateText)")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.92))
-            Spacer(minLength: 8)
+            Spacer(minLength: 4)
             Text(deviceSummary)
                 .font(.system(size: 11.5))
                 .foregroundStyle(Color.white.opacity(0.52))
                 .lineLimit(1)
                 .truncationMode(.tail)
+            Text("真执行")
+                .font(.system(size: 11))
+                .foregroundStyle(Color.white.opacity(0.52))
+            Toggle("", isOn: Binding(
+                get: { store.realExecution },
+                set: { store.realExecution = $0 }
+            ))
+            .labelsHidden()
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+
+            Toggle("", isOn: Binding(
+                get: { store.enabled },
+                set: { store.enabled = $0 }
+            ))
+            .labelsHidden()
+            .toggleStyle(.switch)
+            .controlSize(.mini)
         }
     }
 
     private var pulseColor: Color {
         stateColor
+    }
+
+    private func startPulseAnimation() {
+        guard store.guardState != .disabled, vm.status != .closed else {
+            stopPulseAnimation()
+            return
+        }
+        guard !isPulsing else { return }
+        isPulsing = true
+        pulseScale = 1.0
+        pulseOpacity = 0.65
+        withAnimation(.easeOut(duration: 1.8).repeatForever(autoreverses: false)) {
+            pulseScale = 2.4
+            pulseOpacity = 0.0
+        }
+    }
+
+    private func stopPulseAnimation() {
+        isPulsing = false
+        withAnimation(.default) {
+            pulseScale = 1.0
+            pulseOpacity = 0.65
+        }
     }
 
     private var stateText: String {
@@ -120,7 +176,7 @@ struct GuardControlZoneView: View {
                 toggleItem("离开立即熄屏", isOn: $sleepDisplay)
             }
             HStack(spacing: 12) {
-                toggleItem("离开暂停音乐", isOn: $pauseItunes)
+                toggleItem("屏保替代熄屏", isOn: $screensaver)
                 toggleItem("键鼠活动保护", isOn: $lockOnIdle)
             }
         }
@@ -145,6 +201,7 @@ struct GuardControlZoneView: View {
             .labelsHidden()
             .toggleStyle(.switch)
             .controlSize(.mini)
+            .allowsHitTesting(false)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
