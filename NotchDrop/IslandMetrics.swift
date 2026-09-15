@@ -39,10 +39,14 @@ enum IslandMetrics {
     /// 展开态凹角半径（= 侧翼出挑宽；长宽比保底的翼宽来源，与 NotchView 共用）
     static let openCornerRadius: CGFloat = 32
     /// 面板长宽比保底：岛体宽（内容宽 + 2×openCornerRadius）对高之比不低于此值，防「窄高条」。
-    /// 1.75 取自原版 NotchDrop 展开态比例（664/160≈4.15 为宽内容族下限的保守折中，2026-09-11 定案）
-    static let panelAspectFloor: CGFloat = 1.75
+    /// 任务 3 调整为 1.15，支持更紧凑的内容自适应。
+    static let panelAspectFloor: CGFloat = 1.15
     /// 面板内容与岛体边缘的留白：内容不贴边界（对齐原版 600/664 的 32pt 比例，2026-09-11 用户验收要求）
     static let panelContentInset: CGFloat = 32
+
+    /// 面板最小高度与外接屏幕/无刘海保底宽度
+    static let minPanelHeight: CGFloat = 60
+    static let minExternalPanelWidth: CGFloat = 160
 
     /// 模型列宽钳制区间
     static let modelColumnMin: CGFloat = 100

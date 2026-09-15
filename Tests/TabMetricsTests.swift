@@ -4,8 +4,28 @@ import XCTest
 /// 内容自适应面板（ADR-0008）：高度表已删，本文件只锁边界、跟随关系与保留常量。
 final class TabMetricsTests: XCTestCase {
     func testPanelBoundsSane() {
-        XCTAssertEqual(NotchViewModel.minPanelSize, CGSize(width: 320, height: 120))
+        XCTAssertEqual(NotchViewModel.minPanelSize, CGSize(width: 160, height: 60))
         XCTAssertEqual(NotchViewModel.maxPanelWidth, 640)
+    }
+
+    func testCompactPanelSizing() {
+        // 物理刘海为 200pt 时，宽度保底为 200 + 16 = 216pt
+        let sizeWithNotch = NotchViewModel.clampPanelSize(
+            CGSize(width: 100, height: 40),
+            maxHeight: 400,
+            deviceNotchWidth: 200
+        )
+        XCTAssertEqual(sizeWithNotch.width, 216)
+        XCTAssertEqual(sizeWithNotch.height, 60, "高度保底应为 60pt")
+
+        // 无物理刘海时，宽度保底仅为内容自然宽（受 160 保底）
+        let sizeWithoutNotch = NotchViewModel.clampPanelSize(
+            CGSize(width: 180, height: 50),
+            maxHeight: 400,
+            deviceNotchWidth: 0
+        )
+        XCTAssertEqual(sizeWithoutNotch.width, 180)
+        XCTAssertEqual(sizeWithoutNotch.height, 60)
     }
 
     func testMaxHeightFollowsScreen() {

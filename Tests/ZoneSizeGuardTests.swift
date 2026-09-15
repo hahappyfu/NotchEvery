@@ -20,26 +20,26 @@ final class ZoneSizeGuardTests: XCTestCase {
         XCTAssertEqual(value, CGSize(width: 200, height: 150))
     }
 
-    // 02 工单 + 2026-09-11 设计修订：宽 = 钳制(内容自然宽, 最小 320, 长宽比保底宽)，上限 640；
-    // 高 = min(max(自然高, 120), maxHeight)。natural 为含外壳留白的盒子（内容最小宽 + 2×32）。
+    // 02 工单 + 2026-09-15 任务 3：宽 = 钳制(内容自然宽/刘海宽, 长宽比保底宽)，上限 640；
+    // 高 = min(max(自然高, 60), maxHeight)。
     func testClampKeepsContentWidth() {
         XCTAssertEqual(
             NotchViewModel.clampPanelSize(CGSize(width: 400, height: 200), maxHeight: 360),
-            CGSize(width: 400, height: 200) // 保底宽 286 < 内容 400，内容顶住
+            CGSize(width: 400, height: 200) // 保底宽 166 < 内容 400，内容顶住
         )
     }
 
     func testClampAppliesAspectFloorWhenContentNarrow() {
         XCTAssertEqual(
-            NotchViewModel.clampPanelSize(CGSize(width: 400, height: 320), maxHeight: 400),
-            CGSize(width: 496, height: 320) // 320×1.75−64 = 496 > 内容 400
+            NotchViewModel.clampPanelSize(CGSize(width: 250, height: 320), maxHeight: 400),
+            CGSize(width: 304, height: 320) // 320×1.15−64 = 304 > 内容 250
         )
     }
 
     func testClampFloorsToMinimum() {
         XCTAssertEqual(
             NotchViewModel.clampPanelSize(.zero, maxHeight: 360),
-            CGSize(width: 320, height: 120)
+            CGSize(width: 160, height: 60)
         )
     }
 
@@ -61,7 +61,7 @@ final class ZoneSizeGuardTests: XCTestCase {
 
     func testZoneOpenedSizeFloorWhenUnmeasured() {
         let vm = NotchViewModel(events: MockEventMonitors())
-        XCTAssertEqual(vm.zoneOpenedSize, CGSize(width: 320, height: 120))
+        XCTAssertEqual(vm.zoneOpenedSize, CGSize(width: 160, height: 60))
     }
 
     // H1（2026-09-11 时序实锤）：点击打开首帧宽度曾被清零，测量晚 ~10ms 才到，

@@ -80,23 +80,29 @@ class NotchViewModel: NSObject, ObservableObject {
         blendDuration: 0.125
     )
     /// 内容自适应面板（ADR-0008）：面板尺寸跟随当前分区内容自然大小，钳制有界。
-    /// 最小 320×120 防塌，最大 640 宽 × 屏高 40%，超限由内容区内部吸收，外层不动。
-    static let minPanelSize = CGSize(width: 320, height: 120)
+    /// 最小 160×60 防塌，最大 640 宽 × 屏高 40%，超限由内容区内部吸收，外层不动。
+    static let minPanelSize = CGSize(width: IslandMetrics.minExternalPanelWidth, height: IslandMetrics.minPanelHeight)
     static let maxPanelWidth: CGFloat = 640
     /// headerSlotHeight 常量保留，不作语义用途（头部行已删；测试锁定值 29）。
     static let headerSlotHeight: CGFloat = 29
 
     /// 钳制纯函数：自然尺寸 → 面板尺寸。maxHeight 由调用方按当前屏幕给（屏高 40%）。
-    /// 宽度 = 钳制(内容自然宽, 最小宽, 长宽比保底宽)，上限 maxPanelWidth——
-    /// natural 取自**含外壳留白**的盒子测量：内容最小宽 + 2×panelContentInset 是硬下限，
-    /// 否则内容吃穿留白、贴岛体边缘甚至被裁（2026-09-11 探针定位）。
-    /// 长宽比保底 = 岛体宽高比 ≥ panelAspectFloor，防「窄高条」；切页时测量被重置以允许缩回。
-    static func clampPanelSize(_ natural: CGSize, maxHeight: CGFloat) -> CGSize {
-        let height = min(max(natural.height, minPanelSize.height), maxHeight)
+    /// 宽度 = 钳制(内容自然宽/刘海宽, 长宽比保底宽)，上限 maxPanelWidth——
+    /// 若有物理刘海（deviceNotchWidth > 0），宽度保底为 deviceNotchWidth + 16；
+    /// 若无物理刘海，宽度保底为 minExternalPanelWidth (160)；
+    /// 长宽比保底 = 岛体宽高比 ≥ panelAspectFloor，防「窄高条」。
+    static func clampPanelSize(_ natural: CGSize, maxHeight: CGFloat, deviceNotchWidth: CGFloat = 0) -> CGSize {
+        let height = min(max(natural.height, IslandMetrics.minPanelHeight), maxHeight)
+        let minWidth: CGFloat
+        if deviceNotchWidth > 0 {
+            minWidth = max(deviceNotchWidth + 16, natural.width)
+        } else {
+            minWidth = max(natural.width, IslandMetrics.minExternalPanelWidth)
+        }
         let flankBleed = IslandMetrics.openCornerRadius * 2
         let aspectFloorWidth = height * IslandMetrics.panelAspectFloor - flankBleed
         return CGSize(
-            width: min(max(max(natural.width, minPanelSize.width), aspectFloorWidth), maxPanelWidth),
+            width: min(max(minWidth, aspectFloorWidth), maxPanelWidth),
             height: height
         )
     }
@@ -121,7 +127,7 @@ class NotchViewModel: NSObject, ObservableObject {
 
     /// 当前区已打开尺寸：整体测量值（含安全区+内容+dots）经钳制；未量到取最小保底
     var zoneOpenedSize: CGSize {
-        Self.clampPanelSize(measuredNaturalSize, maxHeight: maxPanelHeight)
+        Self.clampPanelSize(measuredNaturalSize, maxHeight: maxPanelHeight, deviceNotchWidth: deviceNotchRect.width)
     }
 
     /// 刘海安全区顶边 = 物理刘海高 + 8pt（03 工单）。面板内容从此之下开始，
