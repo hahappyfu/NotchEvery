@@ -570,6 +570,8 @@ struct DiagnosticsSettingsTab: View {
     }
 
     var body: some View {
+        let events = filteredEvents
+
         VStack(alignment: .leading, spacing: 10) {
             // 顶部胶囊工具栏：搜索过滤与一键清理
             HStack(spacing: 8) {
@@ -630,7 +632,7 @@ struct DiagnosticsSettingsTab: View {
                 Spacer()
 
                 if !searchText.isEmpty || selectedCategory != nil {
-                    Text("过滤: \(filteredEvents.count) 条")
+                    Text("过滤: \(events.count) 条")
                         .font(.system(size: 10.5, design: .monospaced))
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
@@ -641,7 +643,7 @@ struct DiagnosticsSettingsTab: View {
             // 诊断时序小卡片列表
             ScrollView {
                 LazyVStack(spacing: 6) {
-                    if filteredEvents.isEmpty {
+                    if events.isEmpty {
                         VStack(spacing: 8) {
                             Image(systemName: "doc.text.magnifyingglass")
                                 .font(.system(size: 26))
@@ -653,7 +655,7 @@ struct DiagnosticsSettingsTab: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 48)
                     } else {
-                        ForEach(filteredEvents.reversed()) { event in
+                        ForEach(events.reversed()) { event in
                             timelineEventCard(for: event)
                         }
                     }

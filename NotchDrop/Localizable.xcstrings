@@ -2466,7 +2466,8 @@
         }
       }
     },
-    "default_paired_device": {      "localizations": {
+    "default_paired_device": {
+      "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
@@ -2477,6 +2478,47 @@
           "stringUnit": {
             "state": "translated",
             "value": "已配对设备"
+          }
+        }
+      }
+    },
+    "Pack": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Packen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pack"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emballer"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パック"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打包"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打包"
           }
         }
       }
