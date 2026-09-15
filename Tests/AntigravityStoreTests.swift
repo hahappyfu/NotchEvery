@@ -151,4 +151,43 @@ final class AntigravityStoreTests: XCTestCase {
         XCTAssertFalse(account.isCurrent)
         XCTAssertEqual(account.percentage, 100) // 封顶 100
     }
+
+    func testSymmetricRearrangeStandardPool() {
+        // 空数组
+        XCTAssertTrue(AntigravityAccountsCardView.symmetricRearrange(accounts: []).isEmpty)
+
+        // 单账号
+        let singleAcc = AntigravityAccount(id: "acc-0", name: "A0", email: "a0@test.com", isCurrent: true, isDisabled: false, percentage: 80, resetTime: nil)
+        let singleResult = AntigravityAccountsCardView.symmetricRearrange(accounts: [singleAcc])
+        XCTAssertEqual(singleResult.count, 1)
+        XCTAssertEqual(singleResult[0].account.id, "acc-0")
+        XCTAssertEqual(singleResult[0].logicalDistance, 0)
+
+        // 标准 5 账号池：acc-cur (50%, current), acc-high (95%), acc-midhigh (80%), acc-midlow (30%), acc-low (10%)
+        let cur = AntigravityAccount(id: "cur", name: "Current", email: "cur@test.com", isCurrent: true, isDisabled: false, percentage: 50, resetTime: nil)
+        let high = AntigravityAccount(id: "high", name: "High", email: "high@test.com", isCurrent: false, isDisabled: false, percentage: 95, resetTime: nil)
+        let midHigh = AntigravityAccount(id: "midHigh", name: "MidHigh", email: "midhigh@test.com", isCurrent: false, isDisabled: false, percentage: 80, resetTime: nil)
+        let midLow = AntigravityAccount(id: "midLow", name: "MidLow", email: "midlow@test.com", isCurrent: false, isDisabled: false, percentage: 30, resetTime: nil)
+        let low = AntigravityAccount(id: "low", name: "Low", email: "low@test.com", isCurrent: false, isDisabled: false, percentage: 10, resetTime: nil)
+
+        let pool = [midLow, high, cur, low, midHigh]
+        let arranged = AntigravityAccountsCardView.symmetricRearrange(accounts: pool)
+
+        XCTAssertEqual(arranged.count, 5)
+        // 期望序列：[-2: low(10%), -1: high(95%), 0: cur(50%), 1: midHigh(80%), 2: midLow(30%)]
+        XCTAssertEqual(arranged[0].account.id, "low")
+        XCTAssertEqual(arranged[0].logicalDistance, -2)
+
+        XCTAssertEqual(arranged[1].account.id, "high")
+        XCTAssertEqual(arranged[1].logicalDistance, -1)
+
+        XCTAssertEqual(arranged[2].account.id, "cur")
+        XCTAssertEqual(arranged[2].logicalDistance, 0)
+
+        XCTAssertEqual(arranged[3].account.id, "midHigh")
+        XCTAssertEqual(arranged[3].logicalDistance, 1)
+
+        XCTAssertEqual(arranged[4].account.id, "midLow")
+        XCTAssertEqual(arranged[4].logicalDistance, 2)
+    }
 }
