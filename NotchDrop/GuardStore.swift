@@ -325,4 +325,13 @@ final class GuardStore: ObservableObject {
         refreshUnlockFailure(logger.events)
         checkPassword()
     }
+
+    deinit {
+        let dnc = DistributedNotificationCenter.default()
+        let wsCenter = NSWorkspace.shared.notificationCenter
+        for observer in systemObservers {
+            dnc.removeObserver(observer)
+            wsCenter.removeObserver(observer)
+        }
+    }
 }
