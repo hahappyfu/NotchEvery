@@ -90,7 +90,7 @@ struct GuardControlZoneView: View {
         }
     }
 
-    // MARK: - Header 状态行（左状态+中设备+右控制舒展分层）
+    // MARK: - Header 状态行（左状态+右控制两端对齐）
 
     private var header: some View {
         HStack(spacing: 8) {
@@ -114,39 +114,37 @@ struct GuardControlZoneView: View {
                     .fixedSize()
             }
 
-            Spacer(minLength: 4)
+            Spacer()
 
-            // 中间：设备名与 RSSI，自适应空间避免截断
-            Text(deviceSummary)
-                .font(.system(size: 11.5))
-                .foregroundStyle(Color.white.opacity(0.52))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .layoutPriority(1)
+            // 右侧：紧凑控制开关（守护 + 真执行）
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    Text("守护")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.white.opacity(0.52))
+                        .fixedSize()
+                    Toggle("", isOn: Binding(
+                        get: { store.enabled },
+                        set: { store.enabled = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                }
 
-            Spacer(minLength: 4)
-
-            // 右侧：紧凑控制开关（真执行 + 启用）
-            HStack(spacing: 6) {
-                Text("真执行")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.white.opacity(0.52))
-                    .fixedSize()
-                Toggle("", isOn: Binding(
-                    get: { store.realExecution },
-                    set: { store.realExecution = $0 }
-                ))
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.mini)
-
-                Toggle("", isOn: Binding(
-                    get: { store.enabled },
-                    set: { store.enabled = $0 }
-                ))
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.mini)
+                HStack(spacing: 4) {
+                    Text("真执行")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.white.opacity(0.52))
+                        .fixedSize()
+                    Toggle("", isOn: Binding(
+                        get: { store.realExecution },
+                        set: { store.realExecution = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+                }
             }
         }
     }
