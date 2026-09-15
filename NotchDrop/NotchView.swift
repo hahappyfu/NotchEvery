@@ -198,10 +198,6 @@ struct NotchView: View {
         .animation(reduceMotion ? nil : (vm.transitionActive ? (vm.status == .opened ? vm.openAnimation : vm.closeAnimation) : nil), value: islandSize)
     }
 
-    var notchBackgroundMaskGroup: some View {
-        notchBackground
-    }
-
     /// 悬停 peek 提示：今日用量一行小字（真数据）
     private var peekHint: some View {
         HStack(spacing: 7) {
