@@ -317,4 +317,26 @@ final class GuardStoreTests: XCTestCase {
         wait(for: [exp3], timeout: 2.0)
         XCTAssertEqual(store.funManager.state.system, .sleeping)
     }
+
+    // MARK: - RSSI 阈值恢复与非破坏性级联联动（任务 2）
+
+    func testThresholdsRestoredFromConfigStoreOnStart() {
+        ConfigStore.shared.set(-55, forKey: "unlockRSSI")
+        ConfigStore.shared.set(-75, forKey: "lockRSSI")
+        let store = GuardStore.shared
+        store.restoreThresholds()
+        XCTAssertEqual(store.unlockRSSI, -55)
+        XCTAssertEqual(store.lockRSSI, -75)
+    }
+
+    func testSetUnlockRSSIDoesNotOverwriteLockRSSIUnlessInverted() {
+        let manager = FUnManager()
+        manager.setLockRSSI(-75)
+        manager.setUnlockRSSI(-65)
+        // 之前会由于 -20 gap 被强行改成 -85，现在应保留 -75
+        XCTAssertEqual(manager.lockRSSI, -75)
+        // 倒挂测试：unlock 降到 -74 时，lock 必须自适应下调到 -76
+        manager.setUnlockRSSI(-74)
+        XCTAssertEqual(manager.lockRSSI, -76)
+    }
 }

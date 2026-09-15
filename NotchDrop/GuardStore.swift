@@ -178,6 +178,7 @@ final class GuardStore: ObservableObject {
         manager.inputMonitor = monitor
         manager.fun.inputMonitor = monitor
         setupSystemNotifications()
+        restoreThresholds()
         restoreDevice()
         if enabled {
             manager.startScanning()
@@ -243,6 +244,16 @@ final class GuardStore: ObservableObject {
         manager.updateConnected(false)
         manager.monitoredDeviceName = config.string(forKey: "deviceName") ?? t("default_paired_device")
         manager.fun.startMonitor(uuid: uuid)
+    }
+
+    /// 恢复已保存的 RSSI 阈值配置
+    func restoreThresholds() {
+        let savedUnlock = config.get("unlockRSSI", fallback: -60)
+        let savedLock = config.get("lockRSSI", fallback: -80)
+        funManager.setUnlockRSSI(savedUnlock)
+        funManager.setLockRSSI(savedLock)
+        self.unlockRSSI = savedUnlock
+        self.lockRSSI = savedLock
     }
 
     private func subscribe() {

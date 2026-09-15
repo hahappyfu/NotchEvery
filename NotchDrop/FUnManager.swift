@@ -197,7 +197,7 @@ final class FUnManager: ObservableObject {
 
     // MARK: Init
 
-    init(fun: FUn, nowProvider: @escaping () -> Date = { Date() }, decisionLogger: DecisionLogger = .shared,
+    init(fun: FUn = FUn(), nowProvider: @escaping () -> Date = { Date() }, decisionLogger: DecisionLogger = .shared,
          system: SystemEffects = SystemInteractionService.shared) {
         self.fun = fun
         self.stateMachine = FUnlockStateMachine(nowProvider: nowProvider)
@@ -232,9 +232,10 @@ final class FUnManager: ObservableObject {
         fun.unlockRSSI = value
         ConfigStore.shared.set(value, forKey: "unlockRSSI")
         if value != FUn.UNLOCK_DISABLED {
-            // -95：原 FUnlock OverviewView.RSSIRange.min（滑块刻度下限，菜单栏视图已砍）；
-            // 此处仅作 lockRSSI 的下限钳制，数值逐字保留。
-            setLockRSSI(max(value - lockUnlockDelayGap, -95))
+            // 仅在 lockRSSI 与 unlockRSSI 倒挂冲突（lock >= unlock - 1）时，才强制下调锁定阈值
+            if lockRSSI >= value - 1 {
+                setLockRSSI(max(value - 2, -95))
+            }
         }
     }
 
