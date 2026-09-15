@@ -21,17 +21,18 @@ class TrayDrop: ObservableObject {
             $customStorageTimeUnit.removeDuplicates()
         )
         .map { selectedFileStorageTime, customStorageTime, customStorageTimeUnit in
+            let safeCustomTime = max(customStorageTime, 1)
             let customTime = switch customStorageTimeUnit {
             case .hours:
-                TimeInterval(customStorageTime) * 60 * 60
+                TimeInterval(safeCustomTime) * 60 * 60
             case .days:
-                TimeInterval(customStorageTime) * 60 * 60 * 24
+                TimeInterval(safeCustomTime) * 60 * 60 * 24
             case .weeks:
-                TimeInterval(customStorageTime) * 60 * 60 * 24 * 7
+                TimeInterval(safeCustomTime) * 60 * 60 * 24 * 7
             case .months:
-                TimeInterval(customStorageTime) * 60 * 60 * 24 * 30
+                TimeInterval(safeCustomTime) * 60 * 60 * 24 * 30
             case .years:
-                TimeInterval(customStorageTime) * 60 * 60 * 24 * 365
+                TimeInterval(safeCustomTime) * 60 * 60 * 24 * 365
             }
             let ans = selectedFileStorageTime.toTimeInterval(customTime: customTime)
             trayLog.info("using interval \(ans) to keep files")

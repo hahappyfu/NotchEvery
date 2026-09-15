@@ -90,22 +90,33 @@ struct PreferencesWindow: View {
 
 // MARK: - Studio Section Group Component
 
-struct StudioSectionGroup<Content: View>: View {
+struct StudioSectionGroup<Content: View, Trailing: View>: View {
     let title: LocalizedStringKey
     let subtitle: LocalizedStringKey?
+    @ViewBuilder let trailing: () -> Trailing
     @ViewBuilder let content: () -> Content
 
-    init(_ title: LocalizedStringKey, subtitle: LocalizedStringKey? = nil, @ViewBuilder content: @escaping () -> Content) {
+    init(
+        _ title: LocalizedStringKey,
+        subtitle: LocalizedStringKey? = nil,
+        @ViewBuilder trailing: @escaping () -> Trailing = { EmptyView() },
+        @ViewBuilder content: @escaping () -> Content
+    ) {
         self.title = title
         self.subtitle = subtitle
+        self.trailing = trailing
         self.content = content
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.primary)
+            HStack {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.primary)
+                Spacer()
+                trailing()
+            }
             if let subtitle {
                 Text(subtitle)
                     .font(.system(size: 11))
@@ -117,6 +128,12 @@ struct StudioSectionGroup<Content: View>: View {
             .studioCard(radius: 10)
         }
         .padding(.horizontal)
+    }
+}
+
+extension StudioSectionGroup where Trailing == EmptyView {
+    init(_ title: LocalizedStringKey, subtitle: LocalizedStringKey? = nil, @ViewBuilder content: @escaping () -> Content) {
+        self.init(title, subtitle: subtitle, trailing: { EmptyView() }, content: content)
     }
 }
 
@@ -138,6 +155,14 @@ struct GeneralSettingsTab: View {
         }
         return .system
     }()
+
+    private var customStorageTimeFormatter: NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.minimum = 1
+        formatter.maximum = 999
+        formatter.allowsFloats = false
+        return formatter
+    }
 
     var body: some View {
         ScrollView {
@@ -212,7 +237,7 @@ struct GeneralSettingsTab: View {
                             HStack {
                                 Text("自定义时长")
                                 Spacer()
-                                TextField("时长", value: $tvm.customStorageTime, formatter: NumberFormatter())
+                                TextField("时长", value: $tvm.customStorageTime, formatter: customStorageTimeFormatter)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 60)
                                 Picker("", selection: $tvm.customStorageTimeUnit) {
@@ -332,7 +357,6 @@ struct UnlockSettingsTab: View {
 
 struct LockSettingsTab: View {
     @AppStorage("sleepDisplay", store: ConfigStore.shared.defaults) private var sleepDisplay = true
-    @AppStorage("pauseItunes", store: ConfigStore.shared.defaults) private var pauseItunes = false
     @AppStorage("lockOnIdle", store: ConfigStore.shared.defaults) private var lockOnIdle = true
 
     var body: some View {
@@ -344,18 +368,6 @@ struct LockSettingsTab: View {
                             Toggle("离开后立即熄灭显示器", isOn: $sleepDisplay)
                                 .toggleStyle(.switch)
                             Text("检测到远离时不仅锁屏，同时让屏幕进入休眠节电。")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-
-                        Divider().overlay(StudioMaterial.strokeNormal)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Toggle("锁屏时暂停媒体播放", isOn: $pauseItunes)
-                                .toggleStyle(.switch)
-                            Text("自动暂停正在播放的音乐或视频。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -473,7 +485,17 @@ struct CalibrationSettingsTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                StudioSectionGroup("当前信号阈值") {
+                StudioSectionGroup("当前信号阈值", trailing: {
+                    Button("恢复推荐值") {
+                        withAnimation(StudioAnimation.interactiveSpring) {
+                            store.setUnlockRSSI(-60)
+                            store.setLockRSSI(-70)
+                        }
+                    }
+                    .font(.system(size: 11))
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                }) {
                     VStack(spacing: 0) {
                         HStack {
                             Text("当前绑定设备")
@@ -549,6 +571,7 @@ struct DiagnosticsSettingsTab: View {
     @StateObject private var logger = DecisionLogger.shared
     @State private var selectedCategory: DecisionCategory?
     @State private var searchText = ""
+    @State private var showingClearConfirmation = false
 
     private var filteredEvents: [DecisionEvent] {
         var list = logger.events
@@ -602,7 +625,7 @@ struct DiagnosticsSettingsTab: View {
                 Spacer()
 
                 Button(action: {
-                    logger.clear()
+                    showingClearConfirmation = true
                 }) {
                     HStack(spacing: 4) {
                         Image(systemName: "trash")
@@ -617,6 +640,18 @@ struct DiagnosticsSettingsTab: View {
                 }
                 .buttonStyle(.plain)
                 .help("清空当前所有诊断决策日志")
+                .confirmationDialog(
+                    "确认清空所有诊断决策日志？",
+                    isPresented: $showingClearConfirmation,
+                    titleVisibility: .visible
+                ) {
+                    Button("清空历史", role: .destructive) {
+                        logger.clear()
+                    }
+                    Button("取消", role: .cancel) {}
+                } message: {
+                    Text("清空后将无法恢复之前的近距解锁、离席锁屏与系统守护时序记录。")
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)

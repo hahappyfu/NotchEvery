@@ -19,6 +19,7 @@ final class PreferencesWindowController: NSWindowController {
             defer: false
         )
         window.title = "NotchEvery 偏好设置"
+        window.minSize = NSSize(width: 650, height: 440)
         window.center()
         window.setFrameAutosaveName("NotchEveryPreferencesWindow")
         window.isReleasedWhenClosed = false
