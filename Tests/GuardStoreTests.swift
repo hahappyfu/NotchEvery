@@ -258,4 +258,63 @@ final class GuardStoreTests: XCTestCase {
         store.setOrChangePassword()
         XCTAssertTrue(store.hasPassword)
     }
+
+    // MARK: - 系统生命周期通知（任务 1）
+
+    func testSystemScreenLockedNotificationTriggersManager() {
+        let store = GuardStore.shared
+        store.start()
+        // 模拟发出系统锁屏通知
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name("com.apple.screenIsLocked"),
+            object: nil,
+            userInfo: nil,
+            deliverImmediately: true
+        )
+        // DistributedNotificationCenter 投递与主队列 block 执行需要一小段 runloop 调度
+        let exp = expectation(description: "notification processed")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 2.0)
+        // 验证 store.funManager.state.screen 状态正确流转
+        XCTAssertTrue(store.funManager.state.isEffectivelyLocked)
+    }
+
+    func testSystemScreenSaverAndDisplayNotificationsTriggerManager() {
+        let store = GuardStore.shared
+        store.start()
+
+        // 模拟屏保启动
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name("com.apple.screensaver.didstart"),
+            object: nil,
+            userInfo: nil,
+            deliverImmediately: true
+        )
+        let exp1 = expectation(description: "screensaver start processed")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { exp1.fulfill() }
+        wait(for: [exp1], timeout: 2.0)
+        XCTAssertEqual(store.funManager.state.screen, .screensaver)
+
+        // 模拟显示器休眠
+        NSWorkspace.shared.notificationCenter.post(
+            name: NSWorkspace.screensDidSleepNotification,
+            object: nil
+        )
+        let exp2 = expectation(description: "screens did sleep processed")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { exp2.fulfill() }
+        wait(for: [exp2], timeout: 2.0)
+        XCTAssertEqual(store.funManager.state.screen, .displaySleeping)
+
+        // 模拟系统休眠
+        NSWorkspace.shared.notificationCenter.post(
+            name: NSWorkspace.willSleepNotification,
+            object: nil
+        )
+        let exp3 = expectation(description: "will sleep processed")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { exp3.fulfill() }
+        wait(for: [exp3], timeout: 2.0)
+        XCTAssertEqual(store.funManager.state.system, .sleeping)
+    }
 }

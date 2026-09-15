@@ -13,6 +13,7 @@
 //  - 总开关（enabled）读写；真执行开关（realExecution）读写与持久化（05）。
 //
 
+import AppKit
 import Combine
 import Foundation
 
@@ -44,6 +45,7 @@ final class GuardStore: ObservableObject {
     private let logger: DecisionLogger
     private let monitor = InputActivityMonitor()
     private var cancellables = Set<AnyCancellable>()
+    private var systemObservers: [NSObjectProtocol] = []
 
     /// 暴露底层 FUnManager 供校准向导与高级设置使用
     var funManager: FUnManager { manager }
@@ -175,6 +177,7 @@ final class GuardStore: ObservableObject {
         manager.fun.delegate = manager
         manager.inputMonitor = monitor
         manager.fun.inputMonitor = monitor
+        setupSystemNotifications()
         restoreDevice()
         if enabled {
             manager.startScanning()
@@ -188,6 +191,47 @@ final class GuardStore: ObservableObject {
 
     func stop() {
         manager.stopScanning()
+    }
+
+    // MARK: - 系统生命周期通知
+
+    private func setupSystemNotifications() {
+        guard systemObservers.isEmpty else { return }
+
+        let dnc = DistributedNotificationCenter.default()
+        let wsCenter = NSWorkspace.shared.notificationCenter
+
+        // 1. 屏幕锁定与解锁
+        systemObservers.append(dnc.addObserver(forName: NSNotification.Name("com.apple.screenIsLocked"), object: nil, queue: .main) { [weak self] _ in
+            self?.funManager.onSystemScreenLocked()
+        })
+        systemObservers.append(dnc.addObserver(forName: NSNotification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main) { [weak self] _ in
+            self?.funManager.onUnlock()
+        })
+
+        // 2. 屏幕保护程序
+        systemObservers.append(dnc.addObserver(forName: NSNotification.Name("com.apple.screensaver.didstart"), object: nil, queue: .main) { [weak self] _ in
+            self?.funManager.onScreensaverStart()
+        })
+        systemObservers.append(dnc.addObserver(forName: NSNotification.Name("com.apple.screensaver.didstop"), object: nil, queue: .main) { [weak self] _ in
+            self?.funManager.onScreensaverStop()
+        })
+
+        // 3. 显示器休眠与唤醒
+        systemObservers.append(wsCenter.addObserver(forName: NSWorkspace.screensDidSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.funManager.onDisplaySleep()
+        })
+        systemObservers.append(wsCenter.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.funManager.onDisplayWake()
+        })
+
+        // 4. 系统睡眠与唤醒
+        systemObservers.append(wsCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.funManager.onSystemSleep()
+        })
+        systemObservers.append(wsCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.funManager.onSystemWake()
+        })
     }
 
     // MARK: - 内部
