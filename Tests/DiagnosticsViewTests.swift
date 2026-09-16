@@ -21,15 +21,15 @@ final class DiagnosticsViewTests: XCTestCase {
     // MARK: - GuardControlZoneView 布局与尺寸健壮性测试
 
     func testGuardControlLayoutMetrics() {
-        // 宽度放宽至 390pt
-        XCTAssertEqual(GuardControlLayout.preferredWidth, 390, "控制台定宽应为 390pt 以彻底杜绝截断")
-        XCTAssertEqual(GuardControlLayout.horizontalPadding, 18)
-        XCTAssertEqual(GuardControlLayout.verticalPadding, 12)
+        // 宽度放宽至 520pt（与灵动岛前两页等宽统一）
+        XCTAssertEqual(GuardControlLayout.preferredWidth, 520, "控制台定宽应为 520pt 舒展等宽设计")
+        XCTAssertEqual(GuardControlLayout.horizontalPadding, 16)
+        XCTAssertEqual(GuardControlLayout.verticalPadding, 10)
         XCTAssertEqual(GuardControlLayout.toggleCardFontSize, 11.5)
         XCTAssertEqual(GuardControlLayout.judgementDetailLineLimit, 2, "判定详情卡片应支持双行展示")
 
-        // 验证 2x2 每列卡片可用宽度大于 170pt
-        XCTAssertGreaterThan(GuardControlLayout.toggleColumnWidth, 170, "每列卡片宽度应充足（>170pt）以舒适显示6字中文")
+        // 验证 2x2 每列卡片可用宽度大于 230pt
+        XCTAssertGreaterThan(GuardControlLayout.toggleColumnWidth, 230, "每列卡片宽度应充足（>230pt）以舒适显示6字中文")
     }
 
     func testGuardControlTimeStringFormat() {

@@ -112,6 +112,7 @@
 		7B01000120260CD00000000A /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000009 /* DesignSystem.swift */; };
 		F101CE000000000000000057 /* SmoothNotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000056 /* SmoothNotchShape.swift */; };
 		F101CE00000000000000005A /* TokenFormatUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000059 /* TokenFormatUtilsTests.swift */; };
+		7B01000120260CD00000000B /* GuardControlZoneViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD00000000C /* GuardControlZoneViewTests.swift */; };
 		F101CE00000000000000005C /* TokenFormatUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000005B /* TokenFormatUtils.swift */; };
 /* End PBXBuildFile section */
 
@@ -229,6 +230,7 @@
 		7B01000120260CD000000009 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		F101CE000000000000000056 /* SmoothNotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothNotchShape.swift; sourceTree = "<group>"; };
 		F101CE000000000000000059 /* TokenFormatUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenFormatUtilsTests.swift; sourceTree = "<group>"; };
+		7B01000120260CD00000000C /* GuardControlZoneViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardControlZoneViewTests.swift; sourceTree = "<group>"; };
 		F101CE00000000000000005B /* TokenFormatUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenFormatUtils.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -389,6 +391,7 @@
 				F101CE000000000000000038 /* iMessageNotifierTests.swift */,
 				F101CE000000000000000054 /* DesignSystemTests.swift */,
 				F101CE000000000000000059 /* TokenFormatUtilsTests.swift */,
+					7B01000120260CD00000000C /* GuardControlZoneViewTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -609,6 +612,7 @@
 				F101CE000000000000000051 /* PermissionGuideTests.swift in Sources */,
 				F101CE000000000000000055 /* DesignSystemTests.swift in Sources */,
 				F101CE00000000000000005A /* TokenFormatUtilsTests.swift in Sources */,
+					7B01000120260CD00000000B /* GuardControlZoneViewTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

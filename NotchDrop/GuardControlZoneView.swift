@@ -18,15 +18,15 @@ enum GuardSignalConstants {
 }
 
 enum GuardControlLayout {
-    /// 控制台舒展宽度（增加 30pt 排版余量）
-    static let preferredWidth: CGFloat = 390
-    static let horizontalPadding: CGFloat = 18
-    static let verticalPadding: CGFloat = 12
-    static let toggleGridSpacing: CGFloat = 12
+    /// 控制台舒展等宽设计（与前两页 520pt 等宽统一，消除切页跳跃感）
+    static let preferredWidth: CGFloat = 520
+    static let horizontalPadding: CGFloat = 16
+    static let verticalPadding: CGFloat = 10
+    static let toggleGridSpacing: CGFloat = 10
     static let toggleCardFontSize: CGFloat = 11.5
     static let judgementDetailLineLimit: Int = 2
 
-    /// 计算出的单列 2x2 开关卡片可用宽度（> 170pt）
+    /// 计算出的单列 2x2 开关卡片可用宽度（> 230pt，极度舒展不折行）
     static var toggleColumnWidth: CGFloat {
         let available = preferredWidth - (horizontalPadding * 2) - toggleGridSpacing
         return available / 2
@@ -54,7 +54,7 @@ struct GuardControlZoneView: View {
     @State private var hoverAuthButton = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             header
             togglesGrid
             thresholdRow
