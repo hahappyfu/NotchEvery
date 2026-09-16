@@ -2,10 +2,20 @@ import XCTest
 @testable import NotchEvery
 
 final class AppPathsTests: XCTestCase {
-    func testDocumentsDirectoryFallbackWhenEmpty() {
-        // FileManager.urls(for:) 返回 [] 时回退到 applicationSupport，不崩溃
+    func testDocumentsDirectoryPointsToUserHomeDotNotchEvery() {
+        let expectedHome = FileManager.default.homeDirectoryForCurrentUser
+        let expected = expectedHome.appendingPathComponent(".notchevery")
+        XCTAssertEqual(AppPaths.documentsDirectory.path, expected.path)
     }
-    func testSanitizedFileNameStripsSlash() {
-        // sanitizedFileName("a/b:c") == "a_b_c" 且截断 200
+
+    func testConfigDirPointsToDocumentsDirectory() {
+        let expected = AppPaths.documentsDirectory.appendingPathComponent("Config")
+        XCTAssertEqual(AppPaths.configDir.path, expected.path)
+    }
+
+    func testPidFilePointsToDocumentsDirectory() {
+        let expected = AppPaths.documentsDirectory.appendingPathComponent("ProcessIdentifier")
+        XCTAssertEqual(AppPaths.pidFile.path, expected.path)
     }
 }
+

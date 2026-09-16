@@ -9,13 +9,8 @@ import Foundation
 
 enum AppPaths {
     static var documentsDirectory: URL {
-        let urls = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-        guard let first = urls.first else {
-            let fallback = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-                ?? URL(fileURLWithPath: NSTemporaryDirectory())
-            return fallback.appendingPathComponent("NotchEvery")
-        }
-        return first.appendingPathComponent("NotchEvery")
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".notchevery")
     }
 
     static var temporaryDirectory: URL {
@@ -30,9 +25,14 @@ enum AppPaths {
     static var configDir: URL {
         documentsDirectory.appendingPathComponent("Config")
     }
+
+    static var configFile: URL {
+        documentsDirectory.appendingPathComponent("config.json")
+    }
 }
 
 // ——— 兼容层：main.swift 顶层 let 保留为 AppPaths 的别名，供未迁移引用 ———
 let documentsDirectory: URL = AppPaths.documentsDirectory
 let temporaryDirectory: URL = AppPaths.temporaryDirectory
 let pidFile: URL = AppPaths.pidFile
+
