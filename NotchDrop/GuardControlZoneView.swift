@@ -11,6 +11,12 @@ import SwiftUI
 
 // MARK: - 第三页布局常量与指标
 
+enum GuardSignalConstants {
+    static let minRSSI: Int = -95
+    static let maxRSSI: Int = -40
+    static let minSafetyGap: Int = 3
+}
+
 enum GuardControlLayout {
     /// 控制台舒展宽度（增加 30pt 排版余量）
     static let preferredWidth: CGFloat = 390
@@ -257,100 +263,281 @@ struct GuardControlZoneView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - RSSI 阈值快速调节
+    // MARK: - 空间距离与信号可视化滑动条（Dual Sliders + Live Radar Needle）
 
     private var thresholdRow: some View {
-        HStack(spacing: 12) {
-            // 解锁阈值
-            thresholdCard(
-                title: "解锁",
-                value: "\(store.unlockRSSI) dBm",
-                canDecrement: store.unlockRSSI > -93,
-                canIncrement: store.unlockRSSI < -30,
-                onDecrement: {
-                    let next = max(store.unlockRSSI - 1, -93)
-                    store.setUnlockRSSI(next)
-                },
-                onIncrement: {
-                    let next = min(store.unlockRSSI + 1, -30)
-                    store.setUnlockRSSI(next)
-                }
-            )
-
-            // 锁定阈值
-            thresholdCard(
-                title: "锁屏",
-                value: "\(store.lockRSSI) dBm",
-                canDecrement: store.lockRSSI > -95,
-                canIncrement: store.lockRSSI + 1 <= store.unlockRSSI - 2,
-                onDecrement: {
-                    let next = max(store.lockRSSI - 1, -95)
-                    store.setLockRSSI(next)
-                },
-                onIncrement: {
-                    guard store.lockRSSI + 1 <= store.unlockRSSI - 2 else { return }
-                    store.setLockRSSI(store.lockRSSI + 1)
-                }
-            )
-        }
+        GuardSignalRangeSlider(store: store)
     }
+}
 
-    private func thresholdCard(
-        title: String,
-        value: String,
-        canDecrement: Bool,
-        canIncrement: Bool,
-        onDecrement: @escaping () -> Void,
-        onIncrement: @escaping () -> Void
-    ) -> some View {
-        HStack(spacing: 6) {
-            Text(title)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.55))
+// MARK: - GuardSignalRangeSlider 组件
 
-            Spacer(minLength: 2)
+struct GuardSignalRangeSlider: View {
+    @ObservedObject var store: GuardStore
 
-            Button {
-                withAnimation(StudioAnimation.interactiveSpring) {
-                    onDecrement()
-                }
-            } label: {
-                Image(systemName: "minus")
-                    .font(.system(size: 8.5, weight: .bold))
-                    .foregroundStyle(canDecrement ? Color.white.opacity(0.85) : Color.white.opacity(0.25))
-                    .frame(width: 18, height: 18)
-                    .background(Color.white.opacity(0.08), in: Capsule())
-                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5))
-            }
-            .buttonStyle(.plain)
-            .disabled(!canDecrement)
+    var body: some View {
+        VStack(spacing: 8) {
+            // 顶部：实时信号状态条（Live Radar Needle 提示）
+            liveSignalHeader
 
-            Text(value)
-                .font(.system(size: 11.5, weight: .semibold, design: .monospaced))
-                .foregroundStyle(Color.white.opacity(0.92))
-                .frame(minWidth: 54, alignment: .center)
+            // 中部：空间可视化指示标尺（含刻度、区间色带与实时动态光标）
+            spatialTrackView
 
-            Button {
-                withAnimation(StudioAnimation.interactiveSpring) {
-                    onIncrement()
-                }
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 8.5, weight: .bold))
-                    .foregroundStyle(canIncrement ? Color.white.opacity(0.85) : Color.white.opacity(0.25))
-                    .frame(width: 18, height: 18)
-                    .background(Color.white.opacity(0.08), in: Capsule())
-                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5))
-            }
-            .buttonStyle(.plain)
-            .disabled(!canIncrement)
+            // 底部：双滑块控制（贴近解锁 & 离开锁屏）
+            slidersControlView
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .studioCard(radius: 8)
-        .frame(maxWidth: .infinity)
     }
 
+    // MARK: - 实时信号状态条
+    private var liveSignalHeader: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(liveSignalColor)
+                .frame(width: 6, height: 6)
+                .overlay(
+                    Circle()
+                        .stroke(liveSignalColor.opacity(0.4), lineWidth: 1.5)
+                        .scaleEffect(store.rssi != nil ? 1.6 : 1.0)
+                )
+
+            Text(liveSignalTitle)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.90))
+
+            Spacer()
+
+            if let rssi = store.rssi {
+                Text(Self.distanceDescription(for: rssi))
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color.white.opacity(0.55))
+            }
+        }
+    }
+
+    private var liveSignalTitle: String {
+        guard let rssi = store.rssi else {
+            return "当前信号: 未检测到设备"
+        }
+        let zone = Self.zoneDescription(rssi: rssi, unlockRSSI: store.unlockRSSI, lockRSSI: store.lockRSSI)
+        return "当前信号: \(rssi) dBm · \(zone)"
+    }
+
+    private var liveSignalColor: Color {
+        guard let rssi = store.rssi else { return Color.white.opacity(0.3) }
+        if rssi >= store.unlockRSSI {
+            return StudioColor.emerald
+        } else if rssi > store.lockRSSI {
+            return StudioColor.amber
+        } else {
+            return StudioColor.rose
+        }
+    }
+
+    // MARK: - 空间可视化标尺与光标
+    private var spatialTrackView: some View {
+        VStack(spacing: 4) {
+            GeometryReader { geo in
+                let width = geo.size.width
+                ZStack(alignment: .leading) {
+                    // 背景渐变轨道（-95dBm 锁屏区 -> 缓冲 -> -40dBm 解锁区）
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                stops: [
+                                    .init(color: StudioColor.rose.opacity(0.35), location: 0.0),
+                                    .init(color: StudioColor.amber.opacity(0.25), location: 0.45),
+                                    .init(color: StudioColor.emerald.opacity(0.45), location: 1.0)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(height: 6)
+
+                    // 锁屏与解锁阈值分割标记点
+                    let lockPos = normalizedPosition(for: store.lockRSSI, in: width)
+                    let unlockPos = normalizedPosition(for: store.unlockRSSI, in: width)
+
+                    // 离开锁屏阈值竖线
+                    Rectangle()
+                        .fill(StudioColor.rose)
+                        .frame(width: 1.5, height: 10)
+                        .offset(x: max(0, min(width - 1.5, lockPos)))
+
+                    // 靠近解锁阈值竖线
+                    Rectangle()
+                        .fill(StudioColor.emerald)
+                        .frame(width: 1.5, height: 10)
+                        .offset(x: max(0, min(width - 1.5, unlockPos)))
+
+                    // 实时信号光标（Live Radar Needle）
+                    if let rssi = store.rssi {
+                        let clampedRSSI = max(GuardSignalConstants.minRSSI, min(GuardSignalConstants.maxRSSI, rssi))
+                        let needlePos = normalizedPosition(for: clampedRSSI, in: width)
+
+                        ZStack {
+                            // 微光扩散光晕
+                            Circle()
+                                .fill(StudioColor.emerald.opacity(0.35))
+                                .frame(width: 12, height: 12)
+
+                            // 实体中心游标
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 5, height: 5)
+                                .overlay(
+                                    Circle()
+                                        .stroke(StudioColor.emerald, lineWidth: 1.5)
+                                )
+                        }
+                        .offset(x: max(0, min(width - 12, needlePos - 6)))
+                    }
+                }
+            }
+            .frame(height: 12)
+
+            // 标尺两端与物理距离提示
+            HStack {
+                Text("离座锁屏 (-95)")
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(Color.white.opacity(0.45))
+                Spacer()
+                Text("防抖缓冲")
+                    .font(.system(size: 9))
+                    .foregroundStyle(Color.white.opacity(0.35))
+                Spacer()
+                Text("贴近解锁 (-40)")
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(Color.white.opacity(0.45))
+            }
+        }
+    }
+
+    // MARK: - 双滑块控制区
+    private var slidersControlView: some View {
+        VStack(spacing: 6) {
+            // 靠近解锁阈值滑块
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    Image(systemName: "lock.open.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(StudioColor.emerald)
+                    Text("靠近解锁")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.85))
+                }
+                .frame(width: 68, alignment: .leading)
+
+                Slider(
+                    value: Binding(
+                        get: { Double(store.unlockRSSI) },
+                        set: { newUnlock in
+                            updateUnlockRSSI(Int(newUnlock))
+                        }
+                    ),
+                    in: Double(GuardSignalConstants.minRSSI + GuardSignalConstants.minSafetyGap)...Double(GuardSignalConstants.maxRSSI),
+                    step: 1
+                )
+                .tint(StudioColor.emerald)
+                .controlSize(.mini)
+
+                Text("\(store.unlockRSSI) dBm")
+                    .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(StudioColor.emerald)
+                    .frame(width: 52, alignment: .trailing)
+            }
+
+            // 离开锁屏阈值滑块
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(StudioColor.rose)
+                    Text("离开锁屏")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.85))
+                }
+                .frame(width: 68, alignment: .leading)
+
+                Slider(
+                    value: Binding(
+                        get: { Double(store.lockRSSI) },
+                        set: { newLock in
+                            updateLockRSSI(Int(newLock))
+                        }
+                    ),
+                    in: Double(GuardSignalConstants.minRSSI)...Double(GuardSignalConstants.maxRSSI - GuardSignalConstants.minSafetyGap),
+                    step: 1
+                )
+                .tint(StudioColor.rose)
+                .controlSize(.mini)
+
+                Text("\(store.lockRSSI) dBm")
+                    .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(StudioColor.rose)
+                    .frame(width: 52, alignment: .trailing)
+            }
+        }
+    }
+
+    // MARK: - 安全互锁与阈值调节逻辑
+    private func updateUnlockRSSI(_ newUnlock: Int) {
+        let clampedUnlock = max(GuardSignalConstants.minRSSI + GuardSignalConstants.minSafetyGap, min(GuardSignalConstants.maxRSSI, newUnlock))
+        if clampedUnlock - store.lockRSSI < GuardSignalConstants.minSafetyGap {
+            let newLock = max(GuardSignalConstants.minRSSI, clampedUnlock - GuardSignalConstants.minSafetyGap)
+            store.setLockRSSI(newLock)
+        }
+        store.setUnlockRSSI(clampedUnlock)
+    }
+
+    private func updateLockRSSI(_ newLock: Int) {
+        let clampedLock = max(GuardSignalConstants.minRSSI, min(GuardSignalConstants.maxRSSI - GuardSignalConstants.minSafetyGap, newLock))
+        if store.unlockRSSI - clampedLock < GuardSignalConstants.minSafetyGap {
+            let newUnlock = min(GuardSignalConstants.maxRSSI, clampedLock + GuardSignalConstants.minSafetyGap)
+            store.setUnlockRSSI(newUnlock)
+        }
+        store.setLockRSSI(clampedLock)
+    }
+
+    private func normalizedPosition(for rssi: Int, in totalWidth: CGFloat) -> CGFloat {
+        let minR = CGFloat(GuardSignalConstants.minRSSI)
+        let maxR = CGFloat(GuardSignalConstants.maxRSSI)
+        let r = CGFloat(max(GuardSignalConstants.minRSSI, min(GuardSignalConstants.maxRSSI, rssi)))
+        let ratio = (r - minR) / (maxR - minR)
+        return ratio * totalWidth
+    }
+
+    // MARK: - 静态语义转换函数（供测试与视图共享）
+    static func zoneDescription(rssi: Int, unlockRSSI: Int, lockRSSI: Int) -> String {
+        if rssi >= unlockRSSI {
+            return "已在解锁区"
+        } else if rssi > lockRSSI {
+            return "处于缓冲区分界"
+        } else {
+            return "处于离座锁屏区"
+        }
+    }
+
+    static func distanceDescription(for rssi: Int) -> String {
+        switch rssi {
+        case -50 ... -30:
+            return "贴身 (<0.5米)"
+        case -65 ..< -50:
+            return "工位近距 (~1米)"
+        case -80 ..< -65:
+            return "中距离 (~2-3米)"
+        case -90 ..< -80:
+            return "远距离 (~4-6米)"
+        default:
+            return "极远/微弱 (>6米)"
+        }
+    }
+}
+
+extension GuardControlZoneView {
     // MARK: - 最近判定事件卡片（双行舒展展示）与系统授权引导
 
     /// 提纯核心判定事件（过滤掉非锁屏决策的异步通道错误，如 iMessageFailed）

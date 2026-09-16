@@ -139,4 +139,44 @@ final class DiagnosticsViewTests: XCTestCase {
             "开启通知且出现错误时应展示授权提示"
         )
     }
+
+    // MARK: - GuardSignalRangeSlider 空间测距与阈值映射测试
+
+    func testGuardSignalRangeSliderZoneDescriptions() {
+        // 解锁阈值 -60，锁定阈值 -85
+        XCTAssertEqual(
+            GuardSignalRangeSlider.zoneDescription(rssi: -45, unlockRSSI: -60, lockRSSI: -85),
+            "已在解锁区"
+        )
+        XCTAssertEqual(
+            GuardSignalRangeSlider.zoneDescription(rssi: -60, unlockRSSI: -60, lockRSSI: -85),
+            "已在解锁区"
+        )
+        XCTAssertEqual(
+            GuardSignalRangeSlider.zoneDescription(rssi: -75, unlockRSSI: -60, lockRSSI: -85),
+            "处于缓冲区分界"
+        )
+        XCTAssertEqual(
+            GuardSignalRangeSlider.zoneDescription(rssi: -85, unlockRSSI: -60, lockRSSI: -85),
+            "处于离座锁屏区"
+        )
+        XCTAssertEqual(
+            GuardSignalRangeSlider.zoneDescription(rssi: -90, unlockRSSI: -60, lockRSSI: -85),
+            "处于离座锁屏区"
+        )
+    }
+
+    func testGuardSignalRangeSliderDistanceDescriptions() {
+        XCTAssertEqual(GuardSignalRangeSlider.distanceDescription(for: -43), "贴身 (<0.5米)")
+        XCTAssertEqual(GuardSignalRangeSlider.distanceDescription(for: -55), "工位近距 (~1米)")
+        XCTAssertEqual(GuardSignalRangeSlider.distanceDescription(for: -70), "中距离 (~2-3米)")
+        XCTAssertEqual(GuardSignalRangeSlider.distanceDescription(for: -85), "远距离 (~4-6米)")
+        XCTAssertEqual(GuardSignalRangeSlider.distanceDescription(for: -95), "极远/微弱 (>6米)")
+    }
+
+    func testGuardSignalConstantsMetrics() {
+        XCTAssertEqual(GuardSignalConstants.minRSSI, -95)
+        XCTAssertEqual(GuardSignalConstants.maxRSSI, -40)
+        XCTAssertEqual(GuardSignalConstants.minSafetyGap, 3)
+    }
 }
