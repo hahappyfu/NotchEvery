@@ -9,6 +9,7 @@
 import Combine
 import Foundation
 import os.log
+import SQLite3
 
 private let antigravityLog = Logger(subsystem: Bundle.main.bundleIdentifier ?? "NotchEvery", category: "AntigravityStore")
 
@@ -22,6 +23,7 @@ public struct AntigravityAccount: Identifiable, Equatable {
     public let isDisabled: Bool
     public let percentage: Int
     public let resetTime: Date?
+    public let lastActiveTime: Date?
 
     public init(
         id: String,
@@ -30,7 +32,8 @@ public struct AntigravityAccount: Identifiable, Equatable {
         isCurrent: Bool,
         isDisabled: Bool,
         percentage: Int,
-        resetTime: Date?
+        resetTime: Date?,
+        lastActiveTime: Date? = nil
     ) {
         self.id = id
         self.name = name
@@ -39,6 +42,7 @@ public struct AntigravityAccount: Identifiable, Equatable {
         self.isDisabled = isDisabled
         self.percentage = percentage
         self.resetTime = resetTime
+        self.lastActiveTime = lastActiveTime
     }
 }
 
@@ -129,7 +133,8 @@ public final class AntigravityStore: ObservableObject {
                 isCurrent: acc.id == id,
                 isDisabled: acc.isDisabled,
                 percentage: acc.percentage,
-                resetTime: acc.resetTime
+                resetTime: acc.resetTime,
+                lastActiveTime: acc.lastActiveTime
             )
         }
 
@@ -149,6 +154,68 @@ public final class AntigravityStore: ObservableObject {
 
     // MARK: - Static Parsers & Helpers
 
+    /// 从 token_stats.db（或回退 proxy_logs.db）中安全只读提取各账号最新请求时间戳
+    public static func loadLastActiveTimes(from directory: URL) -> [String: Date] {
+        var results: [String: Date] = [:]
+        let tokenStatsDB = directory.appendingPathComponent("token_stats.db")
+
+        func queryDB(url: URL, sql: String) {
+            guard FileManager.default.fileExists(atPath: url.path) else { return }
+            var db: OpaquePointer?
+            let uriString = "file://\(url.path)?immutable=1"
+            let flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_URI | SQLITE_OPEN_FULLMUTEX
+            if sqlite3_open_v2(uriString, &db, flags, nil) != SQLITE_OK {
+                let fallbackFlags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX
+                guard sqlite3_open_v2(url.path, &db, fallbackFlags, nil) == SQLITE_OK else {
+                    if let db = db { sqlite3_close(db) }
+                    return
+                }
+            }
+            guard let db = db else { return }
+            defer { sqlite3_close(db) }
+            sqlite3_exec(db, "PRAGMA query_only = ON;", nil, nil, nil)
+            sqlite3_busy_timeout(db, 300)
+
+            var stmt: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK, let stmt = stmt {
+                defer { sqlite3_finalize(stmt) }
+                while sqlite3_step(stmt) == SQLITE_ROW {
+                    if let emailPtr = sqlite3_column_text(stmt, 0) {
+                        let email = String(cString: emailPtr).lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !email.isEmpty else { continue }
+                        let tsRaw = sqlite3_column_int64(stmt, 1)
+                        guard tsRaw > 0 else { continue }
+                        let date = tsRaw > 10_000_000_000
+                            ? Date(timeIntervalSince1970: TimeInterval(tsRaw) / 1000.0)
+                            : Date(timeIntervalSince1970: TimeInterval(tsRaw))
+                        if let existing = results[email] {
+                            if date > existing { results[email] = date }
+                        } else {
+                            results[email] = date
+                        }
+                    }
+                }
+            }
+        }
+
+        // 优先从 token_stats.db 读取
+        queryDB(
+            url: tokenStatsDB,
+            sql: "SELECT account_email, MAX(timestamp) FROM token_usage WHERE account_email != '' GROUP BY account_email;"
+        )
+
+        // 若为空，回退尝试 proxy_logs.db
+        if results.isEmpty {
+            let proxyLogsDB = directory.appendingPathComponent("proxy_logs.db")
+            queryDB(
+                url: proxyLogsDB,
+                sql: "SELECT account_email, MAX(timestamp) FROM request_logs WHERE account_email != '' GROUP BY account_email;"
+            )
+        }
+
+        return results
+    }
+
     public static func loadAccounts(from directory: URL) -> ([AntigravityAccount], String?) {
         let indexFile = directory.appendingPathComponent("accounts.json")
         guard let indexData = try? Data(contentsOf: indexFile),
@@ -157,7 +224,8 @@ public final class AntigravityStore: ObservableObject {
         }
 
         let accountsDir = directory.appendingPathComponent("accounts")
-        var result: [AntigravityAccount] = []
+        let activeTimes = loadLastActiveTimes(from: directory)
+        var rawAccounts: [AntigravityAccount] = []
 
         for accId in index.accountIds {
             let fileURL = accountsDir.appendingPathComponent("\(accId).json")
@@ -165,10 +233,40 @@ public final class AntigravityStore: ObservableObject {
                   let account = parseAccountFile(data: data, currentAccountId: index.currentAccountId) else {
                 continue
             }
-            result.append(account)
+            rawAccounts.append(account)
         }
 
-        return (result, index.currentAccountId)
+        // 依据日志活跃时间动态检测当前在用账号（最新活跃账号 > index.currentAccountId）
+        var mostRecentAccount: AntigravityAccount?
+        var mostRecentDate: Date = .distantPast
+
+        for acc in rawAccounts {
+            let emailKey = acc.email.lowercased()
+            if let actDate = activeTimes[emailKey], actDate > mostRecentDate {
+                mostRecentDate = actDate
+                mostRecentAccount = acc
+            }
+        }
+
+        let dynamicCurrentId: String? = mostRecentAccount?.id ?? index.currentAccountId
+
+        let finalizedAccounts = rawAccounts.map { acc in
+            let emailKey = acc.email.lowercased()
+            let actDate = activeTimes[emailKey]
+            let isCurrent = (acc.id == dynamicCurrentId)
+            return AntigravityAccount(
+                id: acc.id,
+                name: acc.name,
+                email: acc.email,
+                isCurrent: isCurrent,
+                isDisabled: acc.isDisabled,
+                percentage: acc.percentage,
+                resetTime: acc.resetTime,
+                lastActiveTime: actDate
+            )
+        }
+
+        return (finalizedAccounts, dynamicCurrentId)
     }
 
     public static func parseIndex(data: Data) -> AntigravityIndex? {

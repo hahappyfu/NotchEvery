@@ -20,18 +20,45 @@ struct AntigravityAccountsCardView: View {
         return StudioColor.rose
     }
 
-    /// 对称重排算法：提取当前在用账号居中（distance = 0），其余账号按配额降序在两侧对称排布
+    /// 对称重排算法：
+    /// 1. 优先提取最新调用的账号（或 isCurrent 标记）居中（distance = 0，聚光灯主焦点）
+    /// 2. 其余账号按最近活跃时间倒序（无记录或相同则按配额降序），由近及远对称分布在两侧翼
     public static func symmetricRearrange(accounts: [AntigravityAccount]) -> [(account: AntigravityAccount, logicalDistance: Int)] {
         guard !accounts.isEmpty else { return [] }
         guard accounts.count > 1 else {
             return [(accounts[0], 0)]
         }
 
-        let current = accounts.first(where: { $0.isCurrent }) ?? accounts[0]
-        let others = accounts.filter { $0.id != current.id }.sorted { $0.percentage > $1.percentage }
+        // 统一排序规则：活跃时间越新越靠前；时间为空或相同时配额百分比越高越靠前
+        let sortedByRecency = accounts.sorted { a, b in
+            let timeA = a.lastActiveTime ?? .distantPast
+            let timeB = b.lastActiveTime ?? .distantPast
+            if timeA != timeB {
+                return timeA > timeB
+            }
+            if a.percentage != b.percentage {
+                return a.percentage > b.percentage
+            }
+            return a.id < b.id
+        }
+
+        // 中心账号：如果有明确 isCurrent 且位于列表中，优先使用；否则默认使用活跃度第一名
+        let current: AntigravityAccount
+        if let explicitCurrent = accounts.first(where: { $0.isCurrent }) {
+            current = explicitCurrent
+        } else {
+            current = sortedByRecency[0]
+        }
+
+        // 其余账号按活跃度/配额降序
+        let others = sortedByRecency.filter { $0.id != current.id }
 
         if others.count == 4 {
-            // 标准 5 账号池：[-2: 最低/禁用, -1: 最高额度陪衬, 0: 当前在用中心, 1: 次高额度陪衬, 2: 再次高/低额]
+            // 标准 5 账号池排布：
+            // - others[0] (第 2 新/上一轮活跃): 左内翼 -1
+            // - others[1] (第 3 新): 右内翼 1
+            // - others[2] (第 4 新): 右外翼 2
+            // - others[3] (最久未活跃/最老): 左外翼 -2
             return [
                 (others[3], -2),
                 (others[0], -1),
@@ -228,7 +255,7 @@ struct AntigravityAccountsCardView: View {
                 }
             )
 
-            Text(account.isDisabled ? "已禁用" : (account.percentage == 100 ? "已就绪" : account.resetCountdownText))
+            Text(account.isDisabled ? "已禁用" : (account.isCurrent && account.percentage == 100 ? "在用中" : (account.percentage == 100 ? "已就绪" : account.resetCountdownText)))
                 .font(.system(size: 9.5, weight: .medium).monospacedDigit())
                 .minimumScaleFactor(0.75)
                 .padding(.horizontal, 5)
