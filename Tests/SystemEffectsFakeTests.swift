@@ -75,8 +75,8 @@ final class SystemEffectsFakeTests: XCTestCase {
         manager.isDryRun = false
         manager.fun.unlockRSSI = -60
         manager.fun.lockRSSI = -70
-        // 确定性优先：与机器真实配置解耦；缺键按启用处理，因此只固定四处
-        for key in ["enabled", "iMessageNotify", "wakeWithoutUnlocking", "wakeOnProximity"] {
+        // 确定性优先：与机器真实配置解耦；缺键按启用处理，因此只固定三处
+        for key in ["enabled", "iMessageNotify", "wakeOnProximity"] {
             if let v = ConfigStore.shared.defaults.object(forKey: key) {
                 savedPrefs[key] = v
             } else {
@@ -85,7 +85,6 @@ final class SystemEffectsFakeTests: XCTestCase {
         }
         ConfigStore.shared.defaults.set(true, forKey: "enabled")
         ConfigStore.shared.defaults.set(false, forKey: "iMessageNotify")
-        ConfigStore.shared.defaults.set(false, forKey: "wakeWithoutUnlocking")
         ConfigStore.shared.defaults.set(false, forKey: "wakeOnProximity")
     }
 

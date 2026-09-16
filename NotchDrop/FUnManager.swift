@@ -608,7 +608,6 @@ final class FUnManager: ObservableObject {
             return
         }
 
-        guard !self.prefs.bool(forKey: "wakeWithoutUnlocking") else { Log.sm.debug("SKIP: wakeWithoutUnlocking"); timingLog("SKIP wakeWithoutUnlocking"); recordUnlock(reason: .wakeWithoutUnlocking); return }
         guard self.state.screen != .displaySleeping else { Log.sm.debug("SKIP: still displaySleeping"); timingLog("SKIP stillDisplaySleeping"); recordUnlock(reason: .displaySleeping); return }
 
         // 屏幕已解锁：无需尝试解锁，直接早退，避免每轮 RSSI 轮询走到 guardFetchPassword 刷 screenNotLocked 噪音日志
