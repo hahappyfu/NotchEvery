@@ -115,31 +115,6 @@ final class DiagnosticsViewTests: XCTestCase {
         XCTAssertEqual(coreEvent?.reason, .lockedAway, "最新核心事件应为锁屏事件，而非异步 iMessage 失败事件")
     }
 
-    func testGuardControlHasRecentIMessageFailure() {
-        let imessageFailedEvent = DecisionEvent(
-            timestamp: Date(),
-            category: .system,
-            outcome: .failed,
-            reason: .iMessageFailed,
-            rssi: nil,
-            device: nil,
-            screen: nil,
-            detail: "AppleScript 权限未授权"
-        )
-
-        // 当用户未开启 iMessage 通知时，不应提示
-        XCTAssertFalse(
-            GuardControlZoneView.hasRecentIMessageFailure(in: [imessageFailedEvent], isNotifyEnabled: false),
-            "用户未开启通知时不应展示授权提示"
-        )
-
-        // 当用户开启了 iMessage 通知且发生过失败时，应提示
-        XCTAssertTrue(
-            GuardControlZoneView.hasRecentIMessageFailure(in: [imessageFailedEvent], isNotifyEnabled: true),
-            "开启通知且出现错误时应展示授权提示"
-        )
-    }
-
     // MARK: - GuardSignalRangeSlider 空间测距与阈值映射测试
 
     func testGuardSignalRangeSliderZoneDescriptions() {

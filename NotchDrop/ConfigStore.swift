@@ -21,7 +21,7 @@ final class ConfigStore {
     static let migratedKeys: [String] = [
         "device", "deviceName", "enabled",
         "lockRSSI", "unlockRSSI", "wakeAdvance", "preUnlockTrigger",
-        "lockOnIdle", "wakeOnProximity", "manualLockOnUserLock",
+        "lockOnIdle", "wakeOnProximity",
         "sleepDisplay", "screensaver",
         "iMessageNotify", "iMessageNotifyRecipient",
     ]

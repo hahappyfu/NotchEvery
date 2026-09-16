@@ -43,7 +43,6 @@ struct GuardControlZoneView: View {
     @AppStorage("sleepDisplay", store: ConfigStore.shared.defaults) private var sleepDisplay = true
     @AppStorage("screensaver", store: ConfigStore.shared.defaults) private var screensaver = false
     @AppStorage("lockOnIdle", store: ConfigStore.shared.defaults) private var lockOnIdle = true
-    @AppStorage("iMessageNotify", store: ConfigStore.shared.defaults) private var iMessageNotify = false
 
     // 校准向导弹窗
     @State private var showCalibration = false
@@ -51,7 +50,6 @@ struct GuardControlZoneView: View {
     // 底部按钮悬停态
     @State private var hoverCalibration = false
     @State private var hoverPreferences = false
-    @State private var hoverAuthButton = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -504,18 +502,8 @@ extension GuardControlZoneView {
         })
     }
 
-    /// 检测最近是否存在 iMessage 推送受限/失败（仅在用户开启通知时响应）
-    static func hasRecentIMessageFailure(in events: [DecisionEvent], isNotifyEnabled: Bool) -> Bool {
-        guard isNotifyEnabled else { return false }
-        return events.contains(where: { $0.category == .system && $0.reason == .iMessageFailed })
-    }
-
     private var latestCoreEvent: DecisionEvent? {
         Self.latestCoreEvent(in: logger.events)
-    }
-
-    private var hasRecentIMessageFailure: Bool {
-        Self.hasRecentIMessageFailure(in: logger.events, isNotifyEnabled: iMessageNotify)
     }
 
     private var recentJudgementCard: some View {
@@ -561,48 +549,6 @@ extension GuardControlZoneView {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .studioCard(radius: 8)
             }
-
-            if hasRecentIMessageFailure {
-                iMessageAuthGuideView
-            }
-        }
-    }
-
-    private var iMessageAuthGuideView: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 11))
-                .foregroundStyle(StudioColor.amber)
-
-            Text("iMessage 发送受限，需开启自动化权限")
-                .font(.system(size: 10.5))
-                .foregroundStyle(Color.white.opacity(0.80))
-                .lineLimit(1)
-
-            Spacer(minLength: 4)
-
-            Button(action: {
-                openSystemAutomationSettings()
-            }) {
-                Text("去设置开启授权")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(StudioColor.amber)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(StudioColor.amber.opacity(0.15), in: Capsule())
-                    .overlay(Capsule().strokeBorder(StudioColor.amber.opacity(hoverAuthButton ? 0.45 : 0.25), lineWidth: 0.5))
-            }
-            .buttonStyle(.plain)
-            .onHover { hoverAuthButton = $0 }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .studioCard(radius: 8)
-    }
-
-    private func openSystemAutomationSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
-            NSWorkspace.shared.open(url)
         }
     }
 
