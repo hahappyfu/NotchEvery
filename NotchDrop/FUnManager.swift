@@ -355,14 +355,15 @@ final class FUnManager: ObservableObject {
         Log.sm.debug("[SM] systemScreenLocked")
         let isManualLock = !isSelfLocking
         if isSelfLocking {
-            // FUnlock 自动锁屏，不标记为手动锁定
+            // FUnlock 自动锁屏，重置标志
             isSelfLocking = false
             state.intent = .autoLock
         } else {
-            // 用户手动锁屏（⌘+Ctrl+Q 等）→ 永久阻止自动解锁，直到手动解锁
-            state.intent = .manualLock(deadline: Date().addingTimeInterval(86400))
+            // 用户手动锁屏：仅在用户明确开启「手动锁屏后暂不自动解锁」时，才阻止自动解锁
+            let pauseAutoUnlock = prefs.bool(forKey: "manualLockOnUserLock")
+            state.intent = pauseAutoUnlock ? .manualLock(deadline: Date().addingTimeInterval(86400)) : .autoLock
         }
-        state.screen = .locked(reason: .manual)
+        state.screen = .locked(reason: isManualLock ? .manual : .away)
         state.unlockedAt = Date(timeIntervalSince1970: 0)
         lastLockTime = now
         // 在 state.screen 更新后记录，保证诊断日志的屏幕状态为锁屏后的 .locked(manual)，

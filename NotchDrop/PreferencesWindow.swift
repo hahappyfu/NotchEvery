@@ -303,6 +303,7 @@ struct GuardSecuritySettingsTab: View {
     @State private var isScanning = false
 
     @AppStorage("wakeOnProximity", store: ConfigStore.shared.defaults) private var wakeOnProximity = false
+    @AppStorage("manualLockOnUserLock", store: ConfigStore.shared.defaults) private var manualLockOnUserLock = false
     @AppStorage("screensaver", store: ConfigStore.shared.defaults) private var screensaver = false
     @AppStorage("sleepDisplay", store: ConfigStore.shared.defaults) private var sleepDisplay = true
     @AppStorage("lockOnIdle", store: ConfigStore.shared.defaults) private var lockOnIdle = true
@@ -520,6 +521,21 @@ struct GuardSecuritySettingsTab: View {
                                 Text("接近自动点亮屏幕")
                                     .font(.system(size: 13))
                                 Text("进入靠近距离时，提前唤醒显示器")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .toggleStyle(.switch)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+
+                        Divider().padding(.leading, 16)
+
+                        Toggle(isOn: $manualLockOnUserLock) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("手动锁屏后暂不自动解锁")
+                                    .font(.system(size: 13))
+                                Text("按快捷键手动锁屏后暂停自动解锁，需手动输入密码一次以恢复")
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                             }
