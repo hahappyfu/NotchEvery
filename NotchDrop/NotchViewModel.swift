@@ -252,21 +252,17 @@ class NotchViewModel: NSObject, ObservableObject {
         hoverCloseWorkItem = nil
     }
 
-    /// 虚影态→展开态（点击/拖拽调用），触发过桥菊花 150ms
+    /// 虚影态→展开态（点击/拖拽调用）
     func openFromGhost() {
         notchTimingMark("openFromGhost")
         cancelHoverClose()
         ghostGeneration += 1
         hoverGhosting = false
         ghostFading = false
-        bridgeSpinning = true
         status = .opened
         notchTimingMark("preActivate")
         NSApp.activate(ignoringOtherApps: true)
         notchTimingMark("postActivate")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            self?.bridgeSpinning = false
-        }
     }
 
     /// 两段收起：先缩回虚影尺寸 200ms，再清态回刘海

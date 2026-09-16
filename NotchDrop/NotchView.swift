@@ -10,6 +10,7 @@ import SwiftUI
 struct NotchView: View {
     @StateObject var vm: NotchViewModel
     @StateObject private var usage = UsageStore.shared
+    @StateObject private var guardStore = GuardStore.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State var dropTargeting: Bool = false
@@ -161,12 +162,6 @@ struct NotchView: View {
                         .transition(.opacity)
                 }
             }
-            .overlay {
-                if vm.bridgeSpinning {
-                    SpinnerView(size: 16, color: .white)
-                        .transition(.opacity)
-                }
-            }
     }
 
     /// 岛体圆角（照抄原版数值：收起 8 / popping 10 / 展开 32；虚影态取 peek 底圆角）
@@ -198,17 +193,68 @@ struct NotchView: View {
         .animation(reduceMotion ? nil : (vm.transitionActive ? (vm.status == .opened ? vm.openAnimation : vm.closeAnimation) : nil), value: islandSize)
     }
 
-    /// 悬停 peek 提示：今日用量一行小字（真数据）
+    /// 悬停 peek 提示：双模态胶囊（左侧 Antigravity 代理今日看板，右侧近场守护安全感知）
     private var peekHint: some View {
-        HStack(spacing: 7) {
-            Circle()
-                .fill(Color.green)
-                .frame(width: 7, height: 7)
-            Text("\(usage.summary.totalTokens) · \(usage.summary.cacheRate)")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.62))
-                .monospacedDigit()
+        HStack(spacing: 8) {
+            // 左区：Antigravity 代理今日看板
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 6, height: 6)
+                Text("今日 \(formattedTokensText) · \(formattedCallsText)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.85))
+                    .monospacedDigit()
+                    .lineLimit(1)
+            }
+
+            // 中区：弱分隔
+            Rectangle()
+                .fill(Color.white.opacity(0.15))
+                .frame(width: 1, height: 10)
+
+            // 右区：近场守护安全感知
+            Text(guardStatusText)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.85))
                 .lineLimit(1)
+        }
+    }
+
+    private var formattedTokensText: String {
+        let clean = usage.summary.totalTokens.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+        if let count = Int(clean) {
+            return TokenFormatUtils.formatTokens(count)
+        }
+        if clean.hasSuffix("K") || clean.hasSuffix("k") || clean.hasSuffix("M") || clean.hasSuffix("B") {
+            return "\(clean) Tokens"
+        }
+        return "\(usage.summary.totalTokens) Tokens"
+    }
+
+    private var formattedCallsText: String {
+        let clean = usage.summary.calls.replacingOccurrences(of: "次", with: "").replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+        if let count = Int(clean) {
+            return "\(TokenFormatUtils.formatCount(count)) 请求"
+        }
+        if !usage.summary.calls.isEmpty {
+            return "\(clean) 请求"
+        }
+        return "0 请求"
+    }
+
+    private var guardStatusText: String {
+        switch guardStore.guardState {
+        case .disabled:
+            return "⏸️ 已停用"
+        case .observing:
+            return "🛡️ 空跑"
+        case .guarding:
+            if let rssi = guardStore.rssi {
+                return "⌚️ \(rssi) dBm · 安全"
+            } else {
+                return "⌚️ 搜寻中..."
+            }
         }
     }
 
