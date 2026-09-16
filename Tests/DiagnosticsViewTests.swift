@@ -85,4 +85,58 @@ final class DiagnosticsViewTests: XCTestCase {
         )
         XCTAssertFalse(GuardControlZoneView.judgementDetail(for: eventWithoutDetail).isEmpty)
     }
+
+    func testGuardControlLatestCoreEventFiltersIMessageFailure() {
+        let lockEvent = DecisionEvent(
+            timestamp: Date().addingTimeInterval(-10),
+            category: .lock,
+            outcome: .success,
+            reason: .lockedAway,
+            rssi: -85,
+            device: "iPhone",
+            screen: nil,
+            detail: "信号低于阈值"
+        )
+        let imessageFailedEvent = DecisionEvent(
+            timestamp: Date(),
+            category: .system,
+            outcome: .failed,
+            reason: .iMessageFailed,
+            rssi: nil,
+            device: nil,
+            screen: nil,
+            detail: "AppleScript 权限未授权"
+        )
+
+        let events = [lockEvent, imessageFailedEvent]
+        let coreEvent = GuardControlZoneView.latestCoreEvent(in: events)
+
+        XCTAssertNotNil(coreEvent, "应该能获取到核心锁屏/解锁判定事件")
+        XCTAssertEqual(coreEvent?.reason, .lockedAway, "最新核心事件应为锁屏事件，而非异步 iMessage 失败事件")
+    }
+
+    func testGuardControlHasRecentIMessageFailure() {
+        let imessageFailedEvent = DecisionEvent(
+            timestamp: Date(),
+            category: .system,
+            outcome: .failed,
+            reason: .iMessageFailed,
+            rssi: nil,
+            device: nil,
+            screen: nil,
+            detail: "AppleScript 权限未授权"
+        )
+
+        // 当用户未开启 iMessage 通知时，不应提示
+        XCTAssertFalse(
+            GuardControlZoneView.hasRecentIMessageFailure(in: [imessageFailedEvent], isNotifyEnabled: false),
+            "用户未开启通知时不应展示授权提示"
+        )
+
+        // 当用户开启了 iMessage 通知且发生过失败时，应提示
+        XCTAssertTrue(
+            GuardControlZoneView.hasRecentIMessageFailure(in: [imessageFailedEvent], isNotifyEnabled: true),
+            "开启通知且出现错误时应展示授权提示"
+        )
+    }
 }
