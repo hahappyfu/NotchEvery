@@ -208,11 +208,19 @@ public final class AntigravityProxyStore: ObservableObject {
 
     private static func openReadOnly(_ url: URL) -> OpaquePointer? {
         var db: OpaquePointer?
-        let flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX
-        guard sqlite3_open_v2(url.path, &db, flags, nil) == SQLITE_OK else {
-            sqlite3_close(db)
-            usageLog.info("antigravity proxy db unavailable at \(url.path)")
-            return nil
+        let uriString = "file://\(url.path)?immutable=1"
+        let flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_URI | SQLITE_OPEN_FULLMUTEX
+        guard sqlite3_open_v2(uriString, &db, flags, nil) == SQLITE_OK else {
+            // 降级使用普通路径打开
+            let fallbackFlags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX
+            guard sqlite3_open_v2(url.path, &db, fallbackFlags, nil) == SQLITE_OK else {
+                sqlite3_close(db)
+                usageLog.info("antigravity proxy db unavailable at \(url.path)")
+                return nil
+            }
+            sqlite3_exec(db, "PRAGMA query_only = ON;", nil, nil, nil)
+            sqlite3_busy_timeout(db, 500)
+            return db
         }
         sqlite3_exec(db, "PRAGMA query_only = ON;", nil, nil, nil)
         sqlite3_busy_timeout(db, 500)

@@ -71,4 +71,70 @@ final class AntigravityProxyStoreTests: XCTestCase {
         XCTAssertEqual(data.recentRequests.count, 0)
         XCTAssertEqual(data.summary, .empty)
     }
+
+    func testWALModeReadOnlyAccess() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer {
+            // 恢复权限以便清理
+            try? FileManager.default.setAttributes([.posixPermissions: 0o777], ofItemAtPath: tempDir.path)
+            let dbFile = tempDir.appendingPathComponent("wal_test.db")
+            try? FileManager.default.setAttributes([.posixPermissions: 0o666], ofItemAtPath: dbFile.path)
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+
+        let dbURL = tempDir.appendingPathComponent("wal_test.db")
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(dbURL.path, &db), SQLITE_OK)
+
+        // 显式开启 WAL 模式
+        XCTAssertEqual(sqlite3_exec(db, "PRAGMA journal_mode=WAL;", nil, nil, nil), SQLITE_OK)
+
+        let createTable = """
+        CREATE TABLE request_logs (
+            id TEXT PRIMARY KEY,
+            timestamp INTEGER,
+            method TEXT,
+            url TEXT,
+            status INTEGER,
+            duration INTEGER,
+            model TEXT,
+            error TEXT,
+            request_body TEXT,
+            response_body TEXT,
+            input_tokens INTEGER,
+            output_tokens INTEGER,
+            account_email TEXT,
+            mapped_model TEXT,
+            protocol TEXT,
+            client_ip TEXT,
+            username TEXT,
+            cached_tokens INTEGER
+        );
+        """
+        XCTAssertEqual(sqlite3_exec(db, createTable, nil, nil, nil), SQLITE_OK)
+
+        let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+        let insertSQL = """
+        INSERT INTO request_logs (id, timestamp, method, url, status, duration, model, input_tokens, output_tokens, cached_tokens, account_email)
+        VALUES
+        ('wal-req-1', \(nowMs), 'POST', '/v1', 200, 1000, 'gemini-3.8-flash-high', 500, 100, 200, 'wal@test.com');
+        """
+        XCTAssertEqual(sqlite3_exec(db, insertSQL, nil, nil, nil), SQLITE_OK)
+        sqlite3_close(db)
+
+        // 模拟只读环境：将目录及数据库文件设置为只读权限 (目录 0555，文件 0444)
+        // 在标准 WAL 模式下，未开启 immutable=1 会因无法创建/写入 -shm 共享内存文件而报 SQLITE_CANTOPEN (14)
+        try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: dbURL.path)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: tempDir.path)
+
+        let store = AntigravityProxyStore(dbPath: dbURL, interval: 60)
+        let data = store.fetchSnapshot()
+
+        // 验证只读模式使用 immutable=1 能够成功读取数据，不返回空数据
+        XCTAssertEqual(data.recentRequests.count, 1)
+        XCTAssertEqual(data.recentRequests.first?.id, "wal-req-1")
+        XCTAssertEqual(data.recentRequests.first?.accountEmail, "wal@test.com")
+        XCTAssertEqual(data.summary.calls, "1")
+    }
 }
