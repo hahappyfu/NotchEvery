@@ -44,7 +44,7 @@ final class IslandMetricsTests: XCTestCase {
     func testShapeMetricsIdentityAtPrototypeScale() {
         let proto = CGSize(width: 285, height: 46)
         XCTAssertEqual(IslandMetrics.filletRadius(for: proto), 15)
-        XCTAssertEqual(IslandMetrics.peekSize(for: proto), CGSize(width: 350, height: 82))
+        XCTAssertEqual(IslandMetrics.peekSize(for: proto), CGSize(width: 380, height: 82))
         XCTAssertEqual(IslandMetrics.peekBottomRadius(for: proto), 20)
         XCTAssertEqual(IslandMetrics.openBottomRadius, 26)
         XCTAssertEqual(IslandMetrics.openFilletRadius, 14)
@@ -53,7 +53,7 @@ final class IslandMetricsTests: XCTestCase {
     func testShapeMetricsScaleWithRealNotch() {
         let real = CGSize(width: 179, height: 32)
         XCTAssertEqual(IslandMetrics.filletRadius(for: real), 9)
-        XCTAssertEqual(IslandMetrics.peekSize(for: real), CGSize(width: 220, height: 57))
+        XCTAssertEqual(IslandMetrics.peekSize(for: real), CGSize(width: 239, height: 57))
         XCTAssertEqual(IslandMetrics.peekBottomRadius(for: real), 13)
     }
 }

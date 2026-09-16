@@ -9,7 +9,7 @@ import AppKit
 import SwiftUI
 
 enum IslandMetrics {
-    /// 原型基准画布：挖槽 285×46，fillet 15、peek 350×82、peek 底圆角 20、open 底圆角 26。
+    /// 原型基准画布：挖槽 285×46，fillet 15、peek 380×82（放宽余量杜绝截断）、peek 底圆角 20、open 底圆角 26。
     /// 真机按物理挖槽逐轴等比换算（2026-09-11 验收：直搬像素值相对挖槽放大约 1.6 倍，显笨）。
     private static let protoNotch = CGSize(width: 285, height: 46)
 
@@ -18,10 +18,10 @@ enum IslandMetrics {
         (15 * notch.width / protoNotch.width).rounded()
     }
 
-    /// 悬停 peek 岛尺寸（逐轴等比）
+    /// 悬停 peek 岛尺寸（逐轴等比，基准宽 380pt 提供充裕的双模态排版余量）
     static func peekSize(for notch: CGSize) -> CGSize {
         CGSize(
-            width: (350 * notch.width / protoNotch.width).rounded(),
+            width: (380 * notch.width / protoNotch.width).rounded(),
             height: (82 * notch.height / protoNotch.height).rounded()
         )
     }

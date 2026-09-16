@@ -190,7 +190,7 @@ struct NotchView: View {
 
     /// 悬停 peek 提示：双模态胶囊（左侧 Antigravity 代理今日看板，右侧近场守护安全感知）
     private var peekHint: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 7) {
             // 左区：Antigravity 代理今日看板
             HStack(spacing: 5) {
                 Circle()
@@ -198,44 +198,45 @@ struct NotchView: View {
                     .frame(width: 6, height: 6)
                 Text("今日 \(formattedTokensText) · \(formattedCallsText)")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.85))
+                    .foregroundStyle(Color.white.opacity(0.90))
                     .monospacedDigit()
-                    .lineLimit(1)
+                    .fixedSize()
             }
 
             // 中区：弱分隔
             Rectangle()
-                .fill(Color.white.opacity(0.15))
+                .fill(Color.white.opacity(0.18))
                 .frame(width: 1, height: 10)
 
             // 右区：近场守护安全感知
             Text(guardStatusText)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.85))
-                .lineLimit(1)
+                .foregroundStyle(Color.white.opacity(0.90))
+                .fixedSize()
         }
+        .padding(.horizontal, 4)
     }
 
     private var formattedTokensText: String {
         let clean = usage.summary.totalTokens.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
         if let count = Int(clean) {
-            return TokenFormatUtils.formatTokens(count)
+            return TokenFormatUtils.formatCompactTokens(count)
         }
         if clean.hasSuffix("K") || clean.hasSuffix("k") || clean.hasSuffix("M") || clean.hasSuffix("B") {
-            return "\(clean) Tokens"
+            return clean
         }
-        return "\(usage.summary.totalTokens) Tokens"
+        return usage.summary.totalTokens
     }
 
     private var formattedCallsText: String {
         let clean = usage.summary.calls.replacingOccurrences(of: "次", with: "").replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
         if let count = Int(clean) {
-            return "\(TokenFormatUtils.formatCount(count)) 请求"
+            return "\(TokenFormatUtils.formatCount(count)) 次"
         }
         if !usage.summary.calls.isEmpty {
-            return "\(clean) 请求"
+            return "\(clean) 次"
         }
-        return "0 请求"
+        return "0 次"
     }
 
     private var guardStatusText: String {
