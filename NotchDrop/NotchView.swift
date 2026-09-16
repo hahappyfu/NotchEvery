@@ -125,11 +125,6 @@ struct NotchView: View {
                 .scale(scale: 0.92, anchor: .top).combined(with: .opacity)
             )
         }
-        .animation(reduceMotion ? nil : (vm.status == .opened ? vm.openAnimation : vm.closeAnimation), value: vm.status)
-        // 背景跟随切页尺寸：瞬变贴顶。窗口已一步到位锁顶，背景若再用 spring 会相对窗口
-        // "从上往下慢慢铺开"，用户感知为"最上层滑下来"；顶部恒贴顶，不回弹不脱开。
-        // 页面内容转场由 NotchRootView 内层 pageAnimation 独立驱动。
-        .animation(nil, value: vm.contentType)
         .background(dragDetector)
         // 右键菜单挂根层级：外壳带 .disabled(true) 会把菜单按钮全置灰，根层级无禁用
         .contextMenu {

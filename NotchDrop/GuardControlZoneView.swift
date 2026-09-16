@@ -48,11 +48,6 @@ struct GuardControlZoneView: View {
     // 校准向导弹窗
     @State private var showCalibration = false
 
-    // 雷达呼吸微动效
-    @State private var pulseScale: CGFloat = 1.0
-    @State private var pulseOpacity: Double = 0.65
-    @State private var isPulsing = false
-
     // 底部按钮悬停态
     @State private var hoverCalibration = false
     @State private var hoverPreferences = false
@@ -75,25 +70,12 @@ struct GuardControlZoneView: View {
         .onAppear {
             store.start()
             logger.loadHistory()
-            startPulseAnimation()
-        }
-        .onDisappear {
-            stopPulseAnimation()
         }
         .onChange(of: vm.status) { status in
             if status == .closed {
-                stopPulseAnimation()
                 store.stop()
             } else {
                 store.start()
-                startPulseAnimation()
-            }
-        }
-        .onChange(of: store.guardState) { state in
-            if state == .disabled {
-                stopPulseAnimation()
-            } else {
-                startPulseAnimation()
             }
         }
     }
@@ -102,13 +84,12 @@ struct GuardControlZoneView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            // 左侧：呼吸指示灯与守护状态
+            // 左侧：状态指示灯与守护状态
             HStack(spacing: 6) {
                 ZStack {
                     if store.guardState != .disabled {
                         Circle()
-                            .stroke(pulseColor.opacity(pulseOpacity), lineWidth: 1.5)
-                            .scaleEffect(pulseScale)
+                            .stroke(stateColor.opacity(0.35), lineWidth: 1.5)
                     }
                     Circle()
                         .fill(stateColor)
@@ -154,33 +135,6 @@ struct GuardControlZoneView: View {
                     .controlSize(.mini)
                 }
             }
-        }
-    }
-
-    private var pulseColor: Color {
-        stateColor
-    }
-
-    private func startPulseAnimation() {
-        guard store.guardState != .disabled, vm.status != .closed else {
-            stopPulseAnimation()
-            return
-        }
-        guard !isPulsing else { return }
-        isPulsing = true
-        pulseScale = 1.0
-        pulseOpacity = 0.65
-        withAnimation(.easeOut(duration: 1.8).repeatForever(autoreverses: false)) {
-            pulseScale = 2.4
-            pulseOpacity = 0.0
-        }
-    }
-
-    private func stopPulseAnimation() {
-        isPulsing = false
-        withAnimation(.default) {
-            pulseScale = 1.0
-            pulseOpacity = 0.65
         }
     }
 
