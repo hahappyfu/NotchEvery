@@ -63,7 +63,7 @@ final class ConfigStore {
         defer { lock.unlock() }
 
         guard FileManager.default.fileExists(atPath: configFile.path) else {
-            cache = [:]
+            migrateFromUserDefaultsLocked()
             return
         }
 
@@ -77,6 +77,37 @@ final class ConfigStore {
         } catch {
             handleCorruptedFile(reason: error.localizedDescription)
         }
+    }
+
+    private func migrateFromUserDefaultsLocked() {
+        self.cache = [:]
+
+        // 逐一扫描所有已知 key，从 defaults 中读取并迁移至 cache
+        let allKeys = Set(Self.migratedKeys + Self.legacyKeys)
+        for key in allKeys {
+            if let val = defaults.object(forKey: key) {
+                cache[key] = sanitizeForJSON(val)
+            }
+        }
+
+        // 若有更古老的 legacy suite (com.fuhahah.Funlock.config)，也尝试带过来
+        if let legacy = UserDefaults(suiteName: Self.legacySuiteName) {
+            for key in Self.migratedKeys {
+                if cache[key] == nil, let val = legacy.object(forKey: key) {
+                    cache[key] = sanitizeForJSON(val)
+                }
+            }
+        }
+
+        // 立即原子写入磁盘
+        saveToDiskLocked()
+    }
+
+    private func sanitizeForJSON(_ value: Any) -> Any {
+        if let data = value as? Data {
+            return data.base64EncodedString()
+        }
+        return value
     }
 
     private func handleCorruptedFile(reason: String) {

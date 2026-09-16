@@ -211,4 +211,31 @@ final class ConfigStoreTests: XCTestCase {
 
         XCTAssertEqual(target.defaults.string(forKey: k), "mine", "新域已有值时应保留")
     }
+
+    /// 验证：当 config.json 在磁盘尚不存在时，自动读取现存 UserDefaults suite 数据并生成 config.json
+    func testMigrateFromUserDefaultsToJSONFile() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let testConfigFile = tempDir.appendingPathComponent("config.json")
+        let testSuite = "test.migration.\(UUID().uuidString)"
+        defer {
+            try? FileManager.default.removeItem(at: tempDir)
+            UserDefaults.standard.removePersistentDomain(forName: testSuite)
+        }
+
+        let fakeLegacy = UserDefaults(suiteName: testSuite)!
+        fakeLegacy.set("My Test Watch", forKey: "deviceName")
+        fakeLegacy.set("-62", forKey: "lockRSSI")
+        fakeLegacy.set(true, forKey: "iMessageNotify")
+        fakeLegacy.synchronize()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: testConfigFile.path))
+
+        let store = ConfigStore(configFile: testConfigFile, suiteName: testSuite)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: testConfigFile.path), "初始化后应立即自动生成 config.json")
+        XCTAssertEqual(store.get("deviceName", fallback: ""), "My Test Watch")
+        XCTAssertEqual(store.get("lockRSSI", fallback: ""), "-62")
+        XCTAssertEqual(store.get("iMessageNotify", fallback: false), true)
+    }
 }
