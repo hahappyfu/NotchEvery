@@ -116,9 +116,10 @@ final class FUnManager: ObservableObject {
     let decisionLogger: DecisionLogger
     /// 系统副作用边界（工单 04 经构造注入；默认 live 实现，测试注入假实现）
     let system: SystemEffects
+    let config: ConfigStore
     var inputMonitor: InputActivityMonitor?
     var isSelfLocking = false  // 区分 FUnlock 自动锁屏 vs 用户手动锁屏
-    private let prefs = ConfigStore.shared.defaults
+    private var prefs: UserDefaults { config.defaults }
     private var wakeTask: Task<Void, Never>?
     private var unlockTask: Task<Void, Never>?
     private var displayWakeRequested = false
@@ -198,12 +199,13 @@ final class FUnManager: ObservableObject {
     // MARK: Init
 
     init(fun: FUn = FUn(), nowProvider: @escaping () -> Date = { Date() }, decisionLogger: DecisionLogger = .shared,
-         system: SystemEffects = SystemInteractionService.shared) {
+         system: SystemEffects = SystemInteractionService.shared, config: ConfigStore = .shared) {
         self.fun = fun
         self.stateMachine = FUnlockStateMachine(nowProvider: nowProvider)
         self.nowProvider = nowProvider
         self.decisionLogger = decisionLogger
         self.system = system
+        self.config = config
         self.lockRSSI = fun.lockRSSI
         self.unlockRSSI = fun.unlockRSSI
         // 推送失败落诊断（工单 08）：单例钩子弱持，manager 析构即自动摘除
@@ -223,14 +225,14 @@ final class FUnManager: ObservableObject {
     func setLockRSSI(_ value: Int) {
         lockRSSI = value
         fun.lockRSSI = value
-        ConfigStore.shared.set(value, forKey: "lockRSSI")
+        config.set(value, forKey: "lockRSSI")
         thresholdVersion += 1
     }
 
     func setUnlockRSSI(_ value: Int) {
         unlockRSSI = value
         fun.unlockRSSI = value
-        ConfigStore.shared.set(value, forKey: "unlockRSSI")
+        config.set(value, forKey: "unlockRSSI")
         if value != FUn.UNLOCK_DISABLED {
             // 仅在 lockRSSI 与 unlockRSSI 倒挂冲突（lock >= unlock - 1）时，才强制下调锁定阈值
             if lockRSSI >= value - 1 {
@@ -241,13 +243,13 @@ final class FUnManager: ObservableObject {
 
     /// 设置唤醒提前量（dB）：解锁阈值往更远方向提前（自动钳制到 0-20）
     func setWakeAdvance(_ value: Int) {
-        ConfigStore.shared.set(FUn.clampOffset(value), forKey: "wakeAdvance")
+        config.set(FUn.clampOffset(value), forKey: "wakeAdvance")
         thresholdVersion += 1
     }
 
     /// 设置预解锁触发量（dB）：解锁阈值往更远方向提前进入预解锁准备（自动钳制到 0-20）
     func setPreUnlockTrigger(_ value: Int) {
-        ConfigStore.shared.set(FUn.clampOffset(value), forKey: "preUnlockTrigger")
+        config.set(FUn.clampOffset(value), forKey: "preUnlockTrigger")
         thresholdVersion += 1
     }
 
@@ -476,11 +478,15 @@ final class FUnManager: ObservableObject {
         discoveredDevices.removeAll { $0.uuid == device.uuid }
     }
 
+    func bindDevice(uuid: UUID, name: String) {
+        fun.startMonitor(uuid: uuid)
+        monitoredDeviceName = name
+        config.set(uuid.uuidString, forKey: "device")
+        config.set(name, forKey: "deviceName")
+    }
+
     func selectDevice(_ device: Device) {
-        fun.startMonitor(uuid: device.uuid)
-        monitoredDeviceName = device.description
-        prefs.set(device.uuid.uuidString, forKey: "device")
-        prefs.set(device.description, forKey: "deviceName")
+        bindDevice(uuid: device.uuid, name: device.description)
     }
 
     func unbindDevice() {
@@ -498,8 +504,8 @@ final class FUnManager: ObservableObject {
 
         // 清除 Manager 层状态
         monitoredDeviceName = nil
-        prefs.removeObject(forKey: "device")
-        prefs.removeObject(forKey: "deviceName")
+        config.removeObject(forKey: "device")
+        config.removeObject(forKey: "deviceName")
         rssi = nil
         connected = false
     }

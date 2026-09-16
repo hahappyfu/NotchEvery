@@ -39,6 +39,7 @@ final class GuardStore: ObservableObject {
     @Published private(set) var lastJudgement: String?
     @Published private(set) var bluetoothIssue: BluetoothIssue?
     @Published private(set) var hasPassword: Bool = false
+    @Published private(set) var discoveredDevices: [Device] = []
 
     let manager: FUnManager
     private let config: ConfigStore
@@ -49,6 +50,27 @@ final class GuardStore: ObservableObject {
 
     /// 暴露底层 FUnManager 供校准向导与高级设置使用
     var funManager: FUnManager { manager }
+
+    /// 绑定目标蓝牙设备并持久化
+    func bindDevice(uuid: UUID, name: String) {
+        manager.bindDevice(uuid: uuid, name: name)
+        deviceName = manager.monitoredDeviceName
+    }
+
+    /// 解除当前设备绑定
+    func unbindDevice() {
+        manager.unbindDevice()
+        deviceName = nil
+    }
+
+    /// 手动控制扫描
+    func startScanning() {
+        manager.startScanning()
+    }
+
+    func stopScanning() {
+        manager.stopScanning()
+    }
 
     /// 设置解锁阈值
     func setUnlockRSSI(_ value: Int) {
@@ -265,6 +287,7 @@ final class GuardStore: ObservableObject {
         manager.$lockRSSI.assign(to: &$lockRSSI)
         manager.$unlockRSSI.assign(to: &$unlockRSSI)
         manager.$bluetoothIssue.assign(to: &$bluetoothIssue)
+        manager.$discoveredDevices.assign(to: &$discoveredDevices)
         // 蓝牙授权翻转（系统弹窗回调）即重检引导行，免重启。
         // 注：@Published 在 willSet 时机投递，同步重读 manager 拿到的是旧值，
         // 下一跳主队列再读即新值（一跳延迟，UI 无感）。

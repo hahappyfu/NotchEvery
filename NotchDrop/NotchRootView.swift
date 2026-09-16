@@ -30,15 +30,15 @@ struct NotchRootView: View {
         .overlay(alignment: .top) { earsRow }
         // 设置挂根：入口走右键菜单 Settings，右上齿轮已删（ADR-0009）
         .popover(isPresented: $vm.showSettings, arrowEdge: .top) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(spacing: 8) {
                 NotchMenuView(vm: vm)
-                NotchSettingsView(vm: vm)
                 Text("NotchEvery \(appVersion)")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
             .padding(12)
-            .frame(minWidth: 360)
+            .frame(minWidth: 260)
         }
         // 整体上报：含安全区+内容（dots 已收进面板内，随内容一起量）
         // 宽度不再自钉 zone 宽：那会让外壳留白失效、内容永远贴边

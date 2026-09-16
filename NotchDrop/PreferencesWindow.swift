@@ -2,7 +2,7 @@
 //  PreferencesWindow.swift
 //  NotchEvery
 //
-//  独立侧边栏偏好设置大窗口：包含常规、解锁、锁定、通知、校准、诊断日志 6 大 Tab。
+//  独立侧边栏偏好设置大窗口：包含通用、近场守护、安全与日志三大核心 Tab。
 //
 
 import SwiftUI
@@ -11,21 +11,15 @@ import AppKit
 
 enum PreferencesTab: String, CaseIterable, Identifiable {
     case general = "通用"
-    case unlock = "解锁"
-    case lock = "锁定"
-    case notification = "通知告警"
-    case calibration = "测距校准"
-    case diagnostics = "诊断日志"
+    case guardSecurity = "近场守护"
+    case diagnostics = "安全与日志"
 
     var id: String { rawValue }
 
     var icon: String {
         switch self {
         case .general: return "gearshape"
-        case .unlock: return "lock.open"
-        case .lock: return "lock"
-        case .notification: return "message.fill"
-        case .calibration: return "location.viewfinder"
+        case .guardSecurity: return "lock.shield"
         case .diagnostics: return "waveform.path.ecg"
         }
     }
@@ -33,10 +27,7 @@ enum PreferencesTab: String, CaseIterable, Identifiable {
     var color: Color {
         switch self {
         case .general: return Color.gray
-        case .unlock: return StudioColor.emerald
-        case .lock: return StudioColor.amber
-        case .notification: return StudioColor.rose
-        case .calibration: return Color.blue
+        case .guardSecurity: return StudioColor.emerald
         case .diagnostics: return StudioColor.indigo
         }
     }
@@ -74,14 +65,8 @@ struct PreferencesWindow: View {
         switch selectedTab {
         case .general:
             GeneralSettingsTab()
-        case .unlock:
-            UnlockSettingsTab()
-        case .lock:
-            LockSettingsTab()
-        case .notification:
-            NotificationSettingsTab()
-        case .calibration:
-            CalibrationSettingsTab()
+        case .guardSecurity:
+            GuardSecuritySettingsTab()
         case .diagnostics:
             DiagnosticsSettingsTab()
         }
@@ -289,23 +274,294 @@ struct GeneralSettingsTab: View {
     }
 }
 
-// MARK: - Tab 2: 解锁
+// MARK: - Tab 2: 近场守护 (设备配对 + 模式安全 + 测距校准 + 动作策略)
 
-struct UnlockSettingsTab: View {
+struct GuardSecuritySettingsTab: View {
+    @StateObject private var store = GuardStore.shared
+    @State private var isPresentingWizard = false
+    @State private var selectedDeviceUUID: UUID? = nil
+    @State private var isScanning = false
+
     @AppStorage("wakeOnProximity", store: ConfigStore.shared.defaults) private var wakeOnProximity = false
     @AppStorage("wakeWithoutUnlocking", store: ConfigStore.shared.defaults) private var wakeWithoutUnlocking = false
     @AppStorage("screensaver", store: ConfigStore.shared.defaults) private var screensaver = false
-    @StateObject private var store = GuardStore.shared
+    @AppStorage("sleepDisplay", store: ConfigStore.shared.defaults) private var sleepDisplay = true
+    @AppStorage("lockOnIdle", store: ConfigStore.shared.defaults) private var lockOnIdle = true
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                StudioSectionGroup("靠近唤醒机制") {
+                // 1. 蓝牙设备配对与扫描
+                StudioSectionGroup("蓝牙设备与配对", trailing: {
+                    Button(action: toggleScanning) {
+                        HStack(spacing: 4) {
+                            if isScanning {
+                                ProgressView()
+                                    .controlSize(.mini)
+                                Text("正在扫描...")
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                                Text("扫描设备")
+                            }
+                        }
+                        .font(.system(size: 11))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                }) {
+                    VStack(spacing: 0) {
+                        // 当前绑定设备状态行
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("当前绑定设备")
+                                    .font(.system(size: 13, weight: .medium))
+                                if let name = store.deviceName {
+                                    Text(name)
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    Text("尚未绑定任何蓝牙手环或手表")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            Spacer()
+
+                            if store.deviceName != nil {
+                                HStack(spacing: 8) {
+                                    if let rssi = store.rssi {
+                                        Text("\(rssi) dBm")
+                                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                            .foregroundStyle(StudioColor.emerald)
+                                    }
+                                    Button("解除绑定") {
+                                        withAnimation(StudioAnimation.interactiveSpring) {
+                                            store.unbindDevice()
+                                            selectedDeviceUUID = nil
+                                        }
+                                    }
+                                    .controlSize(.small)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        // 发现设备下拉选择器与配对按钮
+                        HStack {
+                            Text("配对新设备")
+                                .font(.system(size: 13))
+                            Spacer()
+
+                            if store.discoveredDevices.isEmpty {
+                                Text(isScanning ? "搜索周边设备中..." : "未发现设备，点击右上角扫描")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Picker("", selection: $selectedDeviceUUID) {
+                                    Text("选择要绑定的设备...").tag(Optional<UUID>(nil))
+                                    ForEach(store.discoveredDevices, id: \.uuid) { device in
+                                        Text(device.description).tag(Optional(device.uuid))
+                                    }
+                                }
+                                .labelsHidden()
+                                .frame(minWidth: 160, maxWidth: 220)
+
+                                Button("绑定") {
+                                    if let uuid = selectedDeviceUUID,
+                                       let device = store.discoveredDevices.first(where: { $0.uuid == uuid }) {
+                                        withAnimation(StudioAnimation.interactiveSpring) {
+                                            store.bindDevice(uuid: device.uuid, name: device.description)
+                                        }
+                                    }
+                                }
+                                .controlSize(.small)
+                                .buttonStyle(.borderedProminent)
+                                .disabled(selectedDeviceUUID == nil)
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        if let issue = store.bluetoothIssue {
+                            Divider().overlay(StudioMaterial.strokeNormal)
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(StudioColor.rose)
+                                    .font(.system(size: 12))
+                                Text(issue == .unauthorized ? "蓝牙未获得授权，请前往系统设置允许" : "蓝牙处于关闭状态，请开启蓝牙")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(StudioColor.rose)
+                                Spacer()
+                                if issue == .unauthorized {
+                                    Button("打开系统设置") {
+                                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Bluetooth") {
+                                            NSWorkspace.shared.open(url)
+                                        }
+                                    }
+                                    .controlSize(.mini)
+                                }
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                        }
+                    }
+                }
+
+                // 2. 运行模式与安全凭据
+                StudioSectionGroup("运行模式与安全凭据") {
+                    VStack(spacing: 0) {
+                        // 守护总开关
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("近场守护总开关", isOn: Binding(
+                                get: { store.enabled },
+                                set: { store.enabled = $0 }
+                            ))
+                            .toggleStyle(.switch)
+                            Text("关闭后停止后台蓝牙扫描与信号判定。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        // 真实执行开关
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("真实执行锁屏与解锁", isOn: Binding(
+                                get: { store.realExecution },
+                                set: { store.realExecution = $0 }
+                            ))
+                            .toggleStyle(.switch)
+                            Text(store.realExecution ? "已启用真实执行：靠近时自动模拟密码解锁，远离时自动执行锁屏。" : "当前为空跑模式：仅在后台评估信号与判定时序，不执行任何实际解锁或锁屏。")
+                                .font(.caption)
+                                .foregroundStyle(store.realExecution ? StudioColor.emerald : .secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        // 钥匙串锁屏密码
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("钥匙串密码凭据")
+                                    .font(.system(size: 13))
+                                Text(store.hasPassword ? "已在安全钥匙串中加密保存" : "未录入锁屏密码，无法自动解锁")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(store.hasPassword ? StudioColor.emerald : StudioColor.amber)
+                            }
+                            Spacer()
+                            Button(store.hasPassword ? "重新录入密码" : "录入锁屏密码") {
+                                store.setOrChangePassword()
+                            }
+                            .controlSize(.small)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                    }
+                }
+
+                // 3. 测距阈值与空间校准
+                StudioSectionGroup("测距阈值与空间校准", trailing: {
+                    Button("恢复推荐值") {
+                        withAnimation(StudioAnimation.interactiveSpring) {
+                            store.setUnlockRSSI(-60)
+                            store.setLockRSSI(-80)
+                        }
+                    }
+                    .font(.system(size: 11))
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                }) {
+                    VStack(spacing: 0) {
+                        // 解锁阈值滑块
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("靠近解锁阈值")
+                                    .font(.system(size: 13))
+                                Spacer()
+                                Text("\(store.unlockRSSI) dBm")
+                                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                    .monospacedDigit()
+                                    .foregroundStyle(StudioColor.emerald)
+                            }
+                            Slider(
+                                value: Binding(
+                                    get: { Double(store.unlockRSSI) },
+                                    set: { store.setUnlockRSSI(Int($0)) }
+                                ),
+                                in: -90...(-30),
+                                step: 1
+                            )
+                            Text("数值越大（越接近 0），要求手环越靠近电脑才会触发解锁。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        // 锁定阈值滑块
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("离席锁定阈值")
+                                    .font(.system(size: 13))
+                                Spacer()
+                                Text("\(store.lockRSSI) dBm")
+                                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                    .monospacedDigit()
+                                    .foregroundStyle(StudioColor.amber)
+                            }
+                            Slider(
+                                value: Binding(
+                                    get: { Double(store.lockRSSI) },
+                                    set: { store.setLockRSSI(Int($0)) }
+                                ),
+                                in: -95...(-50),
+                                step: 1
+                            )
+                            Text("数值越小（越负），允许离开更远距离才触发锁屏。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        // 向导入口
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("空间测距校准向导")
+                                    .font(.system(size: 13))
+                                Text("通过双阶段实测采样，自动计算贴合当前办公环境的信号阈值")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("启动向导...") {
+                                isPresentingWizard = true
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                    }
+                }
+
+                // 4. 感应与动作策略
+                StudioSectionGroup("靠近唤醒与离席策略") {
                     VStack(spacing: 0) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Toggle("接近自动唤醒屏幕", isOn: $wakeOnProximity)
+                            Toggle("接近自动点亮屏幕", isOn: $wakeOnProximity)
                                 .toggleStyle(.switch)
-                            Text("当 Apple Watch 靠近至解锁距离时，提前点亮屏幕。")
+                            Text("当绑定设备靠近至解锁距离时，提前唤醒屏幕。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -317,7 +573,31 @@ struct UnlockSettingsTab: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Toggle("允许仅唤醒屏幕不自动解锁", isOn: $wakeWithoutUnlocking)
                                 .toggleStyle(.switch)
-                            Text("点亮屏幕供查看锁屏小组件或时间，不自动输入密码。")
+                            Text("点亮屏幕供查看锁屏时间或小组件，不自动注入密码。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("离开后立即熄灭显示器", isOn: $sleepDisplay)
+                                .toggleStyle(.switch)
+                            Text("检测到远离后除锁屏外，同步让显示器进入休眠省电。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+
+                        Divider().overlay(StudioMaterial.strokeNormal)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("键盘鼠标输入中防误锁", isOn: $lockOnIdle)
+                                .toggleStyle(.switch)
+                            Text("当前正在敲击键盘或移动鼠标时，即便蓝牙信号衰减也不锁屏。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -332,79 +612,75 @@ struct UnlockSettingsTab: View {
                             .padding(.vertical, 10)
                     }
                 }
-
-                StudioSectionGroup("锁屏密码与安全") {
-                    HStack {
-                        Text("钥匙串密码状态")
-                        Spacer()
-                        Text(store.hasPassword ? "已录入" : "未录入")
-                            .foregroundStyle(store.hasPassword ? .green : .orange)
-                        Button("重新录入密码") {
-                            store.setOrChangePassword()
-                        }
-                        .controlSize(.small)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                }
             }
             .padding(.vertical)
+            .sheet(isPresented: $isPresentingWizard) {
+                CalibrationWizardView(manager: store.funManager, isPresented: $isPresentingWizard)
+            }
+            .onAppear {
+                store.checkPassword()
+                startScanIfNeeded()
+            }
+        }
+    }
+
+    private func toggleScanning() {
+        if isScanning {
+            store.stopScanning()
+            isScanning = false
+        } else {
+            store.startScanning()
+            isScanning = true
+        }
+    }
+
+    private func startScanIfNeeded() {
+        if store.enabled {
+            store.startScanning()
+            isScanning = true
         }
     }
 }
 
-// MARK: - Tab 3: 锁定
+// MARK: - Tab 3: 安全与日志 (iMessage 远程告警 + 决策审计流水线)
 
-struct LockSettingsTab: View {
-    @AppStorage("sleepDisplay", store: ConfigStore.shared.defaults) private var sleepDisplay = true
-    @AppStorage("lockOnIdle", store: ConfigStore.shared.defaults) private var lockOnIdle = true
+struct DiagnosticsSettingsTab: View {
+    @StateObject private var logger = DecisionLogger.shared
+    @State private var selectedCategory: DecisionCategory?
+    @State private var searchText = ""
+    @State private var showingClearConfirmation = false
 
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                StudioSectionGroup("离席锁定动作") {
-                    VStack(spacing: 0) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Toggle("离开后立即熄灭显示器", isOn: $sleepDisplay)
-                                .toggleStyle(.switch)
-                            Text("检测到远离时不仅锁屏，同时让屏幕进入休眠节电。")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-
-                        Divider().overlay(StudioMaterial.strokeNormal)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Toggle("键盘鼠标输入中防误锁", isOn: $lockOnIdle)
-                                .toggleStyle(.switch)
-                            Text("若当前正在敲击键盘或移动鼠标，即便蓝牙信号瞬时衰减也不触发锁屏。")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                    }
-                }
-            }
-            .padding(.vertical)
-        }
-    }
-}
-
-// MARK: - Tab 4: 通知告警
-
-struct NotificationSettingsTab: View {
     @AppStorage("iMessageNotify", store: ConfigStore.shared.defaults) private var iMessageNotify = false
     @AppStorage("iMessageNotifyRecipient", store: ConfigStore.shared.defaults) private var recipient = ""
     @State private var isTesting = false
     @State private var testResult: String?
     @State private var testSuccess = false
 
+    private var filteredEvents: [DecisionEvent] {
+        var list = logger.events
+        if let cat = selectedCategory {
+            list = list.filter { $0.category == cat }
+        }
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !q.isEmpty {
+            list = list.filter { e in
+                if e.detail.lowercased().contains(q) { return true }
+                if let r = e.reason?.rawValue.lowercased(), r.contains(q) { return true }
+                if let dev = e.device?.lowercased(), dev.contains(q) { return true }
+                let badge = badgeInfo(for: e)
+                if badge.label.lowercased().contains(q) { return true }
+                return false
+            }
+        }
+        return list
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
+        let events = filteredEvents
+
+        VStack(alignment: .leading, spacing: 10) {
+            // 1. iMessage 远程告警折叠卡片
+            VStack(spacing: 0) {
                 StudioSectionGroup("iMessage 远程异常告警") {
                     VStack(spacing: 0) {
                         VStack(alignment: .leading, spacing: 4) {
@@ -452,151 +728,9 @@ struct NotificationSettingsTab: View {
                     }
                 }
             }
-            .padding(.vertical)
-        }
-    }
+            .padding(.top, 8)
 
-    private func runTest() {
-        guard !recipient.isEmpty else { return }
-        isTesting = true
-        testResult = nil
-        ConfigStore.shared.set(recipient, forKey: "iMessageNotifyRecipient")
-        let (title, msg) = IMMessageComposer.compose(.test)
-        iMessageNotifier.shared.sendTestNotification(title: title, message: msg) { res in
-            isTesting = false
-            switch res {
-            case .success:
-                testSuccess = true
-                testResult = "测试消息已成功发送！"
-            case .failure(let err):
-                testSuccess = false
-                testResult = err.message
-            }
-        }
-    }
-}
-
-// MARK: - Tab 5: 测距校准
-
-struct CalibrationSettingsTab: View {
-    @StateObject private var store = GuardStore.shared
-    @State private var isPresentingWizard = false
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                StudioSectionGroup("当前信号阈值", trailing: {
-                    Button("恢复推荐值") {
-                        withAnimation(StudioAnimation.interactiveSpring) {
-                            store.setUnlockRSSI(-60)
-                            store.setLockRSSI(-70)
-                        }
-                    }
-                    .font(.system(size: 11))
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.accentColor)
-                }) {
-                    VStack(spacing: 0) {
-                        HStack {
-                            Text("当前绑定设备")
-                            Spacer()
-                            Text(store.deviceName ?? "未绑定设备")
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-
-                        Divider().overlay(StudioMaterial.strokeNormal)
-
-                        HStack {
-                            Text("当前信号强度 (RSSI)")
-                            Spacer()
-                            Text(store.rssi.map { "\($0) dBm" } ?? "--")
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-
-                        Divider().overlay(StudioMaterial.strokeNormal)
-
-                        HStack {
-                            Text("解锁阈值")
-                            Spacer()
-                            Text("\(store.unlockRSSI) dBm")
-                                .font(.system(.body, design: .monospaced))
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-
-                        Divider().overlay(StudioMaterial.strokeNormal)
-
-                        HStack {
-                            Text("锁定阈值")
-                            Spacer()
-                            Text("\(store.lockRSSI) dBm")
-                                .font(.system(.body, design: .monospaced))
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                    }
-                }
-
-                StudioSectionGroup("向导式校准") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("如果当前距离下经常出现误锁或无法及时解锁，建议运行测距校准向导，通过采样计算适合当前办公环境的信号阈值。")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        Button("启动空间测距校准向导...") {
-                            isPresentingWizard = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                }
-            }
-            .padding(.vertical)
-            .sheet(isPresented: $isPresentingWizard) {
-                CalibrationWizardView(manager: store.funManager, isPresented: $isPresentingWizard)
-            }
-        }
-    }
-}
-
-// MARK: - Tab 6: 诊断日志
-
-struct DiagnosticsSettingsTab: View {
-    @StateObject private var logger = DecisionLogger.shared
-    @State private var selectedCategory: DecisionCategory?
-    @State private var searchText = ""
-    @State private var showingClearConfirmation = false
-
-    private var filteredEvents: [DecisionEvent] {
-        var list = logger.events
-        if let cat = selectedCategory {
-            list = list.filter { $0.category == cat }
-        }
-        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if !q.isEmpty {
-            list = list.filter { e in
-                if e.detail.lowercased().contains(q) { return true }
-                if let r = e.reason?.rawValue.lowercased(), r.contains(q) { return true }
-                if let dev = e.device?.lowercased(), dev.contains(q) { return true }
-                let badge = badgeInfo(for: e)
-                if badge.label.lowercased().contains(q) { return true }
-                return false
-            }
-        }
-        return list
-    }
-
-    var body: some View {
-        let events = filteredEvents
-
-        VStack(alignment: .leading, spacing: 10) {
-            // 顶部胶囊工具栏：搜索过滤与一键清理
+            // 2. 决策审计时序流水线
             HStack(spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
@@ -654,7 +788,7 @@ struct DiagnosticsSettingsTab: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 12)
+            .padding(.top, 4)
 
             // 分类胶囊筛选行
             HStack(spacing: 6) {
@@ -688,7 +822,7 @@ struct DiagnosticsSettingsTab: View {
                                 .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 48)
+                        .padding(.vertical, 32)
                     } else {
                         ForEach(events.reversed()) { event in
                             timelineEventCard(for: event)
@@ -697,6 +831,25 @@ struct DiagnosticsSettingsTab: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 6)
+            }
+        }
+    }
+
+    private func runTest() {
+        guard !recipient.isEmpty else { return }
+        isTesting = true
+        testResult = nil
+        ConfigStore.shared.set(recipient, forKey: "iMessageNotifyRecipient")
+        let (title, msg) = IMMessageComposer.compose(.test)
+        iMessageNotifier.shared.sendTestNotification(title: title, message: msg) { res in
+            isTesting = false
+            switch res {
+            case .success:
+                testSuccess = true
+                testResult = "测试消息已成功发送！"
+            case .failure(let err):
+                testSuccess = false
+                testResult = err.message
             }
         }
     }
@@ -922,3 +1075,4 @@ struct DiagnosticsSettingsTab: View {
         return f
     }()
 }
+

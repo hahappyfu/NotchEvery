@@ -114,6 +114,7 @@
 		F101CE00000000000000005A /* TokenFormatUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000059 /* TokenFormatUtilsTests.swift */; };
 		7B01000120260CD00000000B /* GuardControlZoneViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD00000000C /* GuardControlZoneViewTests.swift */; };
 		F101CE00000000000000005C /* TokenFormatUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000005B /* TokenFormatUtils.swift */; };
+		7B01000120260CD00000000E /* FUnlockDeviceBindingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD00000000D /* FUnlockDeviceBindingTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -232,6 +233,7 @@
 		F101CE000000000000000059 /* TokenFormatUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenFormatUtilsTests.swift; sourceTree = "<group>"; };
 		7B01000120260CD00000000C /* GuardControlZoneViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardControlZoneViewTests.swift; sourceTree = "<group>"; };
 		F101CE00000000000000005B /* TokenFormatUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenFormatUtils.swift; sourceTree = "<group>"; };
+		7B01000120260CD00000000D /* FUnlockDeviceBindingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUnlockDeviceBindingTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -392,6 +394,7 @@
 				F101CE000000000000000054 /* DesignSystemTests.swift */,
 				F101CE000000000000000059 /* TokenFormatUtilsTests.swift */,
 					7B01000120260CD00000000C /* GuardControlZoneViewTests.swift */,
+					7B01000120260CD00000000D /* FUnlockDeviceBindingTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -613,6 +616,7 @@
 				F101CE000000000000000055 /* DesignSystemTests.swift in Sources */,
 				F101CE00000000000000005A /* TokenFormatUtilsTests.swift in Sources */,
 					7B01000120260CD00000000B /* GuardControlZoneViewTests.swift in Sources */,
+					7B01000120260CD00000000E /* FUnlockDeviceBindingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
