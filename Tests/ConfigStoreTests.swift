@@ -65,6 +65,86 @@ final class ConfigStoreTests: XCTestCase {
         store.set("hello", forKey: "strKey")
         XCTAssertEqual(store.get("strKey", fallback: ""), "hello")
     }
+
+    /// JSON 后端读写与独立文件持久化测试
+    func testJSONBackendReadWriteAndPersistence() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let testConfigFile = tempDir.appendingPathComponent("config.json")
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let store = ConfigStore(configFile: testConfigFile)
+        store.set("Apple Watch Series 7", forKey: "deviceName")
+        store.set(-65, forKey: "lockRSSI")
+        store.set(true, forKey: "wakeOnProximity")
+
+        XCTAssertEqual(store.string(forKey: "deviceName"), "Apple Watch Series 7")
+        XCTAssertEqual(store.get("lockRSSI", fallback: 0), -65)
+        XCTAssertTrue(store.bool(forKey: "wakeOnProximity"))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: testConfigFile.path))
+
+        // 重新构造，验证从磁盘文件重新加载
+        let store2 = ConfigStore(configFile: testConfigFile)
+        XCTAssertEqual(store2.string(forKey: "deviceName"), "Apple Watch Series 7")
+        XCTAssertEqual(store2.get("lockRSSI", fallback: 0), -65)
+        XCTAssertTrue(store2.bool(forKey: "wakeOnProximity"))
+
+        // 测试删除键
+        store2.removeObject(forKey: "deviceName")
+        XCTAssertNil(store2.string(forKey: "deviceName"))
+        XCTAssertNil(store2.object(forKey: "deviceName"))
+
+        let store3 = ConfigStore(configFile: testConfigFile)
+        XCTAssertNil(store3.string(forKey: "deviceName"))
+    }
+
+    /// 测试损坏 JSON 的容错恢复机制
+    func testJSONCorruptionRecovery() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let testConfigFile = tempDir.appendingPathComponent("config.json")
+        let testSuiteName = "CorruptionTest-\(UUID().uuidString)"
+        defer {
+            try? FileManager.default.removeItem(at: tempDir)
+            UserDefaults.standard.removePersistentDomain(forName: testSuiteName)
+        }
+
+        // 写入非法 JSON
+        try "INVALID JSON {{{".write(to: testConfigFile, atomically: true, encoding: .utf8)
+
+        let store = ConfigStore(configFile: testConfigFile, suiteName: testSuiteName)
+        XCTAssertEqual(store.get("corruptTestRSSI", fallback: -70), -70)
+
+        // 写入新值应恢复正常文件
+        store.set("Recovered Watch", forKey: "deviceName")
+        XCTAssertEqual(store.string(forKey: "deviceName"), "Recovered Watch")
+
+        let store2 = ConfigStore(configFile: testConfigFile, suiteName: testSuiteName)
+        XCTAssertEqual(store2.string(forKey: "deviceName"), "Recovered Watch")
+    }
+    /// 多线程并发读写安全测试
+    func testThreadSafeConcurrentAccess() {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let testConfigFile = tempDir.appendingPathComponent("concurrent_config.json")
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let store = ConfigStore(configFile: testConfigFile)
+        let group = DispatchGroup()
+        let queue = DispatchQueue(label: "test.concurrent.queue", attributes: .concurrent)
+
+        for i in 0..<100 {
+            group.enter()
+            queue.async {
+                store.set(i, forKey: "key_\(i)")
+                _ = store.get("key_\(i)", fallback: -1)
+                group.leave()
+            }
+        }
+        group.wait()
+        XCTAssertEqual(store.get("key_50", fallback: -1), 50)
+    }
+
     // MARK: - 旧域 → 新域迁移（工单 02）
 
     /// 造一对隔离的新/旧 suite 名（随机域名，互不干扰、不碰生产 key）
