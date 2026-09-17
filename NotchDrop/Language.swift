@@ -7,6 +7,10 @@
 
 import Cocoa
 
+func t(_ key: String) -> String {
+    return NSLocalizedString(key, comment: "")
+}
+
 enum Language: String, CaseIterable, Identifiable, Codable {
     case system = "Follow System"
     case english = "English"

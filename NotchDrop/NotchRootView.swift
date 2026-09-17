@@ -8,7 +8,6 @@ import SwiftUI
 struct NotchRootView: View {
     @StateObject var vm: NotchViewModel
     @StateObject private var usage = UsageStore.shared
-    @StateObject private var decisions = DecisionLogger.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// 中央禁放区两侧边距（ADR-0009）：禁放区总宽 = 挖槽宽 + 2×margin，只画背景
     private let deadZoneMargin: CGFloat = 8
@@ -88,21 +87,6 @@ struct NotchRootView: View {
             .truncationMode(.tail)
             .minimumScaleFactor(0.8)
         }
-        // 左耳（第三页守护控制）：展示当前守护模式
-        if vm.contentType == .diagnostics {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Color.green)
-                    .frame(width: 8, height: 8)
-                Text("守护控制")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.primary)
-            }
-            .monospacedDigit()
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .minimumScaleFactor(0.8)
-        }
     }
 
     @ViewBuilder
@@ -117,39 +101,6 @@ struct NotchRootView: View {
             }
             .lineLimit(1)
         }
-        // 右耳（第三页守护控制）：展示设备与信号，无设备展示最近判定
-        if vm.contentType == .diagnostics {
-            if let name = GuardStore.shared.deviceName {
-                HStack(spacing: 4) {
-                    Text(name)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
-                    if let rssi = GuardStore.shared.rssi {
-                        Text("\(rssi) dBm")
-                            .font(.system(size: 11, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .lineLimit(1)
-                .truncationMode(.tail)
-            } else if let latest = latestDiagText {
-                HStack(spacing: 4) {
-                    Text("最近")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
-                    Text(latest)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-                .lineLimit(1)
-                .truncationMode(.tail)
-            }
-        }
-    }
-
-    /// 诊断右耳：最近一条结论（行模型首条，与时间线同口径）
-    private var latestDiagText: String? {
-        DiagTimeline.build(from: decisions.events).first?.entries.first?.reasonText
     }
 
     private var pages: some View {
@@ -164,10 +115,6 @@ struct NotchRootView: View {
                 TokenZoneView()
                     // 横向填充（余宽由列间距均分）；纵向自然高
                     .frame(maxWidth: .infinity, alignment: .top)
-                    .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
-            case .diagnostics:
-                GuardControlZoneView(vm: vm)
-                    // 第三页：守护控制台（定宽 360，自然高度）
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             }
         }
