@@ -302,8 +302,7 @@ public final class AntigravityProxyStore: ObservableObject {
         let cachedTokens = sqlite3_column_int64(stmt, 3)
 
         let total = inputTokens + outputTokens
-        let totalInputWithCached = inputTokens + cachedTokens
-        let fraction = totalInputWithCached > 0 ? Double(cachedTokens) / Double(totalInputWithCached) : 0
+        let fraction = inputTokens > 0 ? min(1.0, max(0.0, Double(cachedTokens) / Double(inputTokens))) : 0
 
         let summary = TokenSummary(
             totalTokens: total.formatted(),

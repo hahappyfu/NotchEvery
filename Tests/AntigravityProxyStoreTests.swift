@@ -58,6 +58,8 @@ final class AntigravityProxyStoreTests: XCTestCase {
         XCTAssertEqual(data.recentRequests[0].accountEmail, "test1@gmail.com")
         XCTAssertEqual(data.summary.totalTokens, "3,600")
         XCTAssertEqual(data.summary.calls, "2")
+        XCTAssertEqual(data.summary.cacheRate, "50.0%")
+        XCTAssertEqual(data.cacheRateFraction, 0.5, accuracy: 0.001)
     }
 
     func testDualSourceSwitching() {

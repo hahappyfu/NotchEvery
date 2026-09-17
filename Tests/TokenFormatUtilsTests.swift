@@ -28,9 +28,11 @@ final class TokenFormatUtilsTests: XCTestCase {
     }
 
     func testFriendlyModelName() {
-        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-3.8-flash-high"), "Flash High")
-        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-2.5-pro"), "Gemini Pro")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-3.8-flash-high"), "3.8 Flash High")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-3.7-flash"), "3.7 Flash")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-2.5-pro"), "2.5 Pro")
         XCTAssertEqual(TokenFormatUtils.friendlyModelName("claude-3-5-sonnet-20241022"), "Sonnet 3.5")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("claude-sonnet-5"), "Sonnet 5")
         XCTAssertEqual(TokenFormatUtils.friendlyModelName("gpt-4o-2024-08-06"), "GPT-4o")
         XCTAssertEqual(TokenFormatUtils.friendlyModelName("custom-model"), "custom-model")
     }
