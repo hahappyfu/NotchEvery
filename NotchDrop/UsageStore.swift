@@ -258,6 +258,7 @@ public final class AntigravityProxyStore: ObservableObject {
             let rawModel = text(stmt, 2)
             let displayModel = (mappedModel?.isEmpty == false ? mappedModel : rawModel) ?? "unknown"
             let email = text(stmt, 7)
+            let cached = Int(sqlite3_column_int64(stmt, 9))
 
             rows.append(TokenRequest(
                 id: text(stmt, 0) ?? "",
@@ -268,7 +269,8 @@ public final class AntigravityProxyStore: ObservableObject {
                 durationSeconds: Double(sqlite3_column_int64(stmt, 5)) / 1000.0,
                 cost: "$0.00",
                 status: Int(sqlite3_column_int64(stmt, 6)),
-                accountEmail: email
+                accountEmail: email,
+                cachedTokens: cached
             ))
         }
         return rows

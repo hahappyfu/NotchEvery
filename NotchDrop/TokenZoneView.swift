@@ -20,6 +20,7 @@ public struct TokenRequest: Identifiable, Equatable {
     public let cost: String
     public let status: Int
     public var accountEmail: String?
+    public let cachedTokens: Int
 
     public init(
         id: String,
@@ -30,7 +31,8 @@ public struct TokenRequest: Identifiable, Equatable {
         durationSeconds: Double,
         cost: String,
         status: Int,
-        accountEmail: String? = nil
+        accountEmail: String? = nil,
+        cachedTokens: Int = 0
     ) {
         self.id = id
         self.time = time
@@ -41,6 +43,30 @@ public struct TokenRequest: Identifiable, Equatable {
         self.cost = cost
         self.status = status
         self.accountEmail = accountEmail
+        self.cachedTokens = cachedTokens
+    }
+
+    /// 友好的账号显示名称（从 AntigravityStore 匹配别名，若无则提取邮箱用户名）
+    public var friendlyAccountName: String {
+        guard let email = accountEmail, !email.isEmpty else { return "" }
+        let lower = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if let matched = AntigravityStore.shared.accounts.first(where: { $0.email.lowercased() == lower }) {
+            return matched.name
+        }
+        if let atIndex = lower.firstIndex(of: "@") {
+            return String(lower[..<atIndex])
+        }
+        return lower
+    }
+
+    /// 账号邮箱前缀
+    public var accountEmailPrefix: String {
+        guard let email = accountEmail, !email.isEmpty else { return "" }
+        let lower = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if let atIndex = lower.firstIndex(of: "@") {
+            return String(lower[..<atIndex])
+        }
+        return lower
     }
 }
 

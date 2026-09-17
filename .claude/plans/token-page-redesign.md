@@ -42,10 +42,10 @@
 - 修改：`NotchDrop/UsageStore.swift`
 - 修改：`Tests/AntigravityProxyStoreTests.swift`
 
-- [ ] **步骤 1：更新 `TokenRequest` 数据结构**
-- [ ] **步骤 2：在 `UsageStore.swift` 中解析并填充 `cachedTokens`**
-- [ ] **步骤 3：运行数据层测试验证**
-- [ ] **步骤 4：Commit**
+- [x] **步骤 1：更新 `TokenRequest` 数据结构**
+- [x] **步骤 2：在 `UsageStore.swift` 中解析并填充 `cachedTokens`**
+- [x] **步骤 3：运行数据层测试验证**
+- [x] **步骤 4：Commit**
 
 ---
 

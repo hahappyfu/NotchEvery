@@ -120,11 +120,11 @@ git commit -m "feat(token): add friendly model name and cache rate tier utils"
 - 修改：`NotchDrop/UsageStore.swift`
 - 修改：`Tests/AntigravityProxyStoreTests.swift`（若受构造器变更影响）
 
-- [ ] **步骤 1：更新 `TokenRequest` 数据结构**
+- [x] **步骤 1：更新 `TokenRequest` 数据结构**
 
 在 `NotchDrop/TokenZoneView.swift` 中为 `TokenRequest` 新增 `public let cachedTokens: Int` 属性，并在 `init` 中赋予默认值 `cachedTokens: Int = 0` 保证兼容性。
 
-- [ ] **步骤 2：在 `UsageStore.swift` 中解析并填充 `cachedTokens`**
+- [x] **步骤 2：在 `UsageStore.swift` 中解析并填充 `cachedTokens`**
 
 在 `AntigravityProxyStore.queryRecent` 中解析 SQLite 查询结果的 `cached_tokens`：
 ```swift
@@ -132,7 +132,7 @@ let cachedTokens = Int(sqlite3_column_int64(stmt, 9))
 ```
 并在实例化 `TokenRequest` 时传入 `cachedTokens: cachedTokens`。
 
-- [ ] **步骤 3：运行数据层测试验证**
+- [x] **步骤 3：运行数据层测试验证**
 
 运行：
 ```bash
@@ -140,7 +140,7 @@ xcodebuild test -project NotchDrop.xcodeproj -scheme NotchDrop -destination 'pla
 ```
 预期：`** TEST SUCCEEDED **`
 
-- [ ] **步骤 4：Commit**
+- [x] **步骤 4：Commit**
 
 ```bash
 git add NotchDrop/TokenZoneView.swift NotchDrop/UsageStore.swift Tests/AntigravityProxyStoreTests.swift
