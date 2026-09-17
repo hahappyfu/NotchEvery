@@ -26,7 +26,7 @@ public enum StudioMaterial {
 
 public enum StudioAnimation {
     public static let springResponse: Double = 0.32
-    public static let springDamping: Double = 0.82
+    public static let springDamping: Double = 0.86
     public static var interactiveSpring: Animation {
         .spring(response: springResponse, dampingFraction: springDamping)
     }

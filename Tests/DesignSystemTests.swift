@@ -13,7 +13,7 @@ final class DesignSystemTests: XCTestCase {
 
     func testStudioSpringTiming() {
         XCTAssertEqual(StudioAnimation.springResponse, 0.32, accuracy: 0.01)
-        XCTAssertEqual(StudioAnimation.springDamping, 0.82, accuracy: 0.01)
+        XCTAssertEqual(StudioAnimation.springDamping, 0.86, accuracy: 0.01)
     }
 
     func testSmoothNotchShapePathValidity() {

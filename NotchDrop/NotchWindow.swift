@@ -43,6 +43,8 @@ class NotchWindow: NSWindow {
         ]
         level = .statusBar + 8 // kills ibar lol
         hasShadow = false
+        contentView?.wantsLayer = true
+        contentView?.layer?.drawsAsynchronously = true
         // 恒黑岛（ADR-0010）：硬件刘海恒黑，窗口外观锁死深色，
         // 避免系统浅色模式下 SwiftUI .primary/.secondary 语义色解析为黑字，黑字黑底不可见
         appearance = NSAppearance(named: .darkAqua)

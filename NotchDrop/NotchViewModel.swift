@@ -192,6 +192,12 @@ class NotchViewModel: NSObject, ObservableObject {
             // 切页恢复目标区自己的宽度：各区独立记忆，窄区回来不会被宽区卡住
             let seed = lastZoneSize[contentType]?.width ?? 0
             measuredNaturalSize = CGSize(width: seed, height: measuredNaturalSize.height)
+            if contentType != oldValue {
+                transitionActive = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+                    self?.transitionActive = false
+                }
+            }
         }
     }
 
@@ -211,13 +217,12 @@ class NotchViewModel: NSObject, ObservableObject {
     /// 过桥菊花：openFromGhost 后短闪 150ms
     @Published private(set) var bridgeSpinning: Bool = false
 
-    /// 展开/收起弹簧：原版 NotchDrop 的 interactiveSpring(duration 0.5, extraBounce 0.25,
-    /// blendDuration 0.125)；展开回弹降到 0.1（2026-09-11 用户反馈「弹出来用力过猛」）
-    let openAnimation: Animation = .interactiveSpring(duration: 0.5, extraBounce: 0.1, blendDuration: 0.125)
-    /// 收起沿用同一条曲线（原版开合同参）
-    let closeAnimation: Animation = .interactiveSpring(duration: 0.5, extraBounce: 0.25, blendDuration: 0.125)
-    /// 切页专用：快、无过冲（清单 05 转场收敛；.snappy 需 macOS 14+，部署目标 13 故用高阻尼 spring）
-    let pageAnimation: Animation = .spring(response: 0.3, dampingFraction: 0.9)
+    /// 展开弹簧：对齐 Apple 灵动岛原生感（360ms 快速舒展，0.82 阻尼保留微弹水滴感）
+    let openAnimation: Animation = .spring(response: 0.36, dampingFraction: 0.82, blendDuration: 0.08)
+    /// 收起弹簧：对齐 Apple 原生吸附（260ms 快收，1.0 临界阻尼绝对零反弹）
+    let closeAnimation: Animation = .spring(response: 0.26, dampingFraction: 1.0, blendDuration: 0.05)
+    /// 切页专用：高抗抖横向位移弹簧（320ms，0.86 阻尼平稳推进）
+    let pageAnimation: Animation = .spring(response: 0.32, dampingFraction: 0.86)
 
     @PublishedPersist(key: "selectedLanguage", defaultValue: .system)
     var selectedLanguage: Language
@@ -257,9 +262,11 @@ class NotchViewModel: NSObject, ObservableObject {
         notchTimingMark("openFromGhost")
         cancelHoverClose()
         ghostGeneration += 1
-        hoverGhosting = false
-        ghostFading = false
-        status = .opened
+        withAnimation(openAnimation) {
+            hoverGhosting = false
+            ghostFading = false
+            status = .opened
+        }
         notchTimingMark("preActivate")
         NSApp.activate(ignoringOtherApps: true)
         notchTimingMark("postActivate")
@@ -297,8 +304,10 @@ class NotchViewModel: NSObject, ObservableObject {
         } else {
             cancelHoverClose()
             ghostGeneration += 1
-            hoverGhosting = false
-            status = .opened
+            withAnimation(openAnimation) {
+                hoverGhosting = false
+                status = .opened
+            }
             NSApp.activate(ignoringOtherApps: true)
         }
     }
@@ -345,21 +354,27 @@ class NotchViewModel: NSObject, ObservableObject {
                 lastSwipeDirection = .previous
             }
         }
-        contentType = zone
+        withAnimation(pageAnimation) {
+            contentType = zone
+        }
     }
 
     func nextZone() {
         lastSwipeDirection = .next
         let order = Self.zoneOrder
         let idx = order.firstIndex(of: contentType) ?? 0
-        contentType = order[(idx + 1) % order.count]
+        withAnimation(pageAnimation) {
+            contentType = order[(idx + 1) % order.count]
+        }
     }
 
     func previousZone() {
         lastSwipeDirection = .previous
         let order = Self.zoneOrder
         let idx = order.firstIndex(of: contentType) ?? 0
-        contentType = order[(idx + order.count - 1) % order.count]
+        withAnimation(pageAnimation) {
+            contentType = order[(idx + order.count - 1) % order.count]
+        }
     }
 
     /// 首次滑动提示是否已展示过：持久化，只打扰一次

@@ -51,9 +51,14 @@ class NotchWindowController: NSWindowController {
                     width: screen.frame.width,
                     height: height
                 )
-                self?.hostingHeightConstraint?.constant = height
-                window.setFrame(target, display: true)
-                notchTimingMark("setFrame h=\(Int(height))")
+                if abs(window.frame.origin.x - target.origin.x) > 0.5 ||
+                   abs(window.frame.origin.y - target.origin.y) > 0.5 ||
+                   abs(window.frame.size.width - target.size.width) > 0.5 ||
+                   abs(window.frame.size.height - target.size.height) > 0.5 {
+                    self?.hostingHeightConstraint?.constant = height
+                    window.setFrame(target, display: true)
+                    notchTimingMark("setFrame h=\(Int(height))")
+                }
             }
             .store(in: &cancellables)
 
