@@ -192,6 +192,12 @@ class NotchViewModel: NSObject, ObservableObject {
             // 切页恢复目标区自己的宽度：各区独立记忆，窄区回来不会被宽区卡住
             let seed = lastZoneSize[contentType]?.width ?? 0
             measuredNaturalSize = CGSize(width: seed, height: measuredNaturalSize.height)
+            if contentType != oldValue {
+                transitionActive = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+                    self?.transitionActive = false
+                }
+            }
         }
     }
 
@@ -256,9 +262,11 @@ class NotchViewModel: NSObject, ObservableObject {
         notchTimingMark("openFromGhost")
         cancelHoverClose()
         ghostGeneration += 1
-        hoverGhosting = false
-        ghostFading = false
-        status = .opened
+        withAnimation(openAnimation) {
+            hoverGhosting = false
+            ghostFading = false
+            status = .opened
+        }
         notchTimingMark("preActivate")
         NSApp.activate(ignoringOtherApps: true)
         notchTimingMark("postActivate")
@@ -296,8 +304,10 @@ class NotchViewModel: NSObject, ObservableObject {
         } else {
             cancelHoverClose()
             ghostGeneration += 1
-            hoverGhosting = false
-            status = .opened
+            withAnimation(openAnimation) {
+                hoverGhosting = false
+                status = .opened
+            }
             NSApp.activate(ignoringOtherApps: true)
         }
     }
@@ -344,21 +354,27 @@ class NotchViewModel: NSObject, ObservableObject {
                 lastSwipeDirection = .previous
             }
         }
-        contentType = zone
+        withAnimation(pageAnimation) {
+            contentType = zone
+        }
     }
 
     func nextZone() {
         lastSwipeDirection = .next
         let order = Self.zoneOrder
         let idx = order.firstIndex(of: contentType) ?? 0
-        contentType = order[(idx + 1) % order.count]
+        withAnimation(pageAnimation) {
+            contentType = order[(idx + 1) % order.count]
+        }
     }
 
     func previousZone() {
         lastSwipeDirection = .previous
         let order = Self.zoneOrder
         let idx = order.firstIndex(of: contentType) ?? 0
-        contentType = order[(idx + order.count - 1) % order.count]
+        withAnimation(pageAnimation) {
+            contentType = order[(idx + order.count - 1) % order.count]
+        }
     }
 
     /// 首次滑动提示是否已展示过：持久化，只打扰一次
