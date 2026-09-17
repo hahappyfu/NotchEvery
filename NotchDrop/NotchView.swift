@@ -10,7 +10,6 @@ import SwiftUI
 struct NotchView: View {
     @StateObject var vm: NotchViewModel
     @StateObject private var usage = UsageStore.shared
-    @StateObject private var guardStore = GuardStore.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State var dropTargeting: Bool = false
@@ -188,7 +187,7 @@ struct NotchView: View {
         .animation(reduceMotion ? nil : (vm.transitionActive ? (vm.status == .opened ? vm.openAnimation : vm.closeAnimation) : nil), value: islandSize)
     }
 
-    /// 悬停 peek 提示：双模态胶囊（左侧 Antigravity 代理今日看板，右侧近场守护安全感知）
+    /// 悬停 peek 提示：双模态胶囊（左侧 Antigravity 代理今日看板，右侧 AI 缓存命中率）
     private var peekHint: some View {
         HStack(spacing: 7) {
             // 左区：Antigravity 代理今日看板
@@ -208,11 +207,13 @@ struct NotchView: View {
                 .fill(Color.white.opacity(0.18))
                 .frame(width: 1, height: 10)
 
-            // 右区：近场守护安全感知
-            Text(guardStatusText)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.90))
-                .fixedSize()
+            // 右区：AI 缓存命中率
+            HStack(spacing: 4) {
+                Text("⚡️ 缓存 \(formattedCacheRateText)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(StudioColor.cyan)
+                    .monospacedDigit()
+            }
         }
         .padding(.horizontal, 4)
     }
@@ -239,19 +240,8 @@ struct NotchView: View {
         return "0 次"
     }
 
-    private var guardStatusText: String {
-        switch guardStore.guardState {
-        case .disabled:
-            return "⏸️ 已停用"
-        case .observing:
-            return "🛡️ 空跑"
-        case .guarding:
-            if let rssi = guardStore.rssi {
-                return "⌚️ \(rssi) dBm · 安全"
-            } else {
-                return "⌚️ 搜寻中..."
-            }
-        }
+    private var formattedCacheRateText: String {
+        String(format: "%.1f%%", usage.cacheRateFraction * 100)
     }
 
     @ViewBuilder

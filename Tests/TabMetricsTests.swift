@@ -48,13 +48,11 @@ final class TabMetricsTests: XCTestCase {
     }
 
     func testPageZoneMapping() {
-        // 诊断分区（工单 06）进顺序表：既有两区映射不变，合法扩展
-        XCTAssertEqual(NotchViewModel.zoneOrder, [.normal, .token, .diagnostics])
+        // 双分区映射：概览与 Token
+        XCTAssertEqual(NotchViewModel.zoneOrder, [.normal, .token])
         XCTAssertEqual(NotchViewModel.pageIndex(for: .normal), 0)
         XCTAssertEqual(NotchViewModel.pageIndex(for: .token), 1)
-        XCTAssertEqual(NotchViewModel.pageIndex(for: .diagnostics), 2)
         XCTAssertEqual(NotchViewModel.zone(for: 0), .normal)
         XCTAssertEqual(NotchViewModel.zone(for: 1), .token)
-        XCTAssertEqual(NotchViewModel.zone(for: 2), .diagnostics)
     }
 }

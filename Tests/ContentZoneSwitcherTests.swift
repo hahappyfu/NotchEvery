@@ -3,19 +3,19 @@ import XCTest
 
 final class ContentZoneSwitcherTests: XCTestCase {
     func testNextZoneWrapsAround() {
-        // 诊断分区（工单 06）进循环：末区之后回到概览
+        // 双分区循环：末区之后回到概览
         let vm = NotchViewModel(events: MockEventMonitors())
-        vm.jumpToZone(.diagnostics)
+        vm.jumpToZone(.token)
         vm.nextZone()
         XCTAssertEqual(vm.contentType, .normal)
     }
 
     func testPreviousZoneWrapsAround() {
-        // 诊断分区（工单 06）进循环：概览之前是诊断
+        // 双分区循环：概览之前是 Token
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.normal)
         vm.previousZone()
-        XCTAssertEqual(vm.contentType, .diagnostics)
+        XCTAssertEqual(vm.contentType, .token)
     }
 
     func testNextZoneAdvancesInOrder() {
@@ -25,15 +25,11 @@ final class ContentZoneSwitcherTests: XCTestCase {
         XCTAssertEqual(vm.contentType, .token)
     }
 
-    /// 诊断分区横扫双向可达（06 工单验收：横扫到达）
-    func testDiagnosticsReachableBySwipe() {
+    func testPreviousZoneStepsBackward() {
         let vm = NotchViewModel(events: MockEventMonitors())
-        vm.jumpToZone(.normal)
-        vm.nextZone()
-        vm.nextZone()
-        XCTAssertEqual(vm.contentType, .diagnostics)
+        vm.jumpToZone(.token)
         vm.previousZone()
-        XCTAssertEqual(vm.contentType, .token)
+        XCTAssertEqual(vm.contentType, .normal)
     }
 
     func testMarkSwipeHintSeenSetsFlag() {

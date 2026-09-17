@@ -78,16 +78,13 @@ struct GuardCardView: View {
                         .controlSize(.mini)
                 }
             }
-            // 上次未解锁回显（工单 08）：单行省略，点进诊断分区；无失败时不占行
+            // 上次未解锁回显（工单 08）：单行省略；无失败时不占行
             if let failure = store.lastUnlockFailure {
-                Button(action: { vm.jumpToZone(.diagnostics) }) {
-                    Text("上次未解锁：\(failure)")
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(Color.orange.opacity(0.9))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .buttonStyle(.plain)
+                Text("上次未解锁：\(failure)")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.orange.opacity(0.9))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
             // 权限引导行（工单 07）：缺失项各一行（单行省略）+ 去开启/知道了；
             // 另起 slim 行重检。只在缺失时出现，不撑常态高度。

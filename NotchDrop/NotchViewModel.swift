@@ -154,8 +154,6 @@ class NotchViewModel: NSObject, ObservableObject {
     enum ContentType: Int, Codable, Hashable, Equatable {
         case normal
         case token
-        /// 诊断分区（工单 06，加在末尾：raw 值稳定，已持久化的旧值不受影响）
-        case diagnostics
     }
 
     // ——— 几何经由 NotchGeometry 计算，Published 仍在门面以保持绑定 ———
@@ -318,8 +316,8 @@ class NotchViewModel: NSObject, ObservableObject {
     /// 设置 Popover 弹出状态：根齿轮与右键菜单共用（设置走 Popover 定案，不占分页）
     @Published var showSettings = false
 
-    /// 功能区固定顺序：左右滑按此循环（概览｜Token｜诊断）
-    static let zoneOrder: [ContentType] = [.normal, .token, .diagnostics]
+    /// 功能区固定顺序：左右滑按此循环（概览｜Token）
+    static let zoneOrder: [ContentType] = [.normal, .token]
 
     /// 页—区分区双向映射（TabView 分页地基，越界回概览）
     static func pageIndex(for zone: ContentType) -> Int {
