@@ -140,7 +140,7 @@ struct AntigravityAccountsCardView: View {
                 }
             }
         }
-        .animation(reduceMotion ? nil : StudioAnimation.interactiveSpring, value: store.currentAccountId)
+        .animation(reduceMotion ? nil : StudioAnimation.interactiveSpring, value: arranged.map(\.account.id))
     }
 
     private func rotationAngle(for distance: Int) -> Double {

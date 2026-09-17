@@ -315,4 +315,48 @@ final class AntigravityStoreTests: XCTestCase {
         XCTAssertEqual(acc1?.isCurrent, false)
         XCTAssertEqual(acc1?.lastActiveTime, Date(timeIntervalSince1970: 1000))
     }
+
+    func testLoadLastActiveTimesMergesBothTokenStatsAndProxyLogs() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+
+        // 1. token_stats.db: user1 在 1000，user2 在 2000
+        let tokenStatsDB = tempDir.appendingPathComponent("token_stats.db")
+        var db1: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(tokenStatsDB.path, &db1), SQLITE_OK)
+        let createTokenStats = """
+        CREATE TABLE token_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp INTEGER NOT NULL,
+            account_email TEXT NOT NULL
+        );
+        INSERT INTO token_usage (timestamp, account_email) VALUES (1000, 'user1@example.com');
+        INSERT INTO token_usage (timestamp, account_email) VALUES (2000, 'user2@example.com');
+        """
+        XCTAssertEqual(sqlite3_exec(db1, createTokenStats, nil, nil, nil), SQLITE_OK)
+        sqlite3_close(db1)
+
+        // 2. proxy_logs.db: user1 实时产生了更新的请求 (3000)
+        let proxyLogsDB = tempDir.appendingPathComponent("proxy_logs.db")
+        var db2: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(proxyLogsDB.path, &db2), SQLITE_OK)
+        let createProxyLogs = """
+        CREATE TABLE request_logs (
+            id TEXT PRIMARY KEY,
+            timestamp INTEGER NOT NULL,
+            account_email TEXT NOT NULL
+        );
+        INSERT INTO request_logs (id, timestamp, account_email) VALUES ('req-1', 3000, 'user1@example.com');
+        """
+        XCTAssertEqual(sqlite3_exec(db2, createProxyLogs, nil, nil, nil), SQLITE_OK)
+        sqlite3_close(db2)
+
+        // 验证两者融合：user1 应该取到 3000（来自 proxy_logs），user2 取到 2000（来自 token_stats）
+        let activeTimes = AntigravityStore.loadLastActiveTimes(from: tempDir)
+        XCTAssertEqual(activeTimes["user1@example.com"], Date(timeIntervalSince1970: 3000))
+        XCTAssertEqual(activeTimes["user2@example.com"], Date(timeIntervalSince1970: 2000))
+    }
 }

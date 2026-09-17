@@ -79,7 +79,7 @@ public final class AntigravityStore: ObservableObject {
     private var timer: Timer?
     private var isRefreshing = false
 
-    public init(baseDir: URL = AntigravityStore.baseDirectory, interval: TimeInterval = 10) {
+    public init(baseDir: URL = AntigravityStore.baseDirectory, interval: TimeInterval = 3) {
         self.baseDir = baseDir
         self.interval = interval
     }
@@ -198,20 +198,18 @@ public final class AntigravityStore: ObservableObject {
             }
         }
 
-        // 优先从 token_stats.db 读取
+        // 1. 从实时代理请求日志 proxy_logs.db 读取最新请求时间戳（流水级毫秒数据）
+        let proxyLogsDB = directory.appendingPathComponent("proxy_logs.db")
+        queryDB(
+            url: proxyLogsDB,
+            sql: "SELECT account_email, MAX(timestamp) FROM request_logs WHERE account_email != '' GROUP BY account_email;"
+        )
+
+        // 2. 从聚合统计库 token_stats.db 读取，取两者的最新时间戳最大值
         queryDB(
             url: tokenStatsDB,
             sql: "SELECT account_email, MAX(timestamp) FROM token_usage WHERE account_email != '' GROUP BY account_email;"
         )
-
-        // 若为空，回退尝试 proxy_logs.db
-        if results.isEmpty {
-            let proxyLogsDB = directory.appendingPathComponent("proxy_logs.db")
-            queryDB(
-                url: proxyLogsDB,
-                sql: "SELECT account_email, MAX(timestamp) FROM request_logs WHERE account_email != '' GROUP BY account_email;"
-            )
-        }
 
         return results
     }
