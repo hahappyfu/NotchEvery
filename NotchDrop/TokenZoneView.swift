@@ -123,6 +123,10 @@ private struct TokenRowView: View {
     @State private var hovering = false
     @State private var flashOpacity: Double = 0
 
+    private let colIdentityW: CGFloat = 145
+    private let colTokensW: CGFloat = 160
+    private let colTimingW: CGFloat = 75
+
     private var cacheFraction: Double {
         TokenFormatUtils.cacheRateFraction(cached: row.cachedTokens, input: row.inputTokens)
     }
@@ -146,7 +150,7 @@ private struct TokenRowView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // 1. 左栏：身份（定宽 135，左对齐）
+            // 1. 左栏：身份（定宽 145，左对齐）
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 5) {
                     Text(TokenFormatUtils.friendlyModelName(row.model))
@@ -167,9 +171,9 @@ private struct TokenRowView: View {
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
             }
-            .frame(width: 135, alignment: .leading)
+            .frame(width: colIdentityW, alignment: .leading)
 
-            // 2. 中栏：Token 构成与缓存命中（弹性撑满，填补中间空白）
+            // 2. 中栏：Token 构成与缓存命中（定宽 160，水平居中）
             VStack(spacing: 3) {
                 HStack(alignment: .firstTextBaseline) {
                     let total = row.inputTokens + row.outputTokens
@@ -191,19 +195,17 @@ private struct TokenRowView: View {
                 }
 
                 // 微型缓存命中胶囊比例条
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.white.opacity(0.10))
+                        .frame(width: colTokensW, height: 3)
+                    if cacheFraction > 0 {
                         Capsule()
-                            .fill(Color.white.opacity(0.10))
-                            .frame(height: 3)
-                        if cacheFraction > 0 {
-                            Capsule()
-                                .fill(cacheColor)
-                                .frame(width: max(3, geo.size.width * CGFloat(cacheFraction)), height: 3)
-                        }
+                            .fill(cacheColor)
+                            .frame(width: max(4, colTokensW * CGFloat(cacheFraction)), height: 3)
                     }
                 }
-                .frame(height: 3)
+                .frame(width: colTokensW, height: 3)
 
                 HStack {
                     Text("入 \(TokenFormatUtils.formatCompactTokens(row.inputTokens))")
@@ -213,10 +215,10 @@ private struct TokenRowView: View {
                 .font(.system(size: 9).monospacedDigit())
                 .foregroundStyle(.tertiary)
             }
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity)
+            .frame(width: colTokensW)
+            .padding(.horizontal, 10)
 
-            // 3. 右栏：耗时与时间（定宽 68，右对齐）
+            // 3. 右栏：耗时与时间（定宽 75，右对齐）
             VStack(alignment: .trailing, spacing: 2) {
                 HStack(spacing: 4) {
                     Text(String(format: "%.1fs", row.durationSeconds))
@@ -232,10 +234,11 @@ private struct TokenRowView: View {
                     .font(.system(size: 9.5).monospacedDigit())
                     .foregroundStyle(.tertiary)
             }
-            .frame(width: 68, alignment: .trailing)
+            .frame(width: colTimingW, alignment: .trailing)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        .frame(width: 410)
         .contentShape(Rectangle())
         .background(hovering ? StudioMaterial.cardHoverBackground : Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Color.white.opacity(0.035), lineWidth: 0.5))
@@ -293,6 +296,7 @@ struct TokenZoneView: View {
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: store.recentRequests)
             }
         }
+        .frame(width: 410)
         .padding(.vertical, 4)
         .onChange(of: store.recentRequests) { rows in
             if let first = rows.first, first.id != lastFirstID { lastFirstID = first.id }
