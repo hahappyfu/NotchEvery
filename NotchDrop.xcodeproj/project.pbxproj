@@ -7,8 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7B01000120260CD000000002 /* CalibrationWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000001 /* CalibrationWizardView.swift */; };
-		7B01000120260CD000000004 /* GuardControlZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000003 /* GuardControlZoneView.swift */; };
+		F101CE000000000000000077 /* DecisionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000078 /* DecisionModels.swift */; };
 		7B01000120260CD000000006 /* PreferencesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000005 /* PreferencesWindow.swift */; };
 		7B01000120260CD000000008 /* PreferencesWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000007 /* PreferencesWindowController.swift */; };
 		148901532DC9149900F2E06C /* Share.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148901512DC9149900F2E06C /* Share.swift */; };
@@ -72,10 +71,7 @@
 		7AE10C0220260AB000000D8 /* UsageStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C8 /* UsageStoreTests.swift */; };
 		7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */; };
 		7AE10C0220260AB000000DA /* AntigravityProxyStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */; };
-		F101CE000000000000000001 /* FUn.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000002 /* FUn.swift */; };
 		F101CE000000000000000003 /* SignalPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000004 /* SignalPipeline.swift */; };
-		F101CE000000000000000005 /* FUnlockStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000006 /* FUnlockStateMachine.swift */; };
-		F101CE000000000000000007 /* DecisionLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000008 /* DecisionLogger.swift */; };
 		F101CE000000000000000009 /* ConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000000A /* ConfigStore.swift */; };
 		F101CE00000000000000000B /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000000C /* RingBuffer.swift */; };
 		F101CE00000000000000000D /* LEDeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000000E /* LEDeviceInfo.swift */; };
@@ -85,25 +81,15 @@
 		F101CE000000000000000015 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000016 /* Log.swift */; };
 		F101CE000000000000000017 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000018 /* DebugLog.swift */; };
 		F101CE000000000000000019 /* InputActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000001A /* InputActivityMonitor.swift */; };
-		F101CE00000000000000001B /* GuardLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000001C /* GuardLocalization.swift */; };
 		F101CE00000000000000001D /* TimingLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000001E /* TimingLog.swift */; };
-		F101CE00000000000000001F /* FUnManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000020 /* FUnManager.swift */; };
 		F101CE000000000000000021 /* SystemInteractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000022 /* SystemInteractionService.swift */; };
 		F101CE000000000000000023 /* SecurityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000024 /* SecurityService.swift */; };
 		F101CE000000000000000025 /* lowlevel.c in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000026 /* lowlevel.c */; };
-		F101CE000000000000000029 /* FUnlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000002A /* FUnlockTests.swift */; };
 		F101CE00000000000000002B /* ConfigStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000002C /* ConfigStoreTests.swift */; };
-		F101CE00000000000000002D /* DecisionLoggerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000002E /* DecisionLoggerTests.swift */; };
-		F101CE00000000000000002F /* DiagnosticsViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000030 /* DiagnosticsViewTests.swift */; };
-		F101CE000000000000000031 /* FUnlockStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000032 /* FUnlockStateMachineTests.swift */; };
 		F101CE000000000000000033 /* IMMessageComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000034 /* IMMessageComposerTests.swift */; };
 		F101CE000000000000000035 /* ReasonActionMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000036 /* ReasonActionMappingTests.swift */; };
 		F101CE000000000000000037 /* iMessageNotifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000038 /* iMessageNotifierTests.swift */; };
-		F101CE000000000000000039 /* GuardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000003A /* GuardStore.swift */; };
-		F101CE00000000000000003B /* GuardCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000003C /* GuardCardView.swift */; };
-		F101CE00000000000000003D /* GuardStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000003E /* GuardStoreTests.swift */; };
 		F101CE00000000000000003F /* SystemEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000040 /* SystemEffects.swift */; };
-		F101CE000000000000000041 /* SystemEffectsFakeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000042 /* SystemEffectsFakeTests.swift */; };
 		F101CE000000000000000043 /* DiagTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000044 /* DiagTimeline.swift */; };
 		F101CE000000000000000049 /* PermissionGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000050 /* PermissionGuide.swift */; };
 		F101CE000000000000000051 /* PermissionGuideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000052 /* PermissionGuideTests.swift */; };
@@ -112,9 +98,7 @@
 		7B01000120260CD00000000A /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000009 /* DesignSystem.swift */; };
 		F101CE000000000000000057 /* SmoothNotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000056 /* SmoothNotchShape.swift */; };
 		F101CE00000000000000005A /* TokenFormatUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000059 /* TokenFormatUtilsTests.swift */; };
-		7B01000120260CD00000000B /* GuardControlZoneViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD00000000C /* GuardControlZoneViewTests.swift */; };
 		F101CE00000000000000005C /* TokenFormatUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000005B /* TokenFormatUtils.swift */; };
-		7B01000120260CD00000000E /* FUnlockDeviceBindingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD00000000D /* FUnlockDeviceBindingTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -128,8 +112,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		7B01000120260CD000000001 /* CalibrationWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalibrationWizardView.swift; sourceTree = "<group>"; };
-		7B01000120260CD000000003 /* GuardControlZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardControlZoneView.swift; sourceTree = "<group>"; };
+		F101CE000000000000000078 /* DecisionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionModels.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000005 /* PreferencesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindow.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000007 /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
 		148901512DC9149900F2E06C /* Share.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Share.swift; sourceTree = "<group>"; };
@@ -189,10 +172,7 @@
 		7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMetricsTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityProxyStoreTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB0000000A7 /* NotchEveryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchEveryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		F101CE000000000000000002 /* FUn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUn.swift; sourceTree = "<group>"; };
 		F101CE000000000000000004 /* SignalPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalPipeline.swift; sourceTree = "<group>"; };
-		F101CE000000000000000006 /* FUnlockStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUnlockStateMachine.swift; sourceTree = "<group>"; };
-		F101CE000000000000000008 /* DecisionLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionLogger.swift; sourceTree = "<group>"; };
 		F101CE00000000000000000A /* ConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStore.swift; sourceTree = "<group>"; };
 		F101CE00000000000000000C /* RingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBuffer.swift; sourceTree = "<group>"; };
 		F101CE00000000000000000E /* LEDeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LEDeviceInfo.swift; sourceTree = "<group>"; };
@@ -202,27 +182,17 @@
 		F101CE000000000000000016 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		F101CE000000000000000018 /* DebugLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLog.swift; sourceTree = "<group>"; };
 		F101CE00000000000000001A /* InputActivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputActivityMonitor.swift; sourceTree = "<group>"; };
-		F101CE00000000000000001C /* GuardLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardLocalization.swift; sourceTree = "<group>"; };
 		F101CE00000000000000001E /* TimingLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimingLog.swift; sourceTree = "<group>"; };
-		F101CE000000000000000020 /* FUnManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUnManager.swift; sourceTree = "<group>"; };
 		F101CE000000000000000022 /* SystemInteractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemInteractionService.swift; sourceTree = "<group>"; };
 		F101CE000000000000000024 /* SecurityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityService.swift; sourceTree = "<group>"; };
 		F101CE000000000000000026 /* lowlevel.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = lowlevel.c; sourceTree = "<group>"; };
 		F101CE000000000000000027 /* lowlevel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = lowlevel.h; sourceTree = "<group>"; };
 		F101CE000000000000000028 /* NotchEvery-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NotchEvery-Bridging-Header.h; sourceTree = "<group>"; };
-		F101CE00000000000000002A /* FUnlockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUnlockTests.swift; sourceTree = "<group>"; };
 		F101CE00000000000000002C /* ConfigStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStoreTests.swift; sourceTree = "<group>"; };
-		F101CE00000000000000002E /* DecisionLoggerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionLoggerTests.swift; sourceTree = "<group>"; };
-		F101CE000000000000000030 /* DiagnosticsViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsViewTests.swift; sourceTree = "<group>"; };
-		F101CE000000000000000032 /* FUnlockStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUnlockStateMachineTests.swift; sourceTree = "<group>"; };
 		F101CE000000000000000034 /* IMMessageComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMMessageComposerTests.swift; sourceTree = "<group>"; };
 		F101CE000000000000000036 /* ReasonActionMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReasonActionMappingTests.swift; sourceTree = "<group>"; };
 		F101CE000000000000000038 /* iMessageNotifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iMessageNotifierTests.swift; sourceTree = "<group>"; };
-		F101CE00000000000000003A /* GuardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardStore.swift; sourceTree = "<group>"; };
-		F101CE00000000000000003C /* GuardCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardCardView.swift; sourceTree = "<group>"; };
-		F101CE00000000000000003E /* GuardStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardStoreTests.swift; sourceTree = "<group>"; };
 		F101CE000000000000000040 /* SystemEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEffects.swift; sourceTree = "<group>"; };
-		F101CE000000000000000042 /* SystemEffectsFakeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEffectsFakeTests.swift; sourceTree = "<group>"; };
 		F101CE000000000000000044 /* DiagTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagTimeline.swift; sourceTree = "<group>"; };
 		F101CE000000000000000050 /* PermissionGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionGuide.swift; sourceTree = "<group>"; };
 		F101CE000000000000000052 /* PermissionGuideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionGuideTests.swift; sourceTree = "<group>"; };
@@ -231,9 +201,7 @@
 		7B01000120260CD000000009 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		F101CE000000000000000056 /* SmoothNotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothNotchShape.swift; sourceTree = "<group>"; };
 		F101CE000000000000000059 /* TokenFormatUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenFormatUtilsTests.swift; sourceTree = "<group>"; };
-		7B01000120260CD00000000C /* GuardControlZoneViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardControlZoneViewTests.swift; sourceTree = "<group>"; };
 		F101CE00000000000000005B /* TokenFormatUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenFormatUtils.swift; sourceTree = "<group>"; };
-		7B01000120260CD00000000D /* FUnlockDeviceBindingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FUnlockDeviceBindingTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -286,6 +254,7 @@
 				504381872C3A86EC000ED325 /* Assets.xcassets */,
 				504381922C3A8755000ED325 /* main.swift */,
 				5043819A2C3A8A06000ED325 /* AppDelegate.swift */,
+				F101CE000000000000000078 /* DecisionModels.swift */,
 				501F0E8B2C59E6BD00F0113C /* Language.swift */,
 				504381982C3A8893000ED325 /* NotchWindow.swift */,
 				504381A32C3A8C7E000ED325 /* NotchWindowController.swift */,
@@ -293,8 +262,6 @@
 				F101CE000000000000000056 /* SmoothNotchShape.swift */,
 				C1D2E3F4A506172839404156 /* AntigravityAccountsCardView.swift */,
 				C1D2E3F4A506172839404158 /* AntigravityProxyCardView.swift */,
-				7B01000120260CD000000001 /* CalibrationWizardView.swift */,
-				7B01000120260CD000000003 /* GuardControlZoneView.swift */,
 				7B01000120260CD000000005 /* PreferencesWindow.swift */,
 				7B01000120260CD000000007 /* PreferencesWindowController.swift */,
 				7B01000120260CD000000009 /* DesignSystem.swift */,
@@ -329,15 +296,10 @@
 				502E41D52C3CEC990060660E /* Ext+NSAlert.swift */,
 				5044EE9F2C3B116000071C5C /* PublishedPersist.swift */,
 				D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */,
-				F101CE00000000000000003A /* GuardStore.swift */,
-				F101CE00000000000000003C /* GuardCardView.swift */,
 				F101CE000000000000000040 /* SystemEffects.swift */,
 				F101CE000000000000000044 /* DiagTimeline.swift */,
 				F101CE000000000000000050 /* PermissionGuide.swift */,
-				F101CE000000000000000002 /* FUn.swift */,
 				F101CE000000000000000004 /* SignalPipeline.swift */,
-				F101CE000000000000000006 /* FUnlockStateMachine.swift */,
-				F101CE000000000000000008 /* DecisionLogger.swift */,
 				F101CE00000000000000000A /* ConfigStore.swift */,
 				F101CE00000000000000000C /* RingBuffer.swift */,
 				F101CE00000000000000000E /* LEDeviceInfo.swift */,
@@ -347,9 +309,7 @@
 				F101CE000000000000000016 /* Log.swift */,
 				F101CE000000000000000018 /* DebugLog.swift */,
 				F101CE00000000000000001A /* InputActivityMonitor.swift */,
-				F101CE00000000000000001C /* GuardLocalization.swift */,
 				F101CE00000000000000001E /* TimingLog.swift */,
-				F101CE000000000000000020 /* FUnManager.swift */,
 				F101CE000000000000000022 /* SystemInteractionService.swift */,
 				F101CE000000000000000024 /* SecurityService.swift */,
 				F101CE000000000000000026 /* lowlevel.c */,
@@ -379,22 +339,14 @@
 				7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */,
 				7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */,
 				7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */,
-				F101CE00000000000000003E /* GuardStoreTests.swift */,
-				F101CE000000000000000042 /* SystemEffectsFakeTests.swift */,
 				F101CE000000000000000046 /* DiagTimelineTests.swift */,
 				F101CE000000000000000052 /* PermissionGuideTests.swift */,
-				F101CE00000000000000002A /* FUnlockTests.swift */,
 				F101CE00000000000000002C /* ConfigStoreTests.swift */,
-				F101CE00000000000000002E /* DecisionLoggerTests.swift */,
-				F101CE000000000000000030 /* DiagnosticsViewTests.swift */,
-				F101CE000000000000000032 /* FUnlockStateMachineTests.swift */,
 				F101CE000000000000000034 /* IMMessageComposerTests.swift */,
 				F101CE000000000000000036 /* ReasonActionMappingTests.swift */,
 				F101CE000000000000000038 /* iMessageNotifierTests.swift */,
 				F101CE000000000000000054 /* DesignSystemTests.swift */,
 				F101CE000000000000000059 /* TokenFormatUtilsTests.swift */,
-					7B01000120260CD00000000C /* GuardControlZoneViewTests.swift */,
-					7B01000120260CD00000000D /* FUnlockDeviceBindingTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -540,6 +492,7 @@
 				504381AA2C3A9514000ED325 /* EventMonitor.swift in Sources */,
 				501F0E8C2C59E6BD00F0113C /* Language.swift in Sources */,
 				5043819B2C3A8A06000ED325 /* AppDelegate.swift in Sources */,
+				F101CE000000000000000077 /* DecisionModels.swift in Sources */,
 				148901532DC9149900F2E06C /* Share.swift in Sources */,
 				148901542DC9149900F2E06C /* Share+View.swift in Sources */,
 				504381932C3A8755000ED325 /* main.swift in Sources */,
@@ -548,8 +501,6 @@
 				5044EEA02C3B116000071C5C /* PublishedPersist.swift in Sources */,
 				C1D2E3F4A506172839404157 /* AntigravityAccountsCardView.swift in Sources */,
 				C1D2E3F4A506172839404159 /* AntigravityProxyCardView.swift in Sources */,
-				7B01000120260CD000000002 /* CalibrationWizardView.swift in Sources */,
-				7B01000120260CD000000004 /* GuardControlZoneView.swift in Sources */,
 				7B01000120260CD000000006 /* PreferencesWindow.swift in Sources */,
 				7B01000120260CD000000008 /* PreferencesWindowController.swift in Sources */,
 				7B01000120260CD00000000A /* DesignSystem.swift in Sources */,
@@ -560,10 +511,7 @@
 				A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */,
 				A1B2C3D4E5F6071829304053 /* SpinnerView.swift in Sources */,
 				D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */,
-				F101CE000000000000000001 /* FUn.swift in Sources */,
 				F101CE000000000000000003 /* SignalPipeline.swift in Sources */,
-				F101CE000000000000000005 /* FUnlockStateMachine.swift in Sources */,
-				F101CE000000000000000007 /* DecisionLogger.swift in Sources */,
 				F101CE000000000000000009 /* ConfigStore.swift in Sources */,
 				F101CE00000000000000000B /* RingBuffer.swift in Sources */,
 				F101CE00000000000000000D /* LEDeviceInfo.swift in Sources */,
@@ -573,14 +521,10 @@
 				F101CE000000000000000015 /* Log.swift in Sources */,
 				F101CE000000000000000017 /* DebugLog.swift in Sources */,
 				F101CE000000000000000019 /* InputActivityMonitor.swift in Sources */,
-				F101CE00000000000000001B /* GuardLocalization.swift in Sources */,
 				F101CE00000000000000001D /* TimingLog.swift in Sources */,
-				F101CE00000000000000001F /* FUnManager.swift in Sources */,
 				F101CE000000000000000021 /* SystemInteractionService.swift in Sources */,
 				F101CE000000000000000023 /* SecurityService.swift in Sources */,
 				F101CE000000000000000025 /* lowlevel.c in Sources */,
-				F101CE000000000000000039 /* GuardStore.swift in Sources */,
-				F101CE00000000000000003B /* GuardCardView.swift in Sources */,
 				F101CE00000000000000003F /* SystemEffects.swift in Sources */,
 				F101CE000000000000000043 /* DiagTimeline.swift in Sources */,
 				F101CE000000000000000049 /* PermissionGuide.swift in Sources */,
@@ -601,22 +545,14 @@
 				7AE10C0220260AB000000DA /* AntigravityProxyStoreTests.swift in Sources */,
 				7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */,
-				F101CE000000000000000029 /* FUnlockTests.swift in Sources */,
 				F101CE00000000000000002B /* ConfigStoreTests.swift in Sources */,
-				F101CE00000000000000002D /* DecisionLoggerTests.swift in Sources */,
-				F101CE00000000000000002F /* DiagnosticsViewTests.swift in Sources */,
-				F101CE000000000000000031 /* FUnlockStateMachineTests.swift in Sources */,
 				F101CE000000000000000033 /* IMMessageComposerTests.swift in Sources */,
 				F101CE000000000000000035 /* ReasonActionMappingTests.swift in Sources */,
 				F101CE000000000000000037 /* iMessageNotifierTests.swift in Sources */,
-				F101CE00000000000000003D /* GuardStoreTests.swift in Sources */,
-				F101CE000000000000000041 /* SystemEffectsFakeTests.swift in Sources */,
 				F101CE000000000000000045 /* DiagTimelineTests.swift in Sources */,
 				F101CE000000000000000051 /* PermissionGuideTests.swift in Sources */,
 				F101CE000000000000000055 /* DesignSystemTests.swift in Sources */,
 				F101CE00000000000000005A /* TokenFormatUtilsTests.swift in Sources */,
-					7B01000120260CD00000000B /* GuardControlZoneViewTests.swift in Sources */,
-					7B01000120260CD00000000E /* FUnlockDeviceBindingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
