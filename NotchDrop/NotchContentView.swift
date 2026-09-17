@@ -31,15 +31,15 @@ extension AnyTransition {
     /// 移除不带行程，转场并集期压到最短，面板/窗口尺寸不弹到两页最大（systematic-debugging H1）。
     static var zoneSlideNext: AnyTransition {
         .asymmetric(
-            insertion: .offset(x: 24).combined(with: .opacity),
-            removal: .opacity.animation(.easeOut(duration: 0.15))
+            insertion: .offset(x: 28).combined(with: .opacity),
+            removal: .offset(x: -20).combined(with: .opacity)
         )
     }
 
     static var zoneSlidePrevious: AnyTransition {
         .asymmetric(
-            insertion: .offset(x: -24).combined(with: .opacity),
-            removal: .opacity.animation(.easeOut(duration: 0.15))
+            insertion: .offset(x: -28).combined(with: .opacity),
+            removal: .offset(x: 20).combined(with: .opacity)
         )
     }
 }

@@ -65,7 +65,9 @@ struct NotchView: View {
                         // 不给 maxWidth 填充：内容自然宽要能向上传播成面板测量值，
                         // 撑满会让测量跟随上页面板宽 → 来回切页后卡大不缩（2026-09-11 探针实锤 box=605 / inner=388）
                         NotchContentView(vm: vm)
-                            .modifier(StaggeredEntry(delay: 0.06))
+                            .transition(
+                                .scale(scale: 0.94, anchor: .top).combined(with: .opacity)
+                            )
                     }
                     .onAppear { notchTimingMark("contentAppear") }
                     .padding(.horizontal, IslandMetrics.panelContentInset)
@@ -275,25 +277,6 @@ struct NotchView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-    }
-}
-
-/// 分批入场修饰符：延迟后 opacity 0→1 + 下移入场；reduceMotion 直接显示
-/// （blur 已踢出动画：离屏重渲染逐帧掉帧是卡顿感来源；NOTCH_TIMING 证实同步链路 ≤70ms）
-struct StaggeredEntry: ViewModifier {    let delay: TimeInterval
-    @State private var shown = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func body(content: Content) -> some View {
-        content
-            .opacity(shown || reduceMotion ? 1 : 0)
-            .offset(y: shown || reduceMotion ? 0 : -6)
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(.easeOut(duration: 0.2).delay(delay)) {
-                    shown = true
-                }
-            }
     }
 }
 
