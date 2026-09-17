@@ -29,6 +29,7 @@ final class ConfigStore {
 
     let configFile: URL
     let defaults: UserDefaults
+    let suiteName: String
     private var cache: [String: Any] = [:]
     private let lock = NSLock()
 
@@ -43,6 +44,7 @@ final class ConfigStore {
                 : FileManager.default.temporaryDirectory.appendingPathComponent("ConfigStore-\(suiteName).json")
         )
         self.configFile = resolvedConfigFile
+        self.suiteName = suiteName
         self.defaults = UserDefaults(suiteName: suiteName) ?? .standard
         loadFromDisk()
 
@@ -90,8 +92,8 @@ final class ConfigStore {
             }
         }
 
-        // 若有更古老的 legacy suite (com.fuhahah.Funlock.config)，也尝试带过来
-        if let legacy = UserDefaults(suiteName: Self.legacySuiteName) {
+        // 仅在真实生产 suite 时，若有更古老的 legacy suite (com.fuhahah.Funlock.config)，才尝试带过来（隔离测试环境）
+        if suiteName == Self.suiteName, let legacy = UserDefaults(suiteName: Self.legacySuiteName) {
             for key in Self.migratedKeys {
                 if cache[key] == nil, let val = legacy.object(forKey: key) {
                     cache[key] = sanitizeForJSON(val)
