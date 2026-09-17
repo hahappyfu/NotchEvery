@@ -154,17 +154,17 @@ git commit -m "feat(store): plumb cachedTokens through TokenRequest from proxy l
 **文件：**
 - 修改：`NotchDrop/TokenZoneView.swift`
 
-- [ ] **步骤 1：移除冗余 `summaryBar` 与旧 `header`**
+- [x] **步骤 1：移除冗余 `summaryBar` 与旧 `header`**
 
 删除 `TokenZoneView` 顶部的 `summaryBar`（KPI 卡片，彻底消除与第一页大盘的重复）和旧平铺表头 `header`。
 
-- [ ] **步骤 2：构建微型状态条 `liveBar`**
+- [x] **步骤 2：构建微型状态条 `liveBar`**
 
 在顶部增加仅占 20pt 高度的 `liveBar`：
 - 左侧：脉冲呼吸绿点 + 文字 "最近 5 笔请求流水"
 - 右侧：文字 "模型/账号 · 用量分布 · 耗时"（或 "自动刷新 · 刚刚"）
 
-- [ ] **步骤 3：重构 `TokenRowView` 为 3 栏平衡布局**
+- [x] **步骤 3：重构 `TokenRowView` 为 3 栏平衡布局**
 
 使用 `HStack(spacing: 8)` 组织三栏：
 1. **左栏（身份）`colIdentity`（定宽约 130pt，左对齐）**：
@@ -178,7 +178,7 @@ git commit -m "feat(store): plumb cachedTokens through TokenRequest from proxy l
    - 顶部：耗时 `6.9s` + 状态呼吸圆点（200 绿点，>=400 红点+错误码）
    - 底部：时间 `20:53`
 
-- [ ] **步骤 4：运行项目构建验证编译无误**
+- [x] **步骤 4：运行项目构建验证编译无误**
 
 运行：
 ```bash
@@ -186,7 +186,7 @@ xcodebuild build -project NotchDrop.xcodeproj -scheme NotchDrop -destination 'pl
 ```
 预期：`** BUILD SUCCEEDED **`
 
-- [ ] **步骤 5：Commit**
+- [x] **步骤 5：Commit**
 
 ```bash
 git add NotchDrop/TokenZoneView.swift

@@ -54,11 +54,11 @@
 **文件：**
 - 修改：`NotchDrop/TokenZoneView.swift`
 
-- [ ] **步骤 1：移除冗余 `summaryBar` 与旧 `header`**
-- [ ] **步骤 2：构建微型状态条 `liveBar`**
-- [ ] **步骤 3：重构 `TokenRowView` 为 3 栏平衡布局**
-- [ ] **步骤 4：运行项目构建验证编译无误**
-- [ ] **步骤 5：Commit**
+- [x] **步骤 1：移除冗余 `summaryBar` 与旧 `header`**
+- [x] **步骤 2：构建微型状态条 `liveBar`**
+- [x] **步骤 3：重构 `TokenRowView` 为 3 栏平衡布局**
+- [x] **步骤 4：运行项目构建验证编译无误**
+- [x] **步骤 5：Commit**
 
 ---
 
