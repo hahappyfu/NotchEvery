@@ -200,7 +200,7 @@ git commit -m "feat(ui): redesign TokenZoneView to 3-column live stream layout"
 **文件：**
 - 修改：无代码变更（部署与验证）
 
-- [ ] **步骤 1：运行全量单元测试**
+- [x] **步骤 1：运行全量单元测试**
 
 运行：
 ```bash
@@ -208,7 +208,7 @@ xcodebuild test -project NotchDrop.xcodeproj -scheme NotchDrop -destination 'pla
 ```
 预期：`** TEST SUCCEEDED **`
 
-- [ ] **步骤 2：构建 Release 归档并安装到 `/Applications/NotchEvery.app`**
+- [x] **步骤 2：构建 Release 归档并安装到 `/Applications/NotchEvery.app`**
 
 ```bash
 xcodebuild -project NotchDrop.xcodeproj -scheme NotchDrop -configuration Release -derivedDataPath ./build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
@@ -218,6 +218,6 @@ cp -R ./build/Build/Products/Release/NotchEvery.app /Applications/
 open /Applications/NotchEvery.app
 ```
 
-- [ ] **步骤 3：请用户真机过目第二页视觉效果**
+- [x] **步骤 3：请用户真机过目第二页视觉效果**
 
 用户展开刘海滑到第二页，确认中间不再空洞、高度大幅降低且色彩分级清晰生效。
