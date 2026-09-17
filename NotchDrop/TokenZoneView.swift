@@ -117,62 +117,132 @@ private func tokenStatusColor(_ status: Int) -> Color {
 
 private struct TokenRowView: View {
     let row: TokenRequest
-    let timeW: CGFloat
-    let modelW: CGFloat
-    let ioW: CGFloat
-    let durationW: CGFloat
-    let statusW: CGFloat
-    let columnGap: CGFloat
     /// 刚插入的新行：播一次绿闪渐隐
     var isNew: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
     @State private var flashOpacity: Double = 0
 
+    private var cacheFraction: Double {
+        TokenFormatUtils.cacheRateFraction(cached: row.cachedTokens, input: row.inputTokens)
+    }
+
+    private var cacheTier: TokenFormatUtils.CacheRateTier {
+        TokenFormatUtils.cacheRateTier(fraction: cacheFraction)
+    }
+
+    private var cacheColor: Color {
+        switch cacheTier {
+        case .high:
+            return StudioColor.emerald
+        case .medium:
+            return Color(red: 90/255, green: 200/255, blue: 250/255) // 科技青蓝
+        case .low:
+            return StudioColor.amber
+        case .none:
+            return Color.white.opacity(0.25)
+        }
+    }
+
     var body: some View {
         HStack(spacing: 0) {
-            Text(row.time)
-                .frame(width: timeW, alignment: .leading)
-                .foregroundStyle(.tertiary)
-            Spacer(minLength: columnGap)
-            Text(row.model)
-                .fontWeight(.medium)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-                .frame(width: modelW, alignment: .leading)
-            Spacer(minLength: columnGap)
-            Text("\(row.inputTokens.formatted()) / \(row.outputTokens.formatted())")
-                .foregroundStyle(.primary)
-                .frame(width: ioW, alignment: .trailing)
-            Spacer(minLength: columnGap)
-            Text(String(format: "%.1fs", row.durationSeconds))
-                .frame(width: durationW, alignment: .trailing)
-                .foregroundStyle(.primary)
-            Spacer(minLength: columnGap)
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(tokenStatusColor(row.status))
-                    .frame(width: 6, height: 6)
-                Text("\(row.status)")
-                    .foregroundStyle(row.status >= 400 ? tokenStatusColor(row.status) : .secondary)
+            // 1. 左栏：身份（定宽 135，左对齐）
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 5) {
+                    Text(TokenFormatUtils.friendlyModelName(row.model))
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1.5)
+                        .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+                        .lineLimit(1)
+
+                    Text(row.friendlyAccountName)
+                        .font(.system(size: 10.5, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.9))
+                        .lineLimit(1)
+                }
+                Text(row.accountEmailPrefix.isEmpty ? row.time : row.accountEmailPrefix)
+                    .font(.system(size: 9.5).monospacedDigit())
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
             }
-            .frame(width: statusW, alignment: .trailing)
+            .frame(width: 135, alignment: .leading)
+
+            // 2. 中栏：Token 构成与缓存命中（弹性撑满，填补中间空白）
+            VStack(spacing: 3) {
+                HStack(alignment: .firstTextBaseline) {
+                    let total = row.inputTokens + row.outputTokens
+                    Text(TokenFormatUtils.formatCompactTokens(total))
+                        .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(.white)
+
+                    Spacer()
+
+                    if cacheFraction > 0 {
+                        Text("缓存 \(Int(cacheFraction * 100))%")
+                            .font(.system(size: 9.5, weight: .medium).monospacedDigit())
+                            .foregroundStyle(cacheColor)
+                    } else {
+                        Text("无缓存")
+                            .font(.system(size: 9.5).monospacedDigit())
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+
+                // 微型缓存命中胶囊比例条
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.10))
+                            .frame(height: 3)
+                        if cacheFraction > 0 {
+                            Capsule()
+                                .fill(cacheColor)
+                                .frame(width: max(3, geo.size.width * CGFloat(cacheFraction)), height: 3)
+                        }
+                    }
+                }
+                .frame(height: 3)
+
+                HStack {
+                    Text("入 \(TokenFormatUtils.formatCompactTokens(row.inputTokens))")
+                    Spacer()
+                    Text("出 \(TokenFormatUtils.formatCompactTokens(row.outputTokens))")
+                }
+                .font(.system(size: 9).monospacedDigit())
+                .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity)
+
+            // 3. 右栏：耗时与时间（定宽 68，右对齐）
+            VStack(alignment: .trailing, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(String(format: "%.1fs", row.durationSeconds))
+                        .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(.white)
+
+                    Circle()
+                        .fill(tokenStatusColor(row.status))
+                        .frame(width: 5, height: 5)
+                }
+
+                Text(row.time)
+                    .font(.system(size: 9.5).monospacedDigit())
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(width: 68, alignment: .trailing)
         }
-        .font(.system(size: 11))
-        .monospacedDigit()
-        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
         .contentShape(Rectangle())
-        .background(hovering ? StudioMaterial.cardHoverBackground : Color.clear, in: RoundedRectangle(cornerRadius: 6))
-        .background(StudioColor.emerald.opacity(flashOpacity), in: RoundedRectangle(cornerRadius: 6))
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(StudioMaterial.strokeNormal)
-                .frame(height: 0.5)
-        }
+        .background(hovering ? StudioMaterial.cardHoverBackground : Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Color.white.opacity(0.035), lineWidth: 0.5))
+        .background(StudioColor.emerald.opacity(flashOpacity), in: RoundedRectangle(cornerRadius: 9))
         .onHover { hovering = $0 }
         .onAppear {
-            // 新行入场：绿闪一下后渐隐（B 柔闪）；reduceMotion 下不闪
+            // 新行入场：绿闪一下后渐隐；reduceMotion 下不闪
             guard isNew, !reduceMotion else { return }
             flashOpacity = 0.16
             DispatchQueue.main.async {
@@ -188,135 +258,71 @@ struct TokenZoneView: View {
     /// 首行 id 追踪：只对新插入的行播绿闪（首帧不闪）
     @State private var lastFirstID: String?
 
-    /// 列宽（header 与行共用同一组，保证对齐；文本列左对齐，数字列右对齐）
-    private let timeW: CGFloat = 48
-    /// 自适应列宽：随当前 5 行数据收敛（钳制见 IslandMetrics）
-    private var modelW: CGFloat {
-        IslandMetrics.modelColumnWidth(for: store.recentRequests.prefix(5).map(\.model))
-    }
-    private let ioW: CGFloat = 110
-    private let durationW: CGFloat = 56
-    private let statusW: CGFloat = 44
-    /// 列间弹性间距下限：面板余宽由四处间距均分吸收（不再堆成一列大空洞）
-    private let columnGap: CGFloat = 14
-
     var body: some View {
-        VStack(spacing: 0) {
-            summaryBar
-            header
-            VStack(spacing: 0) {
-                ForEach(store.recentRequests.prefix(5)) { row in
-                    TokenRowView(
-                        row: row, timeW: timeW, modelW: modelW, ioW: ioW,
-                        durationW: durationW, statusW: statusW, columnGap: columnGap,
-                        isNew: lastFirstID != nil
-                            && row.id == store.recentRequests.first?.id
-                            && row.id != lastFirstID
-                    )
-                    .transition(reduceMotion ? .identity : .opacity)
+        VStack(spacing: 5) {
+            liveBar
+
+            if store.recentRequests.isEmpty {
+                Text("暂无近期请求日志")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, minHeight: 120)
+            } else {
+                VStack(spacing: 5) {
+                    ForEach(store.recentRequests.prefix(5)) { row in
+                        TokenRowView(
+                            row: row,
+                            isNew: lastFirstID != nil
+                                && row.id == store.recentRequests.first?.id
+                                && row.id != lastFirstID
+                        )
+                        .transition(reduceMotion ? .identity : .opacity)
+                    }
                 }
-            }
-            // 上下渐隐遮罩：行进不出硬边（B 柔闪配套）
-            .mask(
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0),
-                        .init(color: .black, location: 0.03),
-                        .init(color: .black, location: 0.97),
-                        .init(color: .clear, location: 1),
-                    ],
-                    startPoint: .top, endPoint: .bottom
+                .mask(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black, location: 0.02),
+                            .init(color: .black, location: 0.98),
+                            .init(color: .clear, location: 1),
+                        ],
+                        startPoint: .top, endPoint: .bottom
+                    )
                 )
-            )
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: store.recentRequests)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: store.recentRequests)
+            }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
         .onChange(of: store.recentRequests) { rows in
             if let first = rows.first, first.id != lastFirstID { lastFirstID = first.id }
         }
     }
 
-    private var summaryBar: some View {
-        // 安静的两端式 KPI 行：左 Tokens、右缓存命中率+条（去绿色胶囊底，宽面板下更干净）
-        // C 档：底部 footer 并入此处第二行，岛体收矮
-        VStack(spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("Tokens")
-                        .font(.system(size: 10, weight: .medium))
-                        .tracking(0.8)
-                        .foregroundStyle(.secondary)
-                    RollupText(text: store.summary.totalTokens, font: .system(size: 19, weight: .bold, design: .rounded))
-                }
-                Spacer()
-                HStack(spacing: 8) {
-                    Text("缓存命中率")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                    RollupText(text: store.summary.cacheRate, font: .system(size: 14, weight: .bold, design: .rounded), color: StudioColor.emerald)
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(StudioColor.emerald.opacity(0.2))
-                            .frame(width: 64, height: 4)
-                        Capsule()
-                            .fill(StudioColor.emerald.opacity(0.9))
-                            .frame(width: 64 * min(1, max(0, store.cacheRateFraction)), height: 4)
-                    }
-                    .offset(y: -1)
-                }
+    private var liveBar: some View {
+        HStack {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(StudioColor.emerald)
+                    .frame(width: 6, height: 6)
+                Text("最近 5 笔请求流水")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.85))
             }
-
-            HStack {
-                Text("缓存命中 \(UsageStore.formatTokens(store.footer.cacheReadTotal))")
-                Spacer()
-                Text("更新于 \(footerTimeText)")
-            }
-            .font(.system(size: 10))
-            .foregroundStyle(.tertiary)
+            Spacer()
+            Text("模型/账号 · 缓存率分级 · 耗时")
+                .font(.system(size: 9.5))
+                .foregroundStyle(Color.white.opacity(0.4))
         }
-        .monospacedDigit()
-        .lineLimit(1)
-        .minimumScaleFactor(0.85)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(StudioMaterial.cardBackground, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(StudioMaterial.strokeNormal, lineWidth: 0.5))
-        .padding(.bottom, 12)
-    }
-
-    private var header: some View {
-        HStack(spacing: 0) {
-            Text("时间").frame(width: timeW, alignment: .leading)
-            Spacer(minLength: columnGap)
-            Text("模型").frame(width: modelW, alignment: .leading)
-            Spacer(minLength: columnGap)
-            Text("入 / 出").frame(width: ioW, alignment: .trailing)
-            Spacer(minLength: columnGap)
-            Text("用时").frame(width: durationW, alignment: .trailing)
-            Spacer(minLength: columnGap)
-            Text("状态").frame(width: statusW, alignment: .trailing)
-        }
-        .font(.system(size: 10, weight: .medium))
-        .foregroundStyle(.tertiary)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 4)
+        .padding(.bottom, 6)
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(StudioMaterial.strokeNormal)
                 .frame(height: 0.5)
         }
-        .padding(.bottom, 5)
+        .padding(.bottom, 4)
     }
-
-    private var footerTimeText: String {
-        guard let at = store.footer.lastRequestAt else { return "--:--" }
-        return Self.footerFormatter.string(from: at)
-    }
-
-    private static let footerFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f
-    }()
 }
 
 #Preview {
