@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NotchEvery · 缓存命中率梯度色彩分级</title>
+<style>
+  :root {
+    --bg-desktop: #121316;
+    --island-bg: #000000;
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(235, 235, 245, 0.65);
+    --text-tertiary: rgba(235, 235, 245, 0.38);
+    --c-green: #30d158;
+    --c-cyan: #0a84ff;
+    --c-amber: #ff9f0a;
+    --c-gray: rgba(255, 255, 255, 0.25);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background-color: var(--bg-desktop);
+    background-image: radial-gradient(circle at 50% 0%, #1a1e28 0%, #0d0e12 100%);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang SC", sans-serif;
+    min-height: 100vh;
+    padding: 30px 20px 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .notch-container {
+    width: 456px;
+    background: var(--island-bg);
+    border-radius: 34px;
+    padding: 11px 16px 12px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    position: relative;
+  }
+
+  .ears-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    padding: 0 4px;
+  }
+  .ear-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot-green {
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 50%;
+    background: var(--c-green);
+    box-shadow: 0 0 8px rgba(48, 209, 88, 0.6);
+  }
+  .ear-right {
+    color: var(--text-tertiary);
+  }
+
+  .live-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 6px;
+    font-size: 10.5px;
+  }
+  .live-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--c-green);
+  }
+
+  .stream-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .item-3col {
+    display: grid;
+    grid-template-columns: 135px 1fr 68px;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.035);
+    transition: background 0.15s ease;
+  }
+  .item-3col:hover {
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  /* 左栏：身份 */
+  .col-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .col-identity-top {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .badge-compact {
+    font-size: 10px;
+    font-weight: 600;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+    padding: 1.5px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .account-compact {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .account-email-sub {
+    font-size: 9.5px;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 中栏：Token 与缓存（带色彩梯度） */
+  .col-tokens {
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px;
+    gap: 3px;
+  }
+  .token-stat-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-variant-numeric: tabular-nums;
+  }
+  .token-total-val {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  /* 进度条轨道 */
+  .mini-bar-track {
+    width: 100%;
+    height: 3px;
+    border-radius: 1.5px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    position: relative;
+  }
+  .mini-bar-fill {
+    height: 100%;
+    border-radius: 1.5px;
+  }
+
+  /* 梯度色彩：高命中翠绿、中命中科技蓝、低命中温和琥珀橙、0命中浅灰 */
+  .tier-green .token-cache-val { color: var(--c-green); font-size: 9.5px; font-weight: 500; }
+  .tier-green .mini-bar-fill { background: var(--c-green); box-shadow: 0 0 4px rgba(48, 209, 88, 0.4); }
+
+  .tier-blue .token-cache-val { color: #5ac8fa; font-size: 9.5px; font-weight: 500; }
+  .tier-blue .mini-bar-fill { background: #5ac8fa; box-shadow: 0 0 4px rgba(90, 200, 250, 0.4); }
+
+  .tier-amber .token-cache-val { color: var(--c-amber); font-size: 9.5px; font-weight: 500; }
+  .tier-amber .mini-bar-fill { background: var(--c-amber); box-shadow: 0 0 4px rgba(255, 159, 10, 0.4); }
+
+  .tier-none .token-cache-val { color: var(--text-tertiary); font-size: 9.5px; font-weight: 400; }
+  .tier-none .mini-bar-fill { background: transparent; }
+
+  .token-detail-sub {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 右栏：耗时与时间 */
+  .col-timing {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .timing-top {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .duration-val {
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+  }
+  .time-val {
+    font-size: 9.5px;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 底部指示器 */
+  .page-indicator {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .indicator-dot {
+    width: 4.5px;
+    height: 4.5px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+  }
+  .indicator-dot.active {
+    width: 12px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.85);
+  }
+
+  /* 颜色图例说明 */
+  .legend-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>NotchEvery · 缓存命中率语义色彩分级</h1>
+  <p>根据单笔请求命中率动态着色：高效翠绿 · 适中科技蓝 · 偏低暖琥珀</p>
+</header>
+
+<div class="notch-container">
+  <div class="ears-row">
+    <div class="ear-left">
+      <div class="dot-green"></div>
+      <span>本地反代 :8045</span>
+    </div>
+    <div class="ear-right">实时监听中</div>
+  </div>
+
+  <div class="live-bar">
+    <div class="live-left">
+      <div class="pulse-dot"></div>
+      <span>最近 5 笔请求流水</span>
+    </div>
+    <div style="font-size: 9.5px; color: var(--text-tertiary);">
+      模型/账号 · 缓存率分级 · 耗时
+    </div>
+  </div>
+
+  <div class="stream-compact">
+
+    <!-- 示例 1：极高命中 (78%) → 翠绿色 -->
+    <div class="item-3col">
+      <div class="col-identity">
+        <div class="col-identity-top">
+          <span class="badge-compact">Flash High</span>
+          <span class="account-compact">傅谷歌</span>
+        </div>
+        <div class="account-email-sub">fuhouhou76</div>
+      </div>
+
+      <div class="col-tokens tier-green">
+        <div class="token-stat-row">
+          <span class="token-total-val">170k</span>
+          <span class="token-cache-val">缓存 78%</span>
+        </div>
+        <div class="mini-bar-track">
+          <div class="mini-bar-fill" style="width: 78%;"></div>
+        </div>
+        <div class="token-detail-sub">
+          <span>入 170.1k</span>
+          <span>出 80</span>
+        </div>
+      </div>
+
+      <div class="col-timing">
+        <div class="timing-top">
+          <span class="duration-val">2.8s</span>
+          <span class="dot-green" style="width: 4.5px; height: 4.5px;"></span>
+        </div>
+        <span class="time-val">20:53</span>
+      </div>
+    </div>
+
+    <!-- 示例 2：适中命中 (48%) → 科技青蓝色 -->
+    <div class="item-3col">
+      <div class="col-identity">
+        <div class="col-identity-top">
+          <span class="badge-compact">Flash High</span>
+          <span class="account-compact">fuhouhou</span>
+        </div>
+        <div class="account-email-sub">fuhouhou76</div>
+      </div>
+
+      <div class="col-tokens tier-blue">
+        <div class="token-stat-row">
+          <span class="token-total-val">168k</span>
+          <span class="token-cache-val">缓存 48%</span>
+        </div>
+        <div class="mini-bar-track">
+          <div class="mini-bar-fill" style="width: 48%;"></div>
+        </div>
+        <div class="token-detail-sub">
+          <span>入 168.6k</span>
+          <span>出 268</span>
+        </div>
+      </div>
+
+      <div class="col-timing">
+        <div class="timing-top">
+          <span class="duration-val">4.2s</span>
+          <span class="dot-green" style="width: 4.5px; height: 4.5px;"></span>
+        </div>
+        <span class="time-val">20:52</span>
+      </div>
+    </div>
+
+    <!-- 示例 3：偏低命中 (20%) → 暖琥珀橙 -->
+    <div class="item-3col">
+      <div class="col-identity">
+        <div class="col-identity-top">
+          <span class="badge-compact">Flash High</span>
+          <span class="account-compact">fuhuohuo</span>
+        </div>
+        <div class="account-email-sub">fuhuohuo8</div>
+      </div>
+
+      <div class="col-tokens tier-amber">
+        <div class="token-stat-row">
+          <span class="token-total-val">168k</span>
+          <span class="token-cache-val">缓存 20%</span>
+        </div>
+        <div class="mini-bar-track">
+          <div class="mini-bar-fill" style="width: 20%;"></div>
+        </div>
+        <div class="token-detail-sub">
+          <span>入 168.5k</span>
+          <span>出 74</span>
+        </div>
+      </div>
+
+      <div class="col-timing">
+        <div class="timing-top">
+          <span class="duration-val">5.3s</span>
+          <span class="dot-green" style="width: 4.5px; height: 4.5px;"></span>
+        </div>
+        <span class="time-val">20:51</span>
+      </div>
+    </div>
+
+    <!-- 示例 4：冷启动无命中 (0%) → 弱灰色无填色 -->
+    <div class="item-3col">
+      <div class="col-identity">
+        <div class="col-identity-top">
+          <span class="badge-compact">Flash High</span>
+          <span class="account-compact">babao</span>
+        </div>
+        <div class="account-email-sub">babao2025</div>
+      </div>
+
+      <div class="col-tokens tier-none">
+        <div class="token-stat-row">
+          <span class="token-total-val">168k</span>
+          <span class="token-cache-val">无缓存</span>
+        </div>
+        <div class="mini-bar-track">
+          <div class="mini-bar-fill" style="width: 0%;"></div>
+        </div>
+        <div class="token-detail-sub">
+          <span>入 168.3k (全部冷启)</span>
+          <span>出 87</span>
+        </div>
+      </div>
+
+      <div class="col-timing">
+        <div class="timing-top">
+          <span class="duration-val">8.9s</span>
+          <span class="dot-green" style="width: 4.5px; height: 4.5px;"></span>
+        </div>
+        <span class="time-val">20:51</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="page-indicator">
+    <div class="indicator-dot"></div>
+    <div class="indicator-dot active"></div>
+  </div>
+</div>
+
+<div class="legend-row">
+  <div class="legend-item">
+    <div class="legend-dot" style="background: var(--c-green);"></div>
+    <span>≥ 60% 高效命中（翠绿）</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background: #5ac8fa;"></div>
+    <span>30% ~ 60% 正常命中（青蓝）</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background: var(--c-amber);"></div>
+    <span>&lt; 30% 偏低命中（琥珀）</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background: var(--c-gray);"></div>
+    <span>0% 无缓存（冷启灰）</span>
+  </div>
+</div>
+
+</body>
+</html>
