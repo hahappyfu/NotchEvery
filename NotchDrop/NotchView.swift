@@ -150,7 +150,6 @@ struct NotchView: View {
         return notchBackground
             // frame 瞬时跳终值：所有形变动画由内部 islandSize 驱动，外层不再追弹簧
             .frame(width: islandSize.width + islandCornerRadius * 2, height: islandSize.height)
-            .opacity(vm.status == .closed && !vm.hoverGhosting && !vm.ghostFading ? 0.3 : 1)
             .overlay(alignment: .bottom) {
                 if (vm.hoverGhosting || vm.ghostFading), usage.summary != TokenSummary.empty {
                     peekHint
@@ -175,7 +174,8 @@ struct NotchView: View {
 
     /// 正向平滑贝塞尔形状岛体背景，消灭原 destinationOut 反向挖切遮罩与边缘白边
     var notchBackground: some View {
-        SmoothNotchShape(
+        let isOpening = vm.status == .opened || vm.hoverGhosting
+        return SmoothNotchShape(
             cornerRadius: islandCornerRadius,
             filletBlend: islandFilletBlend,
             bottomRadius: islandBottomRadius,
@@ -185,8 +185,8 @@ struct NotchView: View {
         .frame(width: islandSize.width + islandCornerRadius * 2, height: islandSize.height)
         // 背景在外框内顶部对齐：黑体永远从屏顶向下生长（外框恒定，不参与动画）
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        // 弹簧驱动内部 islandSize 变形：过渡期（开/关/切页）才动画，稳态锁定
-        .animation(reduceMotion ? nil : (vm.transitionActive ? (vm.status == .opened ? vm.openAnimation : vm.closeAnimation) : nil), value: islandSize)
+        // 弹簧驱动内部 islandSize 变形：过渡期（开/关/切页/预展开）才动画，稳态锁定
+        .animation(reduceMotion ? nil : (vm.transitionActive ? (isOpening ? vm.openAnimation : vm.closeAnimation) : nil), value: islandSize)
     }
 
     /// 悬停 peek 提示：双模态胶囊（左侧 Antigravity 代理今日看板，右侧 AI 缓存命中率）

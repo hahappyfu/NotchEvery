@@ -247,7 +247,8 @@ class NotchViewModel: NSObject, ObservableObject {
             }
         }
         hoverCloseWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+        // 跟手感优化：由 300ms 缩紧至 120ms，移开后迅速平滑收拢
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
     }
 
     func cancelHoverClose() {
@@ -260,6 +261,7 @@ class NotchViewModel: NSObject, ObservableObject {
         notchTimingMark("openFromGhost")
         cancelHoverClose()
         ghostGeneration += 1
+        transitionActive = true
         withAnimation(openAnimation) {
             hoverGhosting = false
             ghostFading = false
@@ -270,22 +272,26 @@ class NotchViewModel: NSObject, ObservableObject {
         notchTimingMark("postActivate")
     }
 
-    /// 两段收起：先缩回虚影尺寸 200ms，再清态回刘海
+    /// 两段收起：先缩回虚影尺寸，再连贯平滑清态回刘海（消灭 200ms 半空生硬掐断）
     func closeToGhost() {
         openReason = .unknown
-        // stage 1: status→closed 触发布局动画，ghostFading 保持虚影视觉（走肉曲线）
-        withAnimation(openAnimation) {
+        transitionActive = true
+        // stage 1: 走 closeAnimation 平滑吸缩回虚影尺寸
+        withAnimation(closeAnimation) {
             status = .closed
             ghostFading = true
         }
-        // stage 2: 200ms 后清虚影，代际校验避免吞掉新鲜 hover（走快收）
         ghostGeneration += 1
         let generation = ghostGeneration
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+        // 等待 280ms 充分收缩到位，再平滑收纳回刘海屏顶
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { [weak self] in
             guard let self, generation == self.ghostGeneration else { return }
             withAnimation(self.closeAnimation) {
                 self.ghostFading = false
                 self.hoverGhosting = false
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) { [weak self] in
+                self?.transitionActive = false
             }
         }
     }
@@ -294,14 +300,18 @@ class NotchViewModel: NSObject, ObservableObject {
         openReason = reason
         if reason == .hover {
             // 虚影态：只置标记，不展开（点击/拖拽时才调 openFromGhost()）
-            // 代际 +1 让挂起的 closeToGhost 清零失效，避免吞新鲜 hover（走肉曲线）
             ghostGeneration += 1
+            transitionActive = true
             withAnimation(openAnimation) {
                 hoverGhosting = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.38) { [weak self] in
+                if self?.status != .opened { self?.transitionActive = false }
             }
         } else {
             cancelHoverClose()
             ghostGeneration += 1
+            transitionActive = true
             withAnimation(openAnimation) {
                 hoverGhosting = false
                 status = .opened
@@ -313,12 +323,15 @@ class NotchViewModel: NSObject, ObservableObject {
     func notchClose() {
         cancelHoverClose()
         ghostGeneration += 1
-        // 虚影态 status 不变，外层动画不触发，此处显式给快收（展开态收起时与外层同曲线，无害）
+        transitionActive = true
         withAnimation(closeAnimation) {
             hoverGhosting = false
             ghostFading = false
             openReason = .unknown
             status = .closed
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) { [weak self] in
+            self?.transitionActive = false
         }
     }
 
