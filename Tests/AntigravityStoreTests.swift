@@ -359,4 +359,31 @@ final class AntigravityStoreTests: XCTestCase {
         XCTAssertEqual(activeTimes["user1@example.com"], Date(timeIntervalSince1970: 3000))
         XCTAssertEqual(activeTimes["user2@example.com"], Date(timeIntervalSince1970: 2000))
     }
+
+    func testParseAccountWithProxyDisabled() throws {
+        let jsonStr = """
+        {
+          "id": "test-account-proxy-disabled",
+          "name": "禁止反代账号",
+          "email": "banned@example.com",
+          "disabled": false,
+          "proxy_disabled": true,
+          "quota": {
+            "models": [
+              {
+                "name": "gemini-3.1-pro-high",
+                "percentage": 50,
+                "reset_time": "2026-09-18T15:30:00Z"
+              }
+            ]
+          }
+        }
+        """
+        let data = jsonStr.data(using: .utf8)!
+        let account = try XCTUnwrap(AntigravityStore.parseAccountFile(data: data, currentAccountId: nil))
+
+        XCTAssertEqual(account.id, "test-account-proxy-disabled")
+        XCTAssertTrue(account.isProxyDisabled)
+        XCTAssertTrue(account.isDisabled)
+    }
 }

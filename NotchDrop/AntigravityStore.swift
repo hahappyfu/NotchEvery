@@ -21,6 +21,7 @@ public struct AntigravityAccount: Identifiable, Equatable {
     public let email: String
     public let isCurrent: Bool
     public let isDisabled: Bool
+    public let isProxyDisabled: Bool
     public let percentage: Int
     public let resetTime: Date?
     public let lastActiveTime: Date?
@@ -31,6 +32,7 @@ public struct AntigravityAccount: Identifiable, Equatable {
         email: String,
         isCurrent: Bool,
         isDisabled: Bool,
+        isProxyDisabled: Bool = false,
         percentage: Int,
         resetTime: Date?,
         lastActiveTime: Date? = nil
@@ -40,6 +42,7 @@ public struct AntigravityAccount: Identifiable, Equatable {
         self.email = email
         self.isCurrent = isCurrent
         self.isDisabled = isDisabled
+        self.isProxyDisabled = isProxyDisabled
         self.percentage = percentage
         self.resetTime = resetTime
         self.lastActiveTime = lastActiveTime
@@ -132,6 +135,7 @@ public final class AntigravityStore: ObservableObject {
                 email: acc.email,
                 isCurrent: acc.id == id,
                 isDisabled: acc.isDisabled,
+                isProxyDisabled: acc.isProxyDisabled,
                 percentage: acc.percentage,
                 resetTime: acc.resetTime,
                 lastActiveTime: acc.lastActiveTime
@@ -313,7 +317,8 @@ public final class AntigravityStore: ObservableObject {
         let email = raw.email ?? ""
         let name = (raw.name?.isEmpty == false) ? raw.name! : (!email.isEmpty ? email : id)
         let isCurrent = (id == currentAccountId)
-        let isDisabled = (raw.disabled == true) || (raw.proxy_disabled == true)
+        let isProxyDisabled = (raw.proxy_disabled == true)
+        let isDisabled = (raw.disabled == true) || isProxyDisabled
 
         // 提取配额模型（优先选择包含 gemini 的共享模型，否则取第一个模型）
         var selectedModel: RawAccount.RawModel?
@@ -335,6 +340,7 @@ public final class AntigravityStore: ObservableObject {
             email: email,
             isCurrent: isCurrent,
             isDisabled: isDisabled,
+            isProxyDisabled: isProxyDisabled,
             percentage: percentage,
             resetTime: resetDate
         )
