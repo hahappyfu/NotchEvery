@@ -28,7 +28,7 @@
 - 修改：`NotchDrop/AntigravityStore.swift:288-341`
 - 测试：`Tests/AntigravityStoreTests.swift`
 
-- [ ] **步骤 1：编写失败的单元测试**
+- [x] **步骤 1：编写失败的单元测试**
 
 在 `Tests/AntigravityStoreTests.swift` 中新增测试用例 `testParseAccountWithProxyDisabled`：
 
@@ -61,12 +61,12 @@
     }
 ```
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行：`swift test --filter AntigravityStoreTests/testParseAccountWithProxyDisabled`
 预期：编译报错或失败（`Value of type 'AntigravityAccount' has no member 'isProxyDisabled'`）
 
-- [ ] **步骤 3：编写实现代码**
+- [x] **步骤 3：编写实现代码**
 
 在 `NotchDrop/AntigravityStore.swift` 中：
 1. 为 `AntigravityAccount` 增加 `public let isProxyDisabled: Bool` 并在 `init` 中赋值。
@@ -115,12 +115,12 @@ public struct AntigravityAccount: Identifiable, Equatable {
 ```
 并将 `isProxyDisabled: isProxyDisabled` 传给 `AntigravityAccount` 初始化。
 
-- [ ] **步骤 4：运行测试验证通过**
+- [x] **步骤 4：运行测试验证通过**
 
 运行：`swift test --filter AntigravityStoreTests`
 预期：PASS
 
-- [ ] **步骤 5：Commit**
+- [x] **步骤 5：Commit**
 
 ```bash
 git add NotchDrop/AntigravityStore.swift Tests/AntigravityStoreTests.swift
@@ -135,7 +135,7 @@ git commit -m "feat(antigravity): expose isProxyDisabled flag on AntigravityAcco
 - 修改：`NotchDrop/AntigravityAccountsCardView.swift:125-145`
 - 测试：`Tests/AntigravityStoreTests.swift`
 
-- [ ] **步骤 1：编写失败的单元测试**
+- [x] **步骤 1：编写失败的单元测试**
 
 在 `Tests/AntigravityStoreTests.swift` 中新增测试 `testSymmetricRearrangeExcludesDisabledAccounts`：
 
@@ -152,12 +152,12 @@ git commit -m "feat(antigravity): expose isProxyDisabled flag on AntigravityAcco
     }
 ```
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行：`swift test --filter AntigravityStoreTests/testSymmetricRearrangeExcludesDisabledAccounts`
 预期：FAIL（方法 `arrangedAccounts(from:)` 未定义或未进行过滤）
 
-- [ ] **步骤 3：编写实现代码**
+- [x] **步骤 3：编写实现代码**
 
 在 `NotchDrop/AntigravityAccountsCardView.swift` 中：
 1. 提取可测试的静态函数：
@@ -189,12 +189,12 @@ git commit -m "feat(antigravity): expose isProxyDisabled flag on AntigravityAcco
     }
 ```
 
-- [ ] **步骤 4：运行测试验证通过**
+- [x] **步骤 4：运行测试验证通过**
 
 运行：`swift test --filter AntigravityStoreTests`
 预期：所有 AntigravityStoreTests 用例全部 PASS。
 
-- [ ] **步骤 5：Commit**
+- [x] **步骤 5：Commit**
 
 ```bash
 git add NotchDrop/AntigravityAccountsCardView.swift Tests/AntigravityStoreTests.swift
@@ -208,11 +208,11 @@ git commit -m "feat(ui): automatically hide disabled and proxy-disabled accounts
 **文件：**
 - 测试：全量测试套件
 
-- [ ] **步骤 1：运行全量单元测试**
+- [x] **步骤 1：运行全量单元测试**
 
 运行：`swift test`
 预期：所有现有测试用例全部 PASS，无任何回归错误。
 
-- [ ] **步骤 2：记录结果与确认状态**
+- [x] **步骤 2：记录结果与确认状态**
 
 确认 `git status` 无遗留脏文件。
