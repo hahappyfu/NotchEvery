@@ -84,6 +84,15 @@ struct AntigravityAccountsCardView: View {
         return sortedLeft + [(current, 0)] + sortedRight
     }
 
+    /// 获取首页展示的账号排列：
+    /// 自动过滤隐藏已标记禁止反代（proxy_disabled）或已禁用的账号，
+    /// 仅将真正可用的反代账号送入 3D 对称重排算法。
+    public static func arrangedAccounts(from accounts: [AntigravityAccount]) -> [(account: AntigravityAccount, logicalDistance: Int)] {
+        let activeAccounts = accounts.filter { !$0.isDisabled }
+        guard !activeAccounts.isEmpty else { return [] }
+        return symmetricRearrange(accounts: activeAccounts)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
@@ -126,10 +135,10 @@ struct AntigravityAccountsCardView: View {
     }
 
     private var accountsRow: some View {
-        let arranged = Self.symmetricRearrange(accounts: store.accounts)
+        let arranged = Self.arrangedAccounts(from: store.accounts)
         return HStack(spacing: 6) {
             if arranged.isEmpty {
-                Text("未检测到本地 Antigravity 账号")
+                Text(store.accounts.isEmpty ? "未检测到本地 Antigravity 账号" : "暂无可用反代账号")
                     .font(.system(size: 11.5))
                     .foregroundStyle(Color.white.opacity(0.4))
                     .frame(maxWidth: .infinity, alignment: .center)

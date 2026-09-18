@@ -386,4 +386,15 @@ final class AntigravityStoreTests: XCTestCase {
         XCTAssertTrue(account.isProxyDisabled)
         XCTAssertTrue(account.isDisabled)
     }
+
+    func testArrangedAccountsExcludesDisabledAndProxyDisabledAccounts() {
+        let acc1 = AntigravityAccount(id: "acc-ok-1", name: "OK1", email: "1@ok.com", isCurrent: false, isDisabled: false, percentage: 80, resetTime: nil)
+        let acc2 = AntigravityAccount(id: "acc-disabled", name: "Banned", email: "2@ban.com", isCurrent: false, isDisabled: true, isProxyDisabled: true, percentage: 90, resetTime: nil)
+        let acc3 = AntigravityAccount(id: "acc-ok-2", name: "OK2", email: "3@ok.com", isCurrent: true, isDisabled: false, percentage: 60, resetTime: nil)
+
+        let arranged = AntigravityAccountsCardView.arrangedAccounts(from: [acc1, acc2, acc3])
+        XCTAssertEqual(arranged.count, 2)
+        XCTAssertFalse(arranged.contains(where: { $0.account.id == "acc-disabled" }))
+        XCTAssertEqual(arranged.first(where: { $0.logicalDistance == 0 })?.account.id, "acc-ok-2")
+    }
 }
