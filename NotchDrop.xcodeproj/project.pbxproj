@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B79333E9BDE586D8426F3C34 /* QoderGatewayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A1161FC322F87730A4752DB /* QoderGatewayManager.swift */; };
+		5B05CFF7C9C3F3A69E8796A0 /* QoderGatewayManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B469BCF5BAF673664C30176C /* QoderGatewayManagerTests.swift */; };
 		9677B500F5C9D80E2A9355A1 /* QoderGatewayConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52903A074BE6541670F1DDC1 /* QoderGatewayConfig.swift */; };
 		46FF4055B685D52627D4D409 /* QoderGatewayConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490B9A3744870B3B10920C39 /* QoderGatewayConfigTests.swift */; };
 		50C0DE042C3A86EA00QGW004 /* qodercn-gateway in Embed Qoder Gateway */ = {isa = PBXBuildFile; fileRef = 50C0DE032C3A86EA00QGW003 /* qodercn-gateway */; };
@@ -116,6 +118,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		8A1161FC322F87730A4752DB /* QoderGatewayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderGatewayManager.swift; sourceTree = "<group>"; };
+		B469BCF5BAF673664C30176C /* QoderGatewayManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderGatewayManagerTests.swift; sourceTree = "<group>"; };
 		52903A074BE6541670F1DDC1 /* QoderGatewayConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderGatewayConfig.swift; sourceTree = "<group>"; };
 		490B9A3744870B3B10920C39 /* QoderGatewayConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderGatewayConfigTests.swift; sourceTree = "<group>"; };
 		50C0DE032C3A86EA00QGW003 /* qodercn-gateway */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "qodercn-gateway"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -253,6 +257,7 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				8A1161FC322F87730A4752DB /* QoderGatewayManager.swift */,
 				52903A074BE6541670F1DDC1 /* QoderGatewayConfig.swift */,
 				148901512DC9149900F2E06C /* Share.swift */,
 				148901522DC9149900F2E06C /* Share+View.swift */,
@@ -338,6 +343,7 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				B469BCF5BAF673664C30176C /* QoderGatewayManagerTests.swift */,
 				490B9A3744870B3B10920C39 /* QoderGatewayConfigTests.swift */,
 				7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */,
 				7AE10C0220260AB000000C1 /* AppPathsTests.swift */,
@@ -514,6 +520,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B79333E9BDE586D8426F3C34 /* QoderGatewayManager.swift in Sources */,
 				9677B500F5C9D80E2A9355A1 /* QoderGatewayConfig.swift in Sources */,
 				504381992C3A8893000ED325 /* NotchWindow.swift in Sources */,
 				5044EEA22C3B126F00071C5C /* TrayDrop+DropItemView.swift in Sources */,
@@ -585,6 +592,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5B05CFF7C9C3F3A69E8796A0 /* QoderGatewayManagerTests.swift in Sources */,
 				46FF4055B685D52627D4D409 /* QoderGatewayConfigTests.swift in Sources */,
 				7AE10C0220260AB0000000E2 /* AnimationMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D1 /* AppPathsTests.swift in Sources */,
