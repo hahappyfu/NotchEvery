@@ -72,7 +72,7 @@ struct NotchRootView: View {
 
     @ViewBuilder
     private var leftEarPill: some View {
-        // 左耳：当前 cc-switch 供应商（claude-desktop 槽）；查无则整只隐藏
+        // 左耳：Token 页 = 当前 cc-switch 供应商（查无则整只隐藏）；网关页 = 分区标题（贴死区左缘）
         if vm.contentType == .token, let provider = usage.providerName {
             HStack(spacing: 6) {
                 Circle()
@@ -86,12 +86,14 @@ struct NotchRootView: View {
             .lineLimit(1)
             .truncationMode(.tail)
             .minimumScaleFactor(0.8)
+        } else if vm.contentType == .gateway {
+            GatewayZoneView(vm: vm).earTitle
         }
     }
 
     @ViewBuilder
     private var rightEarPill: some View {
-        // 右耳：今日调用次数（标签+数字，不然裸数字不知所云）
+        // 右耳：Token 页 = 今日调用次数（标签+数字，不然裸数字不知所云）；网关页 = 启停按钮（贴死区右缘）
         if vm.contentType == .token {
             HStack(spacing: 4) {
                 Text("请求次数")
@@ -100,6 +102,8 @@ struct NotchRootView: View {
                 RollupText(text: usage.summary.calls, font: .system(size: 11, weight: .medium), color: .secondary)
             }
             .lineLimit(1)
+        } else if vm.contentType == .gateway {
+            GatewayZoneView(vm: vm).earToggle
         }
     }
 
@@ -114,6 +118,10 @@ struct NotchRootView: View {
             case .token:
                 TokenZoneView()
                     // 横向填充（余宽由列间距均分）；纵向自然高
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
+            case .gateway:
+                GatewayZoneView(vm: vm)
                     .frame(maxWidth: .infinity, alignment: .top)
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             }

@@ -77,6 +77,11 @@ struct QoderPoolMember: Equatable, Identifiable {
     let lastUsedAt: Date?
     let lastProbeOK: Bool
     var id: String { userId }
+
+    /// UI 占位（成员查不到时的中性态）。
+    static func placeholder(_ userId: String) -> QoderPoolMember {
+        QoderPoolMember(userId: userId, source: "", cooled: false, lastUsedAt: nil, lastProbeOK: false)
+    }
 }
 
 struct QoderPoolStatus: Equatable {
@@ -132,6 +137,8 @@ final class QoderStore: ObservableObject {
 
     @Published private(set) var quota: QoderQuota?
     @Published private(set) var poolMembers: [QoderPoolMember] = []
+    /// /v1/pool/status 顶层 sticky_user_id（粘性当前号，圆形池主焦点用）
+    @Published private(set) var poolStatusStickyId: String?
     @Published private(set) var today = QoderDailyAgg()
     @Published private(set) var yesterday: QoderDailyAgg?
     @Published private(set) var isQuotaStale = false
@@ -176,9 +183,9 @@ final class QoderStore: ObservableObject {
 
     func stop() { timer?.invalidate(); timer = nil }
 
-    /// 供单测直接驱动一次刷新（无日志文件时只更 quota/pool）。
-    func refreshNow() async {
-        await fetchQuotaAndPool()
+    /// 供单测直接驱动一次刷新（gatewayUp 注入脱离全局 shared）。
+    func refreshNow(gatewayUp: Bool = true) async {
+        await fetchQuotaAndPool(gatewayUp: gatewayUp)
     }
 
     func refresh(logURL: URL?) {
@@ -188,14 +195,25 @@ final class QoderStore: ObservableObject {
         }
     }
 
-    private func fetchQuotaAndPool() async {
+    /// gatewayUp=false（未托管/非 running）→ 直接离线空态，不发注定失败的请求。
+    private func fetchQuotaAndPool(gatewayUp: Bool = QoderGatewayManager.shared.isHosting) async {
+        if !gatewayUp {
+            consecutiveFailures = 0
+            publishIfChanged(\.quota, nil)
+            publishIfChanged(\.poolMembers, [])
+            publishIfChanged(\.poolStatusStickyId, nil)
+            withMutation { isQuotaStale = false }
+            return
+        }
         let bearer = firstAuthKey()
         do {
             let qData = try await transport.get(url: URL(string: "http://127.0.0.1:\(port)/quota")!, bearer: bearer)
             let pData = try await transport.get(url: URL(string: "http://127.0.0.1:\(port)/v1/pool/status")!, bearer: bearer)
             consecutiveFailures = 0
             publishIfChanged(\.quota, QoderQuota.decode(qData))
-            publishIfChanged(\.poolMembers, QoderPoolStatus.decode(pData)?.accounts ?? [])
+            let pool = QoderPoolStatus.decode(pData)
+            publishIfChanged(\.poolMembers, pool?.accounts ?? [])
+            publishIfChanged(\.poolStatusStickyId, pool?.stickyUserId)
             if isQuotaStale { withMutation { isQuotaStale = false } }
         } catch {
             consecutiveFailures += 1

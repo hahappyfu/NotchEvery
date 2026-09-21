@@ -40,6 +40,22 @@ struct NotchSettingsView: View {
                 .font(.system(size: 13))
                 .padding(.vertical, 2)
             Divider()
+            // 网关分区开关：关闭时第 3 页从分页剔除（zoneOrder 单一事实来源 = ConfigStore 同键）
+            Toggle("显示网关分区", isOn: $vm.showGatewayZone)
+                .font(.system(size: 13))
+                .padding(.vertical, 2)
+            HStack(spacing: 6) {
+                Text("端口 \(QoderGatewayManager.shared.port)")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+                Button("打开日志目录") {
+                    NSWorkspace.shared.open(QoderGatewayManager.shared.gatewayLogURL.deletingLastPathComponent())
+                }
+                .buttonStyle(.link)
+                .font(.system(size: 10.5))
+            }
+            .padding(.bottom, 2)
+            Divider()
             // 自定义时 field+unit 换第二行右对齐：一行摆不下 240pt 三件套+label（360 Popover 可用仅 336）
             VStack(alignment: .trailing, spacing: 4) {
                 HStack {

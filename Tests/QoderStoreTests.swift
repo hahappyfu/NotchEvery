@@ -61,6 +61,19 @@ final class QoderStoreTests: XCTestCase {
         XCTAssertEqual(parsed.stickyUserId, parsed.accounts.last?.userId)
     }
 
+    // MARK: - 未托管时直接离线空态，不发请求也不误报 stale
+
+    @MainActor
+    func testGatewayDownShortCircuitsToEmptyOffline() async {
+        let t = FakeTransport()
+        t.quotaData = fixture("quota", "json")   // 即使 transport 有数据可给
+        let store = QoderStore(port: 8096, transport: t)
+        await store.refreshNow(gatewayUp: false) // 网关没在跑
+        XCTAssertNil(store.quota, "未托管不应消费任何响应")
+        XCTAssertTrue(store.poolMembers.isEmpty)
+        XCTAssertFalse(store.isQuotaStale, "未托管是正常离线态，不是故障 stale")
+    }
+
     // MARK: - isStale：连续失败 ≥2 ⇒ stale；成功即清除
 
     @MainActor

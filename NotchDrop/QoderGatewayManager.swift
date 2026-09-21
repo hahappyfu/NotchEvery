@@ -70,6 +70,13 @@ final class QoderGatewayManager: ObservableObject {
     /// 测试期默认端口；来自 gateway.json，逻辑不硬编码。
     private(set) var port: Int = 8096
 
+    /// App 退出钩子：优雅停掉托管的网关进程（AppDelegate.applicationWillTerminate 调）。
+    @MainActor
+    func applicationWillTerminate() {
+        if case .running = sm.state { stop() }
+        else { stdinWriteEnd?.closeFile(); stdinWriteEnd = nil }
+    }
+
     private var sm = GatewayStateMachine()
     private var process: Process?
     /// 看门狗通道：stdin 写端持有不关；主动 stop 前会先关它触发 Go 侧优雅自尽。
@@ -82,6 +89,15 @@ final class QoderGatewayManager: ObservableObject {
         Bundle.main.bundleURL
             .appendingPathComponent("Contents/MacOS/qodercn-gateway")
             .path
+    }
+
+    /// gateway.log 落盘路径（Store 增量 tailer 消费）。
+    var gatewayLogURL: URL { dataDir.appendingPathComponent("gateway.log") }
+
+    /// 本 App 是否真正托管着运行中的网关进程（crashed/stopped 时为 false → Store 显示离线空态）。
+    var isHosting: Bool {
+        if case .running = state { return process?.isRunning ?? false }
+        return false
     }
 
     init(dataDir: URL? = nil, fm: FileManager = .default) {
@@ -126,6 +142,14 @@ final class QoderGatewayManager: ObservableObject {
     }
 
     // MARK: 生命周期（真机冒烟验收，不在单测范围）
+
+    /// crashed → stopped 归位（UI「重试」按钮先调它再 start()，否则 requestStart 被非法态挡掉变死按钮）。
+    @MainActor
+    func retry() {
+        guard sm.resetToStopped() else { return }
+        publishState()
+        start()
+    }
 
     @MainActor
     func start() {

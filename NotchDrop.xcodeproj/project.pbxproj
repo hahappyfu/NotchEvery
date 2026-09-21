@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		64C0DDDB8CA2D27D40BEE1AF /* QoderPoolRingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADE020432E7E7EE9F4611A1C /* QoderPoolRingView.swift */; };
+		B96CDEEF10BB6DF183BAC32E /* GatewayZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07150B97FCF8381DF9E8C5E3 /* GatewayZoneView.swift */; };
 		F893696EEB43039AB65008AE /* QoderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EF84BF0B5B4C15680C431B7 /* QoderStore.swift */; };
 		A960E466FF0B6C2E724CB7E1 /* QoderStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A53F58C465FA56AEF12E4DC /* QoderStoreTests.swift */; };
 		53EE8611F2F9AFE93252EDCE /* QoderLogParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1030841C31B1DA69037525E /* QoderLogParser.swift */; };
@@ -122,6 +124,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		ADE020432E7E7EE9F4611A1C /* QoderPoolRingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderPoolRingView.swift; sourceTree = "<group>"; };
+		07150B97FCF8381DF9E8C5E3 /* GatewayZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayZoneView.swift; sourceTree = "<group>"; };
 		4EF84BF0B5B4C15680C431B7 /* QoderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderStore.swift; sourceTree = "<group>"; };
 		2A53F58C465FA56AEF12E4DC /* QoderStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderStoreTests.swift; sourceTree = "<group>"; };
 		E1030841C31B1DA69037525E /* QoderLogParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderLogParser.swift; sourceTree = "<group>"; };
@@ -265,6 +269,8 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				ADE020432E7E7EE9F4611A1C /* QoderPoolRingView.swift */,
+				07150B97FCF8381DF9E8C5E3 /* GatewayZoneView.swift */,
 				4EF84BF0B5B4C15680C431B7 /* QoderStore.swift */,
 				E1030841C31B1DA69037525E /* QoderLogParser.swift */,
 				8A1161FC322F87730A4752DB /* QoderGatewayManager.swift */,
@@ -532,6 +538,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				64C0DDDB8CA2D27D40BEE1AF /* QoderPoolRingView.swift in Sources */,
+				B96CDEEF10BB6DF183BAC32E /* GatewayZoneView.swift in Sources */,
 				F893696EEB43039AB65008AE /* QoderStore.swift in Sources */,
 				53EE8611F2F9AFE93252EDCE /* QoderLogParser.swift in Sources */,
 				B79333E9BDE586D8426F3C34 /* QoderGatewayManager.swift in Sources */,
