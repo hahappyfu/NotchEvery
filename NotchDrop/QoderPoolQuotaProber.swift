@@ -49,7 +49,13 @@ enum QoderPoolQuotaGuard {
 
 // MARK: - Prober
 
-final class QoderPoolQuotaProber {
+/// 抽象出 `probeAll()` 供 `QoderStore` 注入假实现做单测（与仓库对 transport/claimer 的协议化风格一致，
+/// 但因 QoderCampaignClaimer 目前直接以具体类型被引用、无协议先例，这里只为本类新增最小协议）。
+protocol QoderPoolQuotaProbing: AnyObject {
+    func probeAll() async -> [QoderAccountQuota]
+}
+
+final class QoderPoolQuotaProber: QoderPoolQuotaProbing {
     static let shared = QoderPoolQuotaProber()
 
     static let baseURL = "https://gateway.qoder.com.cn"
@@ -62,14 +68,10 @@ final class QoderPoolQuotaProber {
     private var isRunning = false
 
     init(transport: QoderCampaignTransport = URLSessionQoderCampaignTransport(),
-         poolDirectory: URL? = nil,
-         now: @escaping () -> Date = Date.init) {
+         poolDirectory: URL? = nil) {
         self.transport = transport
         self.poolDirectory = poolDirectory ?? QoderPoolCredentials.defaultDirectory
-        self.now = now
     }
-
-    private let now: () -> Date
 
     // MARK: 单账号请求头（与 claimer 同一套 Cosy-* 约定）
 

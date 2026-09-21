@@ -21,6 +21,19 @@ private final class FakeTransport: QoderHTTPTransport {
     }
 }
 
+/// 假 prober：非 actor class（QoderPoolQuotaProbing 要求 AnyObject），直接返回预置额度数组，绝不真联网。
+private final class FakeQuotaProberStub: QoderPoolQuotaProbing, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _callCount = 0
+    var callCount: Int { lock.lock(); defer { lock.unlock() }; return _callCount }
+    var result: [QoderAccountQuota]
+    init(result: [QoderAccountQuota]) { self.result = result }
+    func probeAll() async -> [QoderAccountQuota] {
+        lock.lock(); _callCount += 1; lock.unlock()
+        return result
+    }
+}
+
 final class QoderStoreTests: XCTestCase {
 
     private func fixture(_ name: String, _ ext: String) -> Data {
@@ -105,5 +118,50 @@ final class QoderStoreTests: XCTestCase {
         let first = store.objectWillChangeCountForTest
         await store.refreshNow()   // 完全相同数据
         XCTAssertEqual(store.objectWillChangeCountForTest, first, "同值不应再次 objectWillChange")
+    }
+
+    // MARK: - poolTotalRemaining 求和口径（纯逻辑，直接喂 poolQuotas）
+
+    @MainActor
+    func testPoolTotalRemainingEmptyIsNil() {
+        let store = QoderStore(port: 8096, transport: FakeTransport())
+        XCTAssertNil(store.poolTotalRemaining, "未探测到任何账号余额时应为 nil（无数据），不是 0")
+    }
+
+    @MainActor
+    func testPoolTotalRemainingSumsAcrossAccounts() async {
+        let prober = FakeQuotaProberStub(result: [
+            QoderAccountQuota(userId: "user-1", planRemaining: 300, addOnRemaining: 100), // total 400
+            QoderAccountQuota(userId: "user-2", planRemaining: 250.5, addOnRemaining: 0), // total 250.5
+            QoderAccountQuota(userId: "user-3", planRemaining: 0, addOnRemaining: 50),    // total 50
+        ])
+        let store = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober)
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(store.poolQuotas.count, 3)
+        XCTAssertEqual(store.poolTotalRemaining ?? 0, 700.5, accuracy: 0.001, "全池总额应为各号 plan+addOn 相加后再求和")
+    }
+
+    // MARK: - refreshPoolQuotas() 触发一次后写入 published 状态
+
+    @MainActor
+    func testRefreshPoolQuotasPopulatesPublishedState() async {
+        let prober = FakeQuotaProberStub(result: [
+            QoderAccountQuota(userId: "user-1", planRemaining: 100, addOnRemaining: 20),
+        ])
+        let store = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober)
+        XCTAssertTrue(store.poolQuotas.isEmpty, "初始应为空")
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(prober.callCount, 1, "应恰好调用一次 probeAll")
+        XCTAssertEqual(store.poolQuotas.count, 1)
+        XCTAssertEqual(store.poolTotalRemaining ?? 0, 120, accuracy: 0.001)
+    }
+
+    @MainActor
+    func testRefreshPoolQuotasEmptyResultKeepsTotalNil() async {
+        let prober = FakeQuotaProberStub(result: [])
+        let store = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober)
+        await store.refreshPoolQuotas()
+        XCTAssertTrue(store.poolQuotas.isEmpty)
+        XCTAssertNil(store.poolTotalRemaining, "probeAll 返回空数组时仍应视为无数据(nil)，不能误当成 0")
     }
 }

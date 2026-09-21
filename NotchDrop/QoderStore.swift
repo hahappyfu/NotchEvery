@@ -142,6 +142,13 @@ final class QoderStore: ObservableObject {
     @Published private(set) var today = QoderDailyAgg()
     @Published private(set) var yesterday: QoderDailyAgg?
     @Published private(set) var isQuotaStale = false
+    /// 全池额度快照：账号池里每个号各自的真实余额（plan+addOn），由 QoderPoolQuotaProber 异步探测回填。
+    @Published private(set) var poolQuotas: [QoderAccountQuota] = []
+
+    /// 全池剩余额度合计；空数组表示「还没探测到任何数据」而非「真的是 0」，故返回 nil 供 UI 显示 --。
+    var poolTotalRemaining: Double? {
+        poolQuotas.isEmpty ? nil : poolQuotas.reduce(0) { $0 + $1.totalRemaining }
+    }
 
     /// 测试可见：objectWillChange 发射计数，验证发布去重。
     private(set) var objectWillChangeCountForTest = 0
@@ -150,6 +157,8 @@ final class QoderStore: ObservableObject {
     var port: Int
     private let transport: QoderHTTPTransport
     private let authKeysFile: URL
+    /// 全池额度探针（协议注入，默认走真网络单例；测试注入假实现，绝不真联网）。
+    private let quotaProber: any QoderPoolQuotaProbing
     private var consecutiveFailures = 0
     private var timer: Timer?
     private var logTailerCursor = QoderLogTailer.Cursor()
@@ -157,9 +166,11 @@ final class QoderStore: ObservableObject {
 
     init(port: Int? = nil,
          transport: QoderHTTPTransport = URLSessionQoderTransport(),
-         authKeysFile: URL? = nil) {
+         authKeysFile: URL? = nil,
+         quotaProber: any QoderPoolQuotaProbing = QoderPoolQuotaProber.shared) {
         self.port = port ?? QoderGatewayManager.configuredPort
         self.transport = transport
+        self.quotaProber = quotaProber
         if let k = authKeysFile {
             self.authKeysFile = k
         } else {
@@ -185,6 +196,11 @@ final class QoderStore: ObservableObject {
         // claimAllOncePerDay() 内部按账号当天去重，重复触发无副作用；detached + 不阻塞主线程。
         Task.detached(priority: .background) {
             await QoderCampaignClaimer.shared.claimAllOncePerDay()
+        }
+        // 启动即异步探测一次全池额度，不等第一次 refresh 轮询节奏。
+        Task.detached(priority: .background) { [weak self] in
+            guard let store = self else { return }
+            await store.refreshPoolQuotas()
         }
     }
 
@@ -213,7 +229,29 @@ final class QoderStore: ObservableObject {
             Task.detached(priority: .background) {
                 await QoderCampaignClaimer.shared.claimAllOncePerDay()
             }
+            // 顺带异步探测一次全池额度；prober 自带 in-flight 守卫，15s 轮询节奏下若上一轮还没跑完会自动跳过。
+            Task.detached(priority: .background) { [weak self] in
+                guard let store = self else { return }
+                await store.refreshPoolQuotas()
+            }
         }
+    }
+
+    /// 驱动一次全池额度探测并回填 `poolQuotas`。
+    /// nonisolated：由 detached background Task 调用，不阻塞 MainActor；回填必须切回 MainActor
+    /// 赋值 @Published 属性（QoderStore 是 @MainActor 类，跨隔离直接写会有数据竞争）。
+    /// prober 本身不 throw，仍包一层 do/catch 兜底，保证探测异常绝不影响调用方所在的刷新主流程。
+    nonisolated func refreshPoolQuotas() async {
+        let quotas: [QoderAccountQuota]
+        do {
+            quotas = await self.quotaProber.probeAll()
+        } catch {
+            storeLog.debug("refreshPoolQuotas threw unexpectedly: \(error.localizedDescription)")
+            return
+        }
+        await Task { @MainActor in
+            publishIfChanged(\.poolQuotas, quotas)
+        }.value
     }
 
     /// gatewayUp=false（未托管/非 running）→ 直接离线空态，不发注定失败的请求。
