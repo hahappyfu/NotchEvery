@@ -78,9 +78,13 @@ Qoder 的日限按**账号**计，且无法从 `/quota` 提前看出，只能在
 {"isQueued":true,"queueCount":7633,"queueType":"p3","retryAfterSeconds":30,"waitTime":232}
 ```
 
-这是"忙，重试"而不是额度墙——实测一次重试 6.5 秒就进。网关会按 `retryAfterSeconds`
-等待后**用同一个号重试**（最多 3 次），因为队列全局共享，换号毫无意义。
-此时**不会**把账号判成冷却。
+这是"忙，重试"而不是额度墙，但**别拿 `retryAfterSeconds` 当完成时间**：它只是轮询间隔，
+真正的等待预估在 `waitTime`。2026-09-21 实测两者相差一个数量级——`retryAfterSeconds` 恒为
+30，而 `waitTime` 一路涨到 470+，按 30s×3 次（约 90 秒）重试的旧策略在真实拥堵下必然提前放弃。
+
+网关现在这样等：以 `waitTime` 为预算（缺失或超限时退回 `queueDeadline` = 10 分钟），
+按 `retryAfterSeconds` 的节奏轮询，直到放行或预算耗尽，**始终用同一个号**——队列全局共享，
+换号毫无意义。此时**不会**把账号判成冷却。
 
 ### 观测
 
