@@ -1,0 +1,19 @@
+{
+  "host": "127.0.0.1",
+  "port": 8096,
+  "model": "Qwen3.8-Flash",
+  "session_mode": "auto",
+  "timeout": 0,
+  "remote_base_url": "https://gateway.qoder.com.cn",
+  "remote_auth_file": "",
+  "remote_auth_pool_dir": "",
+  "remote_auth_pool": {
+    "max_switches": 3,
+    "probe_enabled": true,
+    "probe_quiet_min": 30,
+    "probe_interval_min": 30
+  },
+  "remote_proxy_url": "",
+  "remote_version": "",
+  "auth_keys_file": ""
+}
