@@ -77,17 +77,22 @@ struct QoderGatewayConfig: Codable {
             let data = try enc.encode(cfg)
             try data.write(to: jsonURL, options: .atomic)
         } else if let data = try? Data(contentsOf: jsonURL),
-                  var cfg = try? JSONDecoder().decode(QoderGatewayConfig.self, from: data),
-                  cfg.remote_auth_pool_dir == nil,
-                  let pool = defaultPoolDir {
-            // 已有配置文件但未开启 pool_dir，自动补上
-            cfg.remote_auth_pool_dir = pool
-            if cfg.model == nil { cfg.model = "Qwen3.8-Flash" }
-            if cfg.session_mode == nil { cfg.session_mode = "auto" }
-            let enc = JSONEncoder()
-            enc.outputFormatting = [.prettyPrinted, .sortedKeys]
-            if let updated = try? enc.encode(cfg) {
-                try? updated.write(to: jsonURL, options: .atomic)
+                  var cfg = try? JSONDecoder().decode(QoderGatewayConfig.self, from: data) {
+            // 已有配置文件：把端口 / 账号池路径同步进去（设置页改端口后必须生效；值相同则不写）
+            var changed = false
+            if cfg.port != port { cfg.port = port; changed = true }
+            if cfg.remote_auth_pool_dir == nil, let pool = defaultPoolDir {
+                cfg.remote_auth_pool_dir = pool
+                if cfg.model == nil { cfg.model = "Qwen3.8-Flash" }
+                if cfg.session_mode == nil { cfg.session_mode = "auto" }
+                changed = true
+            }
+            if changed {
+                let enc = JSONEncoder()
+                enc.outputFormatting = [.prettyPrinted, .sortedKeys]
+                if let updated = try? enc.encode(cfg) {
+                    try? updated.write(to: jsonURL, options: .atomic)
+                }
             }
         }
 

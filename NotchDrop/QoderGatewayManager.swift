@@ -67,8 +67,25 @@ final class QoderGatewayManager: ObservableObject {
 
     @Published private(set) var state: GatewayState = .stopped
 
-    /// 测试期默认端口；来自 gateway.json，逻辑不硬编码。
-    private(set) var port: Int = 8096
+    /// 端口 ConfigStore 键。默认 8097：8096 留给独立后台实例（LaunchAgent 常驻，
+    /// 供开发任务走模型代理），托管实例避开以免互相抢端口。
+    static let portConfigKey = "qoderGatewayPort"
+    static let defaultPort = 8097
+
+    /// 当前配置端口（越界回落默认值）。
+    static var configuredPort: Int {
+        let p = ConfigStore.shared.get(portConfigKey, fallback: defaultPort)
+        return (1...65535).contains(p) ? p : defaultPort
+    }
+
+    /// 改写端口（设置页调用；越界忽略）。改后需重启网关生效。
+    static func setPort(_ newPort: Int) {
+        guard (1...65535).contains(newPort) else { return }
+        ConfigStore.shared.set(newPort, forKey: portConfigKey)
+    }
+
+    /// 网关监听端口（单一事实来源 = ConfigStore）
+    var port: Int { Self.configuredPort }
 
     /// App 退出钩子：优雅停掉托管的网关进程（AppDelegate.applicationWillTerminate 调）。
     @MainActor
@@ -155,6 +172,8 @@ final class QoderGatewayManager: ObservableObject {
     func start() {
         guard sm.requestStart() else { gwLog.info("start ignored, state=\(String(describing: self.sm.state))"); return }
         publishState()
+        // 用户可能刚改过端口设置：启动前同步给数据层，保证 Store 与网关同端口
+        QoderStore.shared.port = self.port
 
         DispatchQueue.global(qos: .utility).async { [weak self] in
             guard let self else { return }

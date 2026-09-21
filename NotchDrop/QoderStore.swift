@@ -146,7 +146,8 @@ final class QoderStore: ObservableObject {
     /// 测试可见：objectWillChange 发射计数，验证发布去重。
     private(set) var objectWillChangeCountForTest = 0
 
-    private let port: Int
+    /// 网关端口（默认读全局配置；Manager 启动时会同步为当前配置端口）
+    var port: Int
     private let transport: QoderHTTPTransport
     private let authKeysFile: URL
     private var consecutiveFailures = 0
@@ -154,10 +155,10 @@ final class QoderStore: ObservableObject {
     private var logTailerCursor = QoderLogTailer.Cursor()
     private var aggregator = QoderAggregator()
 
-    init(port: Int = 8096,
+    init(port: Int? = nil,
          transport: QoderHTTPTransport = URLSessionQoderTransport(),
          authKeysFile: URL? = nil) {
-        self.port = port
+        self.port = port ?? QoderGatewayManager.configuredPort
         self.transport = transport
         if let k = authKeysFile {
             self.authKeysFile = k

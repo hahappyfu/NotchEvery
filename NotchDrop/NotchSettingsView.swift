@@ -11,6 +11,8 @@ import SwiftUI
 struct NotchSettingsView: View {
     @StateObject var vm: NotchViewModel
     @StateObject var tvm: TrayDrop = .shared
+    /// 网关端口编辑缓冲（提交时写入 ConfigStore；改后需重启网关生效）
+    @State private var gatewayPort = QoderGatewayManager.configuredPort
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,14 +47,25 @@ struct NotchSettingsView: View {
                 .font(.system(size: 13))
                 .padding(.vertical, 2)
             HStack(spacing: 6) {
-                Text("端口 \(QoderGatewayManager.shared.port)")
+                Text("网关端口")
                     .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
+                TextField("", value: $gatewayPort, format: .number)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 62)
+                    .multilineTextAlignment(.trailing)
+                Text("改后需重启网关")
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(.tertiary)
+                Spacer(minLength: 4)
                 Button("打开日志目录") {
                     NSWorkspace.shared.open(QoderGatewayManager.shared.gatewayLogURL.deletingLastPathComponent())
                 }
                 .buttonStyle(.link)
                 .font(.system(size: 10.5))
+            }
+            .onChange(of: gatewayPort) { newValue in
+                QoderGatewayManager.setPort(newValue)
             }
             .padding(.bottom, 2)
             Divider()
