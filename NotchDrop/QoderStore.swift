@@ -180,6 +180,12 @@ final class QoderStore: ObservableObject {
         RunLoop.main.add(t, forMode: .common)
         timer = t
         storeLog.info("QoderStore started, interval 15s, port \(self.port)")
+        // 只要 start() 被调用（不管是不是因为面板打开才调用的），就无条件异步发起一次每日巡检，
+        // 保证 App 生命周期内至少尝试过一次自动领取，不完全依赖 refresh() 的轮询节奏。
+        // claimAllOncePerDay() 内部按账号当天去重，重复触发无副作用；detached + 不阻塞主线程。
+        Task.detached(priority: .background) {
+            await QoderCampaignClaimer.shared.claimAllOncePerDay()
+        }
     }
 
     func stop() { timer?.invalidate(); timer = nil }

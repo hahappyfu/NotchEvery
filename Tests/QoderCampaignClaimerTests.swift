@@ -23,6 +23,10 @@ private final class FakeCampaignTransport: QoderCampaignTransport {
     var campaignsResponseByBearer: [String: (status: Int, data: Data)] = [:]
     var defaultCampaigns: (status: Int, data: Data)?
     var claimResult: (status: Int, data: Data) = (200, Data(#"{"status":"CLAIMED","replayed":false}"#.utf8))
+    /// 按 campaignId（POST URL 倒数第二段）路由不同响应，优先于全局 claimResult；用于测多条活动部分成功场景。
+    var claimResultByCampaignId: [String: (status: Int, data: Data)] = [:]
+    /// 抛错的 campaignId 集合（POST 阶段）
+    var throwingCampaignIds: Set<String> = []
     /// 抛错的 bearer 集合（GET 阶段）
     var throwingBearers: Set<String> = []
 
@@ -34,7 +38,11 @@ private final class FakeCampaignTransport: QoderCampaignTransport {
             if let r = campaignsResponseByBearer[bearer] { return r }
             return defaultCampaigns ?? (200, Data())
         }
-        // POST .../claim
+        // POST .../campaigns/<id>/claim —— path 倒数第二段是 campaignId
+        let components = url.path.split(separator: "/")
+        let campaignId = components.dropLast().last.map(String.init) ?? ""
+        if throwingCampaignIds.contains(campaignId) { throw URLError(.timedOut) }
+        if let r = claimResultByCampaignId[campaignId] { return r }
         return claimResult
     }
 }
@@ -190,5 +198,71 @@ final class QoderCampaignClaimerTests: XCTestCase {
 
         await claimer.claimAllOncePerDay()   // 同一天第二次调用
         XCTAssertEqual(t.calls.count, firstRunCount, "当天已处理过的账号不应再次发起任何请求")
+    }
+
+    // MARK: - 审查问题 1：部分成功 / 全部失败 / 无可领项 三种语义要区分开
+
+    /// 多条可领活动，fake transport 按 campaignId 路由不同响应：一条成功、一条抛错 → 至少有一条成功，
+    /// 应判定为 .claimed（而不是被"全部失败"分支误伤），且这个结果会写入今日标记。
+    @MainActor
+    func testPartialSuccessAcrossMultipleCampaignsIsStillClaimed() async throws {
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", "user-1")])
+        let t = FakeCampaignTransport()
+        t.defaultCampaigns = (200, campaignsJSON([
+            ("c-ok", "CLAIM_BENEFIT", "CLAIMABLE"),
+            ("c-bad", "CLAIM_BENEFIT", "CLAIMABLE"),
+        ]))
+        t.throwingCampaignIds = ["c-bad"]   // c-ok 走全局默认成功响应；c-bad POST 阶段抛错
+        let d = uniqueDefaults()
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
+
+        await claimer.claimAllOncePerDay()
+
+        XCTAssertEqual(d.string(forKey: "qoder.campaign.claimed.user-1").map { _ in true }, true,
+                       "至少有一条领取成功，应该写入今日标记")
+        let posts = t.calls.filter { $0.method == "POST" }
+        XCTAssertEqual(posts.count, 2, "两条可领活动都应尝试发 POST")
+    }
+
+    /// 多条可领活动全部 POST 都失败（无一条成功、也无幂等命中）→ 必须判定为 .failure，
+    /// 不能像旧逻辑那样误判成 alreadyClaimed 并写入今日标记（否则当天漏领且不再重试）。
+    @MainActor
+    func testAllClaimsFailingReturnsFailureAndDoesNotMarkToday() async throws {
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", "user-1")])
+        let t = FakeCampaignTransport()
+        t.defaultCampaigns = (200, campaignsJSON([
+            ("c-a", "CLAIM_BENEFIT", "CLAIMABLE"),
+            ("c-b", "CLAIM_BENEFIT", "CLAIMABLE"),
+        ]))
+        t.throwingCampaignIds = ["c-a", "c-b"]   // 两条 POST 全部抛错
+        let d = uniqueDefaults()
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
+
+        await claimer.claimAllOncePerDay()
+
+        XCTAssertNil(d.string(forKey: "qoder.campaign.claimed.user-1"),
+                     "全部失败不应该写入今日标记，否则当天不会重试")
+    }
+
+    /// GET 成功但当前没有任何可领活动（比如还没到每日刷新点）→ .nothingToClaim，
+    /// 同样不写今日标记，留待下一次触发重新查一遍（审查问题 1a）。
+    @MainActor
+    func testNothingToClaimDoesNotMarkTodayAndRetriesOnNextTrigger() async throws {
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", "user-1")])
+        let t = FakeCampaignTransport()
+        t.defaultCampaigns = (200, campaignsJSON([]))   // 空列表
+        let d = uniqueDefaults()
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
+
+        await claimer.claimAllOncePerDay()
+        XCTAssertNil(d.string(forKey: "qoder.campaign.claimed.user-1"))
+        XCTAssertEqual(t.calls.count, 1, "第一次触发只发了 GET")
+
+        // 模拟活动刷新窗口到了：列表里现在有了可领项
+        t.defaultCampaigns = (200, campaignsJSON([("c-new", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        await claimer.claimAllOncePerDay()
+        XCTAssertNotNil(d.string(forKey: "qoder.campaign.claimed.user-1"),
+                        "第二次触发时列表已有可领项，应完成领取并写入今日标记")
+        XCTAssertEqual(t.calls.count, 3, "第二次触发应再发一次 GET + 一次 POST")
     }
 }

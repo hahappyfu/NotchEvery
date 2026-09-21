@@ -168,8 +168,11 @@ final class QoderCampaignClaimer {
         let ids = list.claimableIds
         guard !ids.isEmpty else { return .nothingToClaim }
 
-        // 步骤 2：逐条领取（一个账号可能有多条可领）
-        var didClaimNew = false
+        // 步骤 2：逐条领取（一个账号可能有多条可领）；分别统计新领取数、幂等命中数与失败数，
+        // 避免"全部 POST 都失败了却仍被当成已领取成功"的误判（见任务4审查问题1b）。
+        var newClaimCount = 0      // status==CLAIMED && replayed!=true
+        var replayedCount = 0      // status==CLAIMED && replayed==true，幂等命中，不需要重试
+        var failureCount = 0
         for id in ids {
             guard let claimURL = URL(string: "\(Self.baseURL)/sash/api/v1/me/campaigns/\(id)/claim") else { continue }
             let claimResp: (status: Int, data: Data)
@@ -177,28 +180,38 @@ final class QoderCampaignClaimer {
                 claimResp = try await transport.request(url: claimURL, method: "POST", headers: headers(for: credential, contentType: true), body: Data("{}".utf8))
             } catch {
                 claimLog.warning("claim \(id) threw for user \(credential.userId): \(error.localizedDescription)")
+                failureCount += 1
                 continue   // 单条失败不影响该账号其它条目
             }
             guard (200..<300).contains(claimResp.status) else {
                 claimLog.warning("claim \(id) status \(claimResp.status) for user \(credential.userId)")
+                failureCount += 1
                 continue
             }
             let parsed = try? JSONDecoder().decode(QoderClaimResponse.self, from: claimResp.data)
             if parsed?.status == "CLAIMED" {
                 if parsed?.replayed == true {
-                    // 幂等重放：今天之前已领过，静默跳过
+                    replayedCount += 1
                 } else {
-                    didClaimNew = true
+                    newClaimCount += 1
                 }
+            } else {
+                // 2xx 但 status 字段不是 CLAIMED（或缺失/解码失败），视为异常响应，不计成功也不重试
+                claimLog.warning("claim \(id) unexpected body for user \(credential.userId): \(String(data: claimResp.data.prefix(200), encoding: .utf8) ?? "?")")
+                failureCount += 1
             }
         }
-        return didClaimNew ? .claimed : .alreadyClaimed
+        if newClaimCount == 0 && replayedCount == 0 && failureCount > 0 {
+            return .failure("all \(failureCount) claim(s) failed")
+        }
+        return newClaimCount > 0 ? .claimed : .alreadyClaimed
     }
 
     // MARK: 每日一次主入口
 
     /// 遍历账号池，跳过「今天已成功处理过」的账号，顺序领取（简单优先，避免给服务端并发压力）。
-    /// 成功/幂等/无可领都算「今天处理过了」；只有真正的网络/权限失败才留待下次触发重试。
+    /// 只有真正领到（新领取或幂等命中）才算「今天处理过了」；`.nothingToClaim`（当前无可领项，
+    /// 可能只是还没到活动刷新窗口）和 `.failure` 都不写标记，留待下次触发重新查一遍。
     func claimAllOncePerDay() async {
         let accounts = scanAccounts()
         guard !accounts.isEmpty else {
@@ -211,12 +224,12 @@ final class QoderCampaignClaimer {
             if defaults.string(forKey: key) == today { continue }   // 今天已处理过
             let outcome = await claim(for: credential)
             switch outcome {
-            case .claimed:
+            case .claimed, .alreadyClaimed:
                 defaults.set(today, forKey: key)
-                claimLog.info("user \(credential.userId.prefix(8)):… claimed credits today")
-            case .alreadyClaimed, .nothingToClaim:
-                defaults.set(today, forKey: key)
-                claimLog.info("user \(credential.userId.prefix(8)):… outcome=\(outcome.isNoRetryNeededDescription)")
+                claimLog.info("user \(credential.userId.prefix(8)):… outcome=\(outcome.logDescription)")
+            case .nothingToClaim:
+                // 不写标记：现在没有可领项不代表今天之后也没有（比如还没到每日刷新点），下次触发再查
+                claimLog.info("user \(credential.userId.prefix(8)):… nothing-to-claim now, will retry on next trigger")
             case .failure(let reason):
                 claimLog.warning("user \(credential.userId.prefix(8)):… failed: \(reason)")
             }
@@ -230,11 +243,12 @@ final class QoderCampaignClaimer {
 }
 
 private extension QoderClaimOutcome {
-    var isNoRetryNeededDescription: String {
+    var logDescription: String {
         switch self {
+        case .claimed: return "claimed"
         case .alreadyClaimed: return "already-claimed(replayed)"
         case .nothingToClaim: return "nothing-to-claim"
-        default: return "unexpected"
+        case .failure: return "failed"
         }
     }
 }
