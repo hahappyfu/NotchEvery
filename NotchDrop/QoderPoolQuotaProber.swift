@@ -51,11 +51,14 @@ enum QoderPoolQuotaGuard {
 
 /// 抽象出 `probeAll()` 供 `QoderStore` 注入假实现做单测（与仓库对 transport/claimer 的协议化风格一致，
 /// 但因 QoderCampaignClaimer 目前直接以具体类型被引用、无协议先例，这里只为本类新增最小协议）。
-protocol QoderPoolQuotaProbing: AnyObject {
+/// Sendable：`refreshPoolQuotas()` 是 nonisolated async，会把本对象引用带出 MainActor 隔离域，
+/// Swift 6 严格并发下要求跨隔离传递的类型必须 Sendable，否则迁移即编译失败。
+protocol QoderPoolQuotaProbing: AnyObject, Sendable {
     func probeAll() async -> [QoderAccountQuota]
 }
 
-final class QoderPoolQuotaProber: QoderPoolQuotaProbing {
+/// 唯一可变状态 `isRunning` 由 UnfairLock 保护（见下），满足 Sendable 语义，故用 @unchecked 显式声明。
+final class QoderPoolQuotaProber: QoderPoolQuotaProbing, @unchecked Sendable {
     static let shared = QoderPoolQuotaProber()
 
     static let baseURL = "https://gateway.qoder.com.cn"
@@ -72,7 +75,6 @@ final class QoderPoolQuotaProber: QoderPoolQuotaProbing {
         self.transport = transport
         self.poolDirectory = poolDirectory ?? QoderPoolCredentials.defaultDirectory
     }
-
     // MARK: 单账号请求头（与 claimer 同一套 Cosy-* 约定）
 
     private func headers(for credential: QoderPoolAccountCredential) -> [String: String] {

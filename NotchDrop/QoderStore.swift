@@ -240,15 +240,9 @@ final class QoderStore: ObservableObject {
     /// 驱动一次全池额度探测并回填 `poolQuotas`。
     /// nonisolated：由 detached background Task 调用，不阻塞 MainActor；回填必须切回 MainActor
     /// 赋值 @Published 属性（QoderStore 是 @MainActor 类，跨隔离直接写会有数据竞争）。
-    /// prober 本身不 throw，仍包一层 do/catch 兜底，保证探测异常绝不影响调用方所在的刷新主流程。
+    /// probeAll() 签名不 throws，无需包 do/catch（写了反而是永远进不去的死分支 + 编译器 unreachable 警告）。
     nonisolated func refreshPoolQuotas() async {
-        let quotas: [QoderAccountQuota]
-        do {
-            quotas = await self.quotaProber.probeAll()
-        } catch {
-            storeLog.debug("refreshPoolQuotas threw unexpectedly: \(error.localizedDescription)")
-            return
-        }
+        let quotas = await self.quotaProber.probeAll()
         await Task { @MainActor in
             publishIfChanged(\.poolQuotas, quotas)
         }.value
