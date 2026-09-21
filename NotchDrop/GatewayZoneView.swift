@@ -66,7 +66,7 @@ struct GatewayZoneView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.92))
             Spacer()
-            // 微型深色胶囊包裹端口号（动态取值：manager.port，默认 8097，绝不硬编码）。
+            // 端口号取 manager.port，勿写字面量。
             Text(":\(String(manager.port))")
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(Color.white.opacity(0.55))
@@ -143,8 +143,7 @@ struct GatewayZoneView: View {
             }
             Spacer()
             if isRunning && store.today.cached > 0 {
-                // 翠绿缓存率徽章（对齐首页 footer 的 emerald 语言）。
-                Text("缓存命中 \(Int(store.today.cacheRateFraction * 100))%")
+                Text("缓存命中 " + String(format: "%.1f%%", store.today.cacheRateFraction * 100))
                     .font(.system(size: 10, weight: .medium).monospacedDigit())
                     .foregroundStyle(StudioColor.emerald)
                     .padding(.horizontal, 6)

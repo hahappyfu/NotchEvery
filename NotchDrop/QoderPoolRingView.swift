@@ -73,7 +73,6 @@ struct QoderPoolRingView: View {
             Circle()
                 .fill(statusDotColor)
                 .frame(width: 7, height: 7)
-                .shadow(color: isRunning ? StudioColor.emerald.opacity(0.55) : .clear, radius: 3, y: 0)
             Text("Qoder 账号池")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.92))
