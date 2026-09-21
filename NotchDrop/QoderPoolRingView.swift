@@ -241,6 +241,9 @@ struct QoderPoolRingView: View {
             }
             .frame(width: d, height: d)
             .shadow(color: account.isCurrent && isRunning ? StudioColor.emerald.opacity(0.35) : .clear, radius: 6, y: 0)
+
+            // 环下方余额小字：一眼可见该号剩余额度（探测不到则留空占位，保持各 Orb 等高）
+            balanceLabel(for: account.id)
         }
         .offset(y: distance == 0 ? -3 : (abs(distance) == 1 ? -1 : 0))
         .scaleEffect(reduceMotion ? 1.0 : scale)
@@ -286,6 +289,17 @@ struct QoderPoolRingView: View {
         case 2: return -22.0
         default: return distance < 0 ? 22.0 : (distance > 0 ? -22.0 : 0.0)
         }
+    }
+
+    /// 环下方余额小字：显示该号剩余额度（Int 取整，与顶部卡口径一致）。
+    /// 未探测到余额时显示占位「--」并保留等高占位，避免各 Orb 高度不齐。
+    @ViewBuilder
+    private func balanceLabel(for userId: String) -> some View {
+        let text = store.poolQuotas.first(where: { $0.userId == userId }).map { "\(Int($0.totalRemaining))" } ?? "--"
+        Text(text)
+            .font(.system(size: 9, weight: .medium).monospacedDigit())
+            .foregroundStyle(Color.white.opacity(userId == stickyId ? 0.85 : 0.5))
+            .frame(height: 11)
     }
 
     private func tooltip(_ m: QoderPoolMember?) -> String {
