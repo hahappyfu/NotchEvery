@@ -53,8 +53,13 @@ enum QoderPoolQuotaGuard {
 /// 但因 QoderCampaignClaimer 目前直接以具体类型被引用、无协议先例，这里只为本类新增最小协议）。
 /// Sendable：`refreshPoolQuotas()` 是 nonisolated async，会把本对象引用带出 MainActor 隔离域，
 /// Swift 6 严格并发下要求跨隔离传递的类型必须 Sendable，否则迁移即编译失败。
+///
+/// 返回 Optional 是为了区分两种语义完全不同的"空"（真机 bug：第三页 Orb 环下方一直显示 `--`）：
+/// - `nil` —— 本轮被 in-flight 守卫挡掉，**什么都没探**，调用方必须保持既有数据不动；
+/// - `[]`（非 nil）—— 探测**确实跑完了**但一个号都没查到（如 token 全失效），调用方应以此为准清空。
+/// 若两者都返回 `[]`，撞守卫的那次触发会把空数组覆盖到已有好数据上，UI 就永久回到 `--`。
 protocol QoderPoolQuotaProbing: AnyObject, Sendable {
-    func probeAll() async -> [QoderAccountQuota]
+    func probeAll() async -> [QoderAccountQuota]?
 }
 
 /// 唯一可变状态 `isRunning` 由 UnfairLock 保护（见下），满足 Sendable 语义，故用 @unchecked 显式声明。
@@ -94,7 +99,8 @@ final class QoderPoolQuotaProber: QoderPoolQuotaProbing, @unchecked Sendable {
     /// 遍历账号池凭证，**顺序**逐号 GET 额度接口（简单优先，避免给服务端并发压力）。
     /// 单号 HTTP 非 2xx / 抛错 / 解码失败 → 打 warning 日志后静默跳过，不影响其余账号。
     /// 返回成功查到额度的账号列表（顺序与 scanAccounts 一致）。
-    func probeAll() async -> [QoderAccountQuota] {
+    /// 返回值语义见 `QoderPoolQuotaProbing`：nil = 被守卫跳过（别动现有数据）；非 nil（含 []）= 本轮探测完成。
+    func probeAll() async -> [QoderAccountQuota]? {
         let shouldRun: Bool = stateLock.withLock {
             let r = QoderPoolQuotaGuard.begin(isRunning: isRunning)
             isRunning = r.isRunning
@@ -102,7 +108,7 @@ final class QoderPoolQuotaProber: QoderPoolQuotaProbing, @unchecked Sendable {
         }
         guard shouldRun else {
             probeLog.info("quota probe already in flight, skipping this trigger")
-            return []
+            return nil
         }
         defer { stateLock.withLock { isRunning = QoderPoolQuotaGuard.end() } }
 

@@ -22,13 +22,14 @@ private final class FakeTransport: QoderHTTPTransport {
 }
 
 /// 假 prober：非 actor class（QoderPoolQuotaProbing 要求 AnyObject），直接返回预置额度数组，绝不真联网。
+/// `result` 为 nil 模拟「本轮探测被 in-flight 守卫挡掉、什么都没探」；为 [] 模拟「探测跑完了但一个号都没查到」。
 private final class FakeQuotaProberStub: QoderPoolQuotaProbing, @unchecked Sendable {
     private let lock = NSLock()
     private var _callCount = 0
     var callCount: Int { lock.lock(); defer { lock.unlock() }; return _callCount }
-    var result: [QoderAccountQuota]
-    init(result: [QoderAccountQuota]) { self.result = result }
-    func probeAll() async -> [QoderAccountQuota] {
+    var result: [QoderAccountQuota]?
+    init(result: [QoderAccountQuota]?) { self.result = result }
+    func probeAll() async -> [QoderAccountQuota]? {
         lock.lock(); _callCount += 1; lock.unlock()
         return result
     }
@@ -163,5 +164,41 @@ final class QoderStoreTests: XCTestCase {
         await store.refreshPoolQuotas()
         XCTAssertTrue(store.poolQuotas.isEmpty)
         XCTAssertNil(store.poolTotalRemaining, "probeAll 返回空数组时仍应视为无数据(nil)，不能误当成 0")
+    }
+
+    // MARK: - 守卫竞态回归锁（真机 bug：第三页 Orb 环下方余额全变 --）
+
+    /// probeAll() 返回 nil 表示「本轮被 in-flight 守卫挡掉、压根没探」，此时**绝不能**动已有数据。
+    /// 时序还原：App 启动探测 A 在跑 → 用户开面板触发 B → B 撞守卫返回 nil → 若 B 用空数组覆盖，
+    /// 且 B 的覆盖晚于 A 回填真值，poolQuotas 就永久停在空态，UI 全显示 `--`。
+    @MainActor
+    func testRefreshPoolQuotasNilFromGuardDoesNotOverwriteExistingData() async {
+        let good = QoderAccountQuota(userId: "user-1", planRemaining: 300, addOnRemaining: 100)
+        let prober = FakeQuotaProberStub(result: [good])
+        let store = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober)
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(store.poolQuotas, [good], "前置条件：先有一份好数据")
+
+        // 换成"被守卫跳过"的语义：返回 nil
+        prober.result = nil
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(prober.callCount, 2, "两轮都应真的调用过 probeAll")
+        XCTAssertEqual(store.poolQuotas, [good], "probeAll 返回 nil(被守卫跳过)时必须保留旧数据，不能被冲成空")
+        XCTAssertEqual(store.poolTotalRemaining ?? 0, 400, accuracy: 0.001, "合计同样不得因被跳过的轮次而丢失")
+    }
+
+    /// 与上一条配对：[] 是「探测确实跑完了、一个号都没查到」（如 token 全失效），语义上**应该**清空。
+    @MainActor
+    func testRefreshPoolQuotasEmptyArrayFromCompletedProbeClearsStaleData() async {
+        let good = QoderAccountQuota(userId: "user-1", planRemaining: 300, addOnRemaining: 100)
+        let prober = FakeQuotaProberStub(result: [good])
+        let store = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober)
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(store.poolQuotas.count, 1)
+
+        prober.result = []
+        await store.refreshPoolQuotas()
+        XCTAssertTrue(store.poolQuotas.isEmpty, "探测完成但结果为空 → 应以本次结果为准清空旧数据")
+        XCTAssertNil(store.poolTotalRemaining)
     }
 }

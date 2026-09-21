@@ -241,8 +241,12 @@ final class QoderStore: ObservableObject {
     /// nonisolated：由 detached background Task 调用，不阻塞 MainActor；回填必须切回 MainActor
     /// 赋值 @Published 属性（QoderStore 是 @MainActor 类，跨隔离直接写会有数据竞争）。
     /// probeAll() 签名不 throws，无需包 do/catch（写了反而是永远进不去的死分支 + 编译器 unreachable 警告）。
+    ///
+    /// **只在拿到非 nil 时回填**：nil 代表本轮撞上了 prober 的 in-flight 守卫、压根没探。触发源有
+    /// 三处且几乎同时（AppDelegate 冷启动、GatewayZoneView.onAppear→start()、15s refresh 轮询），
+    /// 后到的那次若把"被跳过的空结果"当成探测结论覆盖上去，就会把先完成的那轮真值冲掉，UI 永久显示 `--`。
     nonisolated func refreshPoolQuotas() async {
-        let quotas = await self.quotaProber.probeAll()
+        guard let quotas = await self.quotaProber.probeAll() else { return }
         await Task { @MainActor in
             publishIfChanged(\.poolQuotas, quotas)
         }.value
