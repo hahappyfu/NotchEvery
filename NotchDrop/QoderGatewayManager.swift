@@ -231,8 +231,8 @@ final class QoderGatewayManager: ObservableObject {
         }
         process = p
 
-        // 健康轮询：在当前 utility 后台线程中每 250ms 探活，10s 超时（不依赖 RunLoop）
-        let deadline = Date().addingTimeInterval(10)
+        // 健康轮询：在当前 utility 后台线程中每 250ms 探活，20s 超时（不依赖 RunLoop，给上游预热留足时间）
+        let deadline = Date().addingTimeInterval(20)
         var started = false
         while Date() < deadline {
             if Self.isPortOpen(host: "127.0.0.1", port: UInt16(self.port), timeoutMS: 200) {
@@ -252,7 +252,7 @@ final class QoderGatewayManager: ObservableObject {
             }
         } else {
             self.terminate(pid: p.processIdentifier)
-            self.failCrash("启动超时（10s 未监听 \(self.port)）")
+            self.failCrash("启动超时（20s 未监听 \(self.port)）")
         }
     }
 
