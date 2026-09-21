@@ -1,0 +1,34 @@
+bin/
+dist/
+/qodercn-gateway
+*.zip
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.*
+.DS_Store
+.idea/
+.vscode/
+.venv/
+credentials.json
+qodercn-gateway.json
+auth-keys.txt
+
+# local-only tests & probes — kept on disk, not published to the remote repo
+*_test.go
+scripts/stream_probe.py
+build/
+logs/
+test_pool/
+
+
+# local-only: inbound key, machine-specific config, agent scratch
+local.authkeys
+local.json
+.superpowers/
+
+# codegraph local index — never commit
+.codegraph/
