@@ -50,6 +50,11 @@ struct GatewayZoneView: View {
         VStack(alignment: .leading, spacing: 10) {
             metricsHeader
             metricsGrid
+            if isRunning && store.poolTotalRemaining != nil {
+                Text("· \(store.poolQuotas.count) 个号合计")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(Color.white.opacity(0.4))
+            }
             metricsFooter
         }
         .padding(.horizontal, 18)
@@ -90,10 +95,17 @@ struct GatewayZoneView: View {
             )
             metricCell(
                 title: "剩余额度",
-                value: isRunning && !store.isQuotaStale && store.quota != nil ? "\(store.quota!.remaining)" : "--",
+                value: poolTotalText,
                 unit: store.quota?.unit ?? "credits"
             )
         }
+    }
+
+    /// 全池合计来自直连探测（QoderPoolQuotaProber），不依赖网关元数据轮询，故不受 isQuotaStale 影响；
+    /// 仅在网关未运行（数据无意义）或尚未探测到任何账号时显示 --。
+    private var poolTotalText: String {
+        guard isRunning, let total = store.poolTotalRemaining else { return "--" }
+        return "\(Int(total))"
     }
 
     private func metricCell(title: String, value: String, unit: String) -> some View {
