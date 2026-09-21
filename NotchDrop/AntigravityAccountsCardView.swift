@@ -97,6 +97,7 @@ struct AntigravityAccountsCardView: View {
         VStack(alignment: .leading, spacing: 10) {
             header
             accountsRow
+            disabledAccountsRow
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 12)
@@ -150,6 +151,45 @@ struct AntigravityAccountsCardView: View {
             }
         }
         .animation(reduceMotion ? nil : StudioAnimation.interactiveSpring, value: arranged.map(\.account.id))
+    }
+
+    /// 禁用账号下置行：主排只展示可用账号，被禁用的账号收敛到下方一行紧凑小胶囊，
+    /// 不再占用主排大卡位。数量多时可横向滚动查看，整行仅在存在禁用账号时出现。
+    @ViewBuilder
+    private var disabledAccountsRow: some View {
+        let disabled = store.accounts.filter(\.isDisabled)
+        if !disabled.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(disabled) { account in
+                        disabledCapsule(account)
+                    }
+                }
+                .padding(.vertical, 1)
+            }
+        }
+    }
+
+    /// 单个禁用账号胶囊：灰点 + 姓名 + 「已禁用」微标，高约 22pt，玻璃底。
+    private func disabledCapsule(_ account: AntigravityAccount) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(Color.white.opacity(0.30))
+                .frame(width: 4, height: 4)
+            Text(account.name)
+                .font(.system(size: 8.5))
+                .foregroundStyle(Color.white.opacity(0.55))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .fixedSize(horizontal: true, vertical: false)
+            Text("已禁用")
+                .font(.system(size: 8.5))
+                .foregroundStyle(Color.white.opacity(0.35))
+        }
+        .padding(.horizontal, 7)
+        .frame(height: 22)
+        .background(Color.white.opacity(0.08), in: Capsule())
+        .overlay(Capsule().strokeBorder(StudioMaterial.strokeNormal, lineWidth: 0.5))
     }
 
     private func rotationAngle(for distance: Int) -> Double {
