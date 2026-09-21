@@ -50,7 +50,7 @@ struct QoderPoolRingView: View {
         return false
     }
 
-    /// 顶栏状态点：running 薄荷绿（带轻微发光）、crashed 暗红、忙态琥珀、stopped 深石墨灰。
+    /// 顶栏状态点：running 薄荷绿、crashed 暗红、忙态琥珀、stopped 深石墨灰。
     private var statusDotColor: Color {
         switch manager.state {
         case .running: return StudioColor.emerald
