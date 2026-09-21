@@ -128,6 +128,110 @@ final class AntigravityStoreTests: XCTestCase {
         XCTAssertEqual(index?.accountIds, ["acc-1", "acc-2"])
     }
 
+    func testParseIndexCarriesDisabledAndProxyDisabledFlags() throws {
+        let jsonStr = """
+        {
+          "version": "2.0",
+          "accounts": [
+            { "id": "acc-1", "disabled": false, "proxy_disabled": true },
+            { "id": "acc-2", "disabled": true, "proxy_disabled": false },
+            { "id": "acc-3" }
+          ],
+          "current_account_id": "acc-1"
+        }
+        """
+        let data = jsonStr.data(using: .utf8)!
+        let index = try XCTUnwrap(AntigravityStore.parseIndex(data: data))
+
+        XCTAssertEqual(index.flags["acc-1"]?.disabled, false)
+        XCTAssertEqual(index.flags["acc-1"]?.proxyDisabled, true)
+        XCTAssertEqual(index.flags["acc-2"]?.disabled, true)
+        XCTAssertEqual(index.flags["acc-2"]?.proxyDisabled, false)
+        // 索引条目缺字段时按未禁用处理
+        XCTAssertEqual(index.flags["acc-3"], AntigravityIndex.AccountFlags())
+    }
+
+    func testLoadAccountsUsesIndexProxyDisabledWhenAccountFileStale() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let accountsDir = tempDir.appendingPathComponent("accounts")
+        try FileManager.default.createDirectory(at: accountsDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        // 索引里 acc-1 已被关掉代理，但单账号文件仍是过时的 false（真实数据即如此）
+        let indexJSON = """
+        {
+          "version": "2.0",
+          "accounts": [
+            { "id": "acc-1", "disabled": false, "proxy_disabled": true },
+            { "id": "acc-2", "disabled": false, "proxy_disabled": false }
+          ],
+          "current_account_id": "acc-2"
+        }
+        """
+        try indexJSON.write(to: tempDir.appendingPathComponent("accounts.json"), atomically: true, encoding: .utf8)
+
+        for id in ["acc-1", "acc-2"] {
+            let accJSON = """
+            {
+              "id": "\(id)",
+              "email": "\(id)@example.com",
+              "name": "\(id)",
+              "disabled": false,
+              "proxy_disabled": false
+            }
+            """
+            try accJSON.write(to: accountsDir.appendingPathComponent("\(id).json"), atomically: true, encoding: .utf8)
+        }
+
+        let (accounts, _) = AntigravityStore.loadAccounts(from: tempDir)
+        let acc1 = try XCTUnwrap(accounts.first(where: { $0.id == "acc-1" }))
+        XCTAssertTrue(acc1.isProxyDisabled, "索引标记 proxy_disabled=true 必须传递到最终结果")
+        XCTAssertTrue(acc1.isDisabled)
+
+        let acc2 = try XCTUnwrap(accounts.first(where: { $0.id == "acc-2" }))
+        XCTAssertFalse(acc2.isProxyDisabled)
+        XCTAssertFalse(acc2.isDisabled)
+    }
+
+    func testLoadAccountsOrMergeOfIndexAndAccountFileFlags() throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let accountsDir = tempDir.appendingPathComponent("accounts")
+        try FileManager.default.createDirectory(at: accountsDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        // acc-1：索引 disabled=true / 文件 proxy_disabled=true；acc-2：两边都干净
+        let indexJSON = """
+        {
+          "version": "2.0",
+          "accounts": [
+            { "id": "acc-1", "disabled": true, "proxy_disabled": false },
+            { "id": "acc-2", "disabled": false, "proxy_disabled": false }
+          ],
+          "current_account_id": "acc-2"
+        }
+        """
+        try indexJSON.write(to: tempDir.appendingPathComponent("accounts.json"), atomically: true, encoding: .utf8)
+
+        let acc1JSON = """
+        { "id": "acc-1", "email": "acc1@example.com", "disabled": false, "proxy_disabled": true }
+        """
+        try acc1JSON.write(to: accountsDir.appendingPathComponent("acc-1.json"), atomically: true, encoding: .utf8)
+
+        let acc2JSON = """
+        { "id": "acc-2", "email": "acc2@example.com", "disabled": false, "proxy_disabled": false }
+        """
+        try acc2JSON.write(to: accountsDir.appendingPathComponent("acc-2.json"), atomically: true, encoding: .utf8)
+
+        let (accounts, _) = AntigravityStore.loadAccounts(from: tempDir)
+        let acc1 = try XCTUnwrap(accounts.first(where: { $0.id == "acc-1" }))
+        XCTAssertTrue(acc1.isDisabled, "任一来源标记禁用即为禁用")
+        XCTAssertTrue(acc1.isProxyDisabled, "两个来源的 proxy_disabled 取 OR")
+
+        let acc2 = try XCTUnwrap(accounts.first(where: { $0.id == "acc-2" }))
+        XCTAssertFalse(acc2.isDisabled)
+        XCTAssertFalse(acc2.isProxyDisabled)
+    }
+
     func testDisabledAndClampedPercentage() throws {
         let jsonStr = """
         {

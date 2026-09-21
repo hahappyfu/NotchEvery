@@ -50,12 +50,26 @@ public struct AntigravityAccount: Identifiable, Equatable {
 }
 
 public struct AntigravityIndex: Equatable {
+    /// accounts.json 单条账号的开关状态（用户实际切换后的权威值）
+    public struct AccountFlags: Equatable {
+        public let disabled: Bool
+        public let proxyDisabled: Bool
+
+        public init(disabled: Bool = false, proxyDisabled: Bool = false) {
+            self.disabled = disabled
+            self.proxyDisabled = proxyDisabled
+        }
+    }
+
     public let currentAccountId: String?
     public let accountIds: [String]
+    /// 账号 id → 索引开关状态。缺条目按全 false 处理。
+    public let flags: [String: AccountFlags]
 
-    public init(currentAccountId: String?, accountIds: [String]) {
+    public init(currentAccountId: String?, accountIds: [String], flags: [String: AccountFlags] = [:]) {
         self.currentAccountId = currentAccountId
         self.accountIds = accountIds
+        self.flags = flags
     }
 }
 
@@ -256,12 +270,16 @@ public final class AntigravityStore: ObservableObject {
             let emailKey = acc.email.lowercased()
             let actDate = activeTimes[emailKey]
             let isCurrent = (acc.id == dynamicCurrentId)
+            // 单账号文件的开关常与索引不同步，两边任一标记禁用即视为禁用（取 OR）
+            let indexFlags = index.flags[acc.id] ?? AntigravityIndex.AccountFlags()
+            let isProxyDisabled = acc.isProxyDisabled || indexFlags.proxyDisabled
             return AntigravityAccount(
                 id: acc.id,
                 name: acc.name,
                 email: acc.email,
                 isCurrent: isCurrent,
-                isDisabled: acc.isDisabled,
+                isDisabled: acc.isDisabled || indexFlags.disabled || isProxyDisabled,
+                isProxyDisabled: isProxyDisabled,
                 percentage: acc.percentage,
                 resetTime: acc.resetTime,
                 lastActiveTime: actDate
@@ -278,6 +296,8 @@ public final class AntigravityStore: ObservableObject {
 
             struct RawAccountItem: Decodable {
                 let id: String
+                let disabled: Bool?
+                let proxy_disabled: Bool?
             }
         }
 
@@ -285,8 +305,16 @@ public final class AntigravityStore: ObservableObject {
             return nil
         }
 
-        let ids = raw.accounts?.compactMap { $0.id } ?? []
-        return AntigravityIndex(currentAccountId: raw.current_account_id, accountIds: ids)
+        let items = raw.accounts ?? []
+        let ids = items.map { $0.id }
+        var flags: [String: AntigravityIndex.AccountFlags] = [:]
+        for item in items {
+            flags[item.id] = AntigravityIndex.AccountFlags(
+                disabled: item.disabled == true,
+                proxyDisabled: item.proxy_disabled == true
+            )
+        }
+        return AntigravityIndex(currentAccountId: raw.current_account_id, accountIds: ids, flags: flags)
     }
 
     public static func parseAccountFile(data: Data, currentAccountId: String?) -> AntigravityAccount? {
