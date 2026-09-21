@@ -33,33 +33,6 @@ struct URLSessionQoderCampaignTransport: QoderCampaignTransport {
     }
 }
 
-// MARK: - 账号池凭证
-
-/// ~/.qoder-cn/pool/account_<uuid>.json 里我们关心的三个字段（其余忽略）。
-struct QoderPoolAccountCredential: Equatable {
-    let accessToken: String
-    let machineId: String
-    let userId: String
-
-    private struct Raw: Decodable {
-        struct Auth: Decodable {
-            let access_token: String?
-            let machine_id: String?
-            let user_id: String?
-        }
-        let auth: Auth?
-    }
-
-    static func decode(_ data: Data) -> QoderPoolAccountCredential? {
-        guard let raw = try? JSONDecoder().decode(Raw.self, from: data), let auth = raw.auth,
-              let token = auth.access_token, !token.isEmpty,
-              let machineId = auth.machine_id, !machineId.isEmpty,
-              let userId = auth.user_id, !userId.isEmpty
-        else { return nil }
-        return QoderPoolAccountCredential(accessToken: token, machineId: machineId, userId: userId)
-    }
-}
-
 // MARK: - 活动 / 结果模型
 
 /// GET /me/campaigns 响应里我们关心的部分（camelCase，权威抓包格式）。
@@ -134,7 +107,7 @@ final class QoderCampaignClaimer {
         if let d = poolDirectory {
             self.poolDirectory = d
         } else {
-            self.poolDirectory = URL(fileURLWithPath: (NSHomeDirectory() as NSString).appendingPathComponent(".qoder-cn/pool"))
+            self.poolDirectory = QoderPoolCredentials.defaultDirectory
         }
         self.defaults = defaults ?? .standard
         self.now = now
@@ -142,14 +115,9 @@ final class QoderCampaignClaimer {
 
     // MARK: 扫描
 
-    /// 读取 poolDirectory 下所有 account_*.json，解析出凭证列表（解析失败的静默跳过）。
+    /// 读取 poolDirectory 下所有 account_*.json，解析出凭证列表（解析失败的静默跳过）。共享实现见 QoderPoolCredentials。
     func scanAccounts(fileManager fm: FileManager = .default) -> [QoderPoolAccountCredential] {
-        guard let names = try? fm.contentsOfDirectory(atPath: poolDirectory.path) else { return [] }
-        return names.filter { $0.hasPrefix("account_") && $0.hasSuffix(".json") }.sorted().compactMap { name in
-            let url = poolDirectory.appendingPathComponent(name)
-            guard let data = try? Data(contentsOf: url) else { return nil }
-            return QoderPoolAccountCredential.decode(data)
-        }
+        QoderPoolCredentials.scanAccounts(in: poolDirectory, fileManager: fm)
     }
 
     // MARK: 单账号领取
