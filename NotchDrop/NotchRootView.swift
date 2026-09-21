@@ -116,6 +116,10 @@ struct NotchRootView: View {
                     // 横向填充（余宽由列间距均分）；纵向自然高
                     .frame(maxWidth: .infinity, alignment: .top)
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
+            case .gateway:
+                GatewayZoneView(vm: vm)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             }
         }
         // 切页专用快弹簧（清单 05；裁剪已撤：与窗口边双边打架是闪的根因，窗口自带裁剪 enough）

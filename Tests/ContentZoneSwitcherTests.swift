@@ -3,19 +3,21 @@ import XCTest
 
 final class ContentZoneSwitcherTests: XCTestCase {
     func testNextZoneWrapsAround() {
-        // 双分区循环：末区之后回到概览
+        // 分区循环：末区（网关）之后回到概览。显式开网关页，不依赖环境默认值。
+        ConfigStore.shared.set(true, forKey: "showGatewayZone")
         let vm = NotchViewModel(events: MockEventMonitors())
-        vm.jumpToZone(.token)
+        vm.jumpToZone(.gateway)
         vm.nextZone()
         XCTAssertEqual(vm.contentType, .normal)
     }
 
     func testPreviousZoneWrapsAround() {
-        // 双分区循环：概览之前是 Token
+        // 分区循环：概览之前是末区（网关）。显式开网关页。
+        ConfigStore.shared.set(true, forKey: "showGatewayZone")
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.normal)
         vm.previousZone()
-        XCTAssertEqual(vm.contentType, .token)
+        XCTAssertEqual(vm.contentType, .gateway)
     }
 
     func testNextZoneAdvancesInOrder() {
@@ -30,6 +32,23 @@ final class ContentZoneSwitcherTests: XCTestCase {
         vm.jumpToZone(.token)
         vm.previousZone()
         XCTAssertEqual(vm.contentType, .normal)
+    }
+
+    func testGatewayZoneExcludedWhenDisabled() {
+        // 关开关：网关页从分页剔除，Token 成为末区（循环回概览）
+        ConfigStore.shared.set(false, forKey: "showGatewayZone")
+        defer { ConfigStore.shared.set(true, forKey: "showGatewayZone") }
+        XCTAssertEqual(NotchViewModel.zoneOrder, [.normal, .token])
+        let vm = NotchViewModel(events: MockEventMonitors())
+        vm.jumpToZone(.token)
+        vm.nextZone()
+        XCTAssertEqual(vm.contentType, .normal)
+    }
+
+    func testGatewayZoneIncludedWhenEnabled() {
+        ConfigStore.shared.set(true, forKey: "showGatewayZone")
+        XCTAssertEqual(NotchViewModel.zoneOrder, [.normal, .token, .gateway])
+        XCTAssertEqual(NotchViewModel.pageIndex(for: .gateway), 2)
     }
 
     func testMarkSwipeHintSeenSetsFlag() {

@@ -185,7 +185,7 @@ final class QoderGatewayConfigTests: XCTestCase {
 }
 ```
 
-- [ ] **3.2 跑测试确认编译失败**（类型不存在）。运行：`xcodebuild -project NotchDrop.xcodeproj -scheme NotchEvery -only-testing:NotchEveryTests/QoderGatewayConfigTests test`（scheme 名以工程实际为准）。
+- [ ] **3.2 跑测试确认编译失败**（类型不存在）。运行：`xcodebuild test -project NotchDrop.xcodeproj -scheme NotchDrop -configuration Debug -derivedDataPath /tmp/nDD-qgw CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO -only-testing:NotchEveryTests/QoderGatewayConfigTests`。**订正：scheme 名是 `NotchDrop`（非 NotchEvery）；命令行必须带签名绕过两参数，否则本机无 team 964G86XT2P 证书会编译期失败（见项目记忆 notch-build-env-blocked）。此姿势适用于本计划所有 xcodebuild 步骤。**
 - [ ] **3.3 实现** `QoderGatewayConfig.swift`：`struct QoderGatewayConfig: Codable`（CodingKeys 对齐 Go fileConfig：host/port/auth_keys_file/model/session_mode，可选字段 encodeIfPresent）、静态 `default(port:authKeysFile:)`、`makeAuthKey()`（SecRandomCopyBytes → 字符表取值）、`enum QoderGatewayPaths { static var baseDir/appSupport 下 qoder-gateway、gatewayJSON、authKeys、gatewayLog }`、`ensureLayout(at:fileManager:)` 返回写入结果元组，authkeys 权限 0600。
 - [ ] **3.4 跑测试确认通过**（同上命令），预期 3 tests passed。
 - [ ] **3.5 Commit：** `feat(qoder): add gateway config layout and auth-key generation`
@@ -251,23 +251,26 @@ func testCacheRateDenominatorFollowsFixedFormula() // 与 TokenFormatUtils 现�
 
 - [ ] **6.1 写失败测试：** quota 解码 golden（实测样例：user_type/unit/total/used/remaining/percentage/is_exceeded/reset_at_ms/source → struct 字段与 resetDate 换算）；`isStale` 语义（连续失败 ≥2 ⇒ stale，成功即清除）；store 组合 tailer+aggregator 的发布去重（同值不 publish）。网络层注入假 transport 协议。
 - [ ] **6.2 跑测试确认失败。**
-- [ ] **6.3 实现** `QoderStore.swift`：`@MainActor final class QoderStore: ObservableObject`，`@Published private(set) var quota: QoderQuota?`、`today: QoderDailyAgg`、`yesterday: QoderDailyAgg?`、`isQuotaStale: Bool`、`stateText`。15 s Timer + `NSApp` 激活刷新；`GET http://127.0.0.1:<manager.port>/quota`，Bearer = authkeys 首行；URLSession timeout 15 s。日志 tailer 复用 manager 暴露的 log 句柄路径。错误全部内化为 stale/nil，不弹错。
+- [ ] **6.3 实现** `QoderStore.swift`：`@MainActor final class QoderStore: ObservableObject`，`@Published private(set) var quota: QoderQuota?`、`today: QoderDailyAgg`、`yesterday: QoderDailyAgg?`、`isQuotaStale: Bool`、`stateText`。**新增（任务 7 圆形池依赖）：** `@Published private(set) var poolMembers: [QoderPoolMember]`——解析 `GET /v1/pool/status`（Bearer = authkeys 首行），`struct QoderPoolMember { maskedUserId, isCooled, coolReason, releaseAt: Date?, lastProbe: String? }`。15 s Timer + `NSApp` 激活刷新；`GET http://127.0.0.1:<manager.port>/quota` 与 `/v1/pool/status`；URLSession timeout 15 s。日志 tailer 复用 manager 暴露的 log 句柄路径。错误全部内化为 stale/nil/空数组，不弹错。
 - [ ] **6.4 跑测试确认通过。**
 - [ ] **6.5 Commit：** `feat(qoder): add quota polling and daily usage store`
 
 ---
 
-### 任务 7（P4）：卡片 UI + 挂载 + 设置开关
+### 任务 7（P4）：独立「网关」分区 + 圆形账号池卡 + 启停开关
+
+> **2026-09-21 用户改定：** 不挂概览页，改为**新增独立分区**；账号池**照第一页 `AntigravityAccountsCardView` 的设计语言做，但每个账号项做成圆形**（非方形卡）。原"三宫格卡片挂 OverviewPageView"方案作废。
 
 **文件：**
-- 创建：`NotchDrop/QoderProxyCardView.swift`
-- 修改：`NotchDrop/OverviewPageView.swift:9-21`、第二页装配处（执行时定位 `iOSPageIndicator` 关联的 page 2 视图）、`NotchSettingsView.swift`/`ConfigStore`（新增 `showQoderCard` 开关，沿用 PublishedPersist 模式）、`AppDelegate.swift`（store/manager.start()）
+- 创建：`NotchDrop/GatewayZoneView.swift`（分区本体）、`NotchDrop/QoderPoolRingView.swift`（圆形账号池，参照 AntigravityAccountsCardView）
+- 修改：`NotchDrop/NotchViewModel.swift:154`（ContentType 加 `case gateway`）、`:342`（zoneOrder 加 `.gateway`）、`NotchDrop/NotchRootView.swift:108`（switch 路由 `case .gateway: GatewayZoneView()`）、`NotchSettingsView.swift`/`ConfigStore`（新增 `showGatewayZone` 开关，沿用 PublishedPersist 模式）、`AppDelegate.swift`（manager/store.start()）
 
-- [ ] **7.1 View 实现**：照抄 `AntigravityProxyCardView` 骨架（padding 18/12、`.frame(width: 360)`、`studioCard(radius: 8)`、字号体系），替换数据源为 `QoderStore.shared` + `QoderGatewayManager.shared`：header = 状态点（running emerald / crashed red / stopped gray，点击弹 Menu：启动/停止/重新加载配置）+ 标题「Qoder 反代 :\(port)」；三宫格 = 今日请求(次)/今日消耗(credits)/剩余额度(credits)；footer = 「重置 \(date)」「缓存命中率 x%」+ stale 时额度值后缀「· 离线」。空数据全部渲染 `--` 不隐藏卡片。
-- [ ] **7.2 挂载**：两页均包 `if ConfigStore.shared.showQoderCard { QoderProxyCardView(vm: vm).padding(.horizontal, 14).background(...) }`，样式与相邻 Antigravity 卡完全一致。
-- [ ] **7.3 设置页**：开关 + 只读信息区（端口、authkeys 路径、「打开日志目录」按钮走 `NSWorkspace.open`）。
-- [ ] **7.4 构建 + 真机验收：** `xcodebuild build` 绿 → 装到 /Applications（项目记忆：只装系统应用目录）→ 请用户过目视觉与交互，反馈修完才继续。
-- [ ] **7.5 Commit：** `feat(ui): add Qoder proxy dashboard card to overview pages`
+- [ ] **7.1 分区注册**：`ContentType` 加 `case gateway`（rawValue 顺延），`zoneOrder = [.normal, .token, .gateway]`，`NotchRootView` switch 补 `case .gateway: GatewayZoneView()`。验证：dots 计数自动变 3（`SmoothPageIndicator(pageCount: zoneOrder.count)`），横扫/方向键能翻到第 3 页。
+- [ ] **7.2 圆形账号池 View（`QoderPoolRingView`）**：抄 `AntigravityAccountsCardView` 的 header（状态点+标题「Qoder 账号池 :\(port)」+当前号文案）、`symmetricRearrange`、`ringColor(percent,isDisabled)` 三色逻辑与 start/stop-on-open/close 生命周期。**唯一改动**：`accountCard(distance:)` 从方形 RoundedRectangle 改为 `Circle()`——圆内上排脱敏 user_id 尾号、下排配额百分比或冷却图标；active=emerald 描边、cooled=amber/rose 按 ringColor、退役/离线=white.opacity(0.2) 灰描边。数据源换 `QoderStore.shared.poolMembers`（任务 6 产出，字段：maskedUserId/cooled/reason/probeResult）。空池渲染「未检测到账号池成员」占位，不隐藏。
+- [ ] **7.3 分区顶栏启停开关**：`GatewayZoneView` 顶部一条 headBar：右侧放启停控件（`Button`，state 驱动：stopped→「启动」/ running→「停止」/ starting/stopping→转圈禁用 / crashed→红字原因+「重试」），点击调 `QoderGatewayManager.shared.start()/stop()`。左侧状态灯（running emerald / stopped gray / crashed red）。今日统计（请求数/credits/额度）作为次级信息条放账号池下方，沿用计划原稿的 stale「· 离线」后缀语义。
+- [ ] **7.4 设置页**：`showGatewayZone` 开关 + 只读信息区（端口、authkeys 路径、「打开日志目录」按钮走 `NSWorkspace.open`）。关开关时该页从 zoneOrder 剔除（或仅隐藏入口，执行时按现有 settings 联动方式对齐）。
+- [ ] **7.5 构建 + 真机验收：** `xcodebuild -scheme NotchDrop build CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO` 绿 → 装到 /Applications（项目记忆：只装系统应用目录）→ **请用户真机过目圆形账号池视觉与启停交互**（项目记忆 visual-verify-by-user），反馈修完才继续。
+- [ ] **7.6 Commit：** `feat(ui): add standalone gateway zone with circular account pool and start/stop control`
 
 ---
 
