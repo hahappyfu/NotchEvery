@@ -66,9 +66,13 @@ struct GatewayZoneView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.92))
             Spacer()
+            // 微型深色胶囊包裹端口号（动态取值：manager.port，默认 8097，绝不硬编码）。
             Text(":\(String(manager.port))")
-                .font(.system(size: 11.5, design: .monospaced))
-                .foregroundStyle(Color.white.opacity(0.45))
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(Color.white.opacity(0.55))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.white.opacity(0.05), in: Capsule())
         }
     }
 
@@ -96,7 +100,7 @@ struct GatewayZoneView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.system(size: 10.5, weight: .regular))
-                .foregroundStyle(Color.white.opacity(0.55))
+                .foregroundStyle(Color.white.opacity(0.45))
             HStack(alignment: .lastTextBaseline, spacing: 2) {
                 Text(value)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -139,9 +143,14 @@ struct GatewayZoneView: View {
             }
             Spacer()
             if isRunning && store.today.cached > 0 {
+                // 翠绿缓存率徽章（对齐首页 footer 的 emerald 语言）。
                 Text("缓存命中 \(Int(store.today.cacheRateFraction * 100))%")
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(StudioColor.emerald.opacity(0.8))
+                    .font(.system(size: 10, weight: .medium).monospacedDigit())
+                    .foregroundStyle(StudioColor.emerald)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(StudioColor.emerald.opacity(0.16), in: Capsule())
+                    .overlay(Capsule().strokeBorder(StudioColor.emerald.opacity(0.32), lineWidth: 0.5))
             }
         }
         .padding(.top, 2)
