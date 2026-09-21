@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9677B500F5C9D80E2A9355A1 /* QoderGatewayConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52903A074BE6541670F1DDC1 /* QoderGatewayConfig.swift */; };
+		46FF4055B685D52627D4D409 /* QoderGatewayConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490B9A3744870B3B10920C39 /* QoderGatewayConfigTests.swift */; };
 		50C0DE042C3A86EA00QGW004 /* qodercn-gateway in Embed Qoder Gateway */ = {isa = PBXBuildFile; fileRef = 50C0DE032C3A86EA00QGW003 /* qodercn-gateway */; };
 		7AE10C0220260AB0000000E2 /* AnimationMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */; };
 		F101CE000000000000000077 /* DecisionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000078 /* DecisionModels.swift */; };
@@ -114,6 +116,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		52903A074BE6541670F1DDC1 /* QoderGatewayConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderGatewayConfig.swift; sourceTree = "<group>"; };
+		490B9A3744870B3B10920C39 /* QoderGatewayConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderGatewayConfigTests.swift; sourceTree = "<group>"; };
 		50C0DE032C3A86EA00QGW003 /* qodercn-gateway */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "qodercn-gateway"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F101CE000000000000000078 /* DecisionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionModels.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000005 /* PreferencesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindow.swift; sourceTree = "<group>"; };
@@ -249,6 +253,7 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				52903A074BE6541670F1DDC1 /* QoderGatewayConfig.swift */,
 				148901512DC9149900F2E06C /* Share.swift */,
 				148901522DC9149900F2E06C /* Share+View.swift */,
 				50D7EFF22C3E484C005AC04E /* Info.plist */,
@@ -333,6 +338,7 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				490B9A3744870B3B10920C39 /* QoderGatewayConfigTests.swift */,
 				7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */,
 				7AE10C0220260AB000000C1 /* AppPathsTests.swift */,
 				7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */,
@@ -508,6 +514,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9677B500F5C9D80E2A9355A1 /* QoderGatewayConfig.swift in Sources */,
 				504381992C3A8893000ED325 /* NotchWindow.swift in Sources */,
 				5044EEA22C3B126F00071C5C /* TrayDrop+DropItemView.swift in Sources */,
 				504381AF2C3ADFF2000ED325 /* NotchContentView.swift in Sources */,
@@ -578,6 +585,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46FF4055B685D52627D4D409 /* QoderGatewayConfigTests.swift in Sources */,
 				7AE10C0220260AB0000000E2 /* AnimationMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D1 /* AppPathsTests.swift in Sources */,
 				7AE10C0220260AB000000D2 /* ContentZoneSwitcherTests.swift in Sources */,
