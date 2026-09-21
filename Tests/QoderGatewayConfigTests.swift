@@ -37,6 +37,15 @@ final class QoderGatewayConfigTests: XCTestCase {
         XCTAssertEqual(obj["remote_base_url"] as? String, "https://gateway.qoder.com.cn")
     }
 
+    func testDefaultConfiguresPoolDirWhenProvided() throws {
+        let cfg = QoderGatewayConfig.default(port: 8096, authKeysFile: "/tmp/k", poolDir: "/custom/pool")
+        let data = try JSONEncoder().encode(cfg)
+        let obj = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        XCTAssertEqual(obj["remote_auth_pool_dir"] as? String, "/custom/pool")
+        XCTAssertEqual(obj["model"] as? String, "Qwen3.8-Flash")
+        XCTAssertEqual(obj["session_mode"] as? String, "auto")
+    }
+
     // MARK: - authkey 字符集规则（README：≤64 且仅 A-Za-z0-9-_*=+）
 
     func testGeneratedAuthKeySatisfiesGatewayCharsetRule() {

@@ -211,10 +211,13 @@ final class QoderGatewayManager: ObservableObject {
                 // 主动 stop 路径下 state 已是 stopping→stopped，不判 crash
                 if case .stopping = self.sm.state {
                     _ = self.sm.markStopped(); self.publishState()
+                    QoderStore.shared.resetToOffline()
                 } else if case .running = self.sm.state {
                     self.sm.resetToStopped(); _ = self.sm.markCrashed("进程意外退出 rc=\(proc.terminationStatus)"); self.publishState()
+                    QoderStore.shared.resetToOffline()
                 } else if case .starting = self.sm.state {
                     self.sm.resetToStopped(); _ = self.sm.markCrashed("启动即退出 rc=\(proc.terminationStatus)"); self.publishState()
+                    QoderStore.shared.resetToOffline()
                 }
                 self.process = nil
             }
@@ -228,21 +231,28 @@ final class QoderGatewayManager: ObservableObject {
         }
         process = p
 
-        // 健康轮询：spawn 后每 250ms 探活，10s 超时判 crashed
+        // 健康轮询：在当前 utility 后台线程中每 250ms 探活，10s 超时（不依赖 RunLoop）
         let deadline = Date().addingTimeInterval(10)
-        Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] timer in
-            guard let self else { timer.invalidate(); return }
+        var started = false
+        while Date() < deadline {
             if Self.isPortOpen(host: "127.0.0.1", port: UInt16(self.port), timeoutMS: 200) {
-                timer.invalidate()
-                DispatchQueue.main.async {
-                    _ = self.sm.markRunning(); self.publishState()
-                    gwLog.info("gateway running on :\(self.port) pid=\(p.processIdentifier)")
-                }
-            } else if Date() > deadline {
-                timer.invalidate()
-                self.terminate(pid: p.processIdentifier)
-                self.failCrash("启动超时（10s 未监听 \(self.port)）")
+                started = true
+                break
             }
+            usleep(250_000)
+        }
+
+        if started {
+            DispatchQueue.main.async {
+                _ = self.sm.markRunning()
+                self.publishState()
+                gwLog.info("gateway running on :\(self.port) pid=\(p.processIdentifier)")
+                // 启动成功立即触发一次数据层刷新，避免用户干等 15s 轮询周期
+                QoderStore.shared.refresh(logURL: self.gatewayLogURL)
+            }
+        } else {
+            self.terminate(pid: p.processIdentifier)
+            self.failCrash("启动超时（10s 未监听 \(self.port)）")
         }
     }
 
@@ -257,6 +267,7 @@ final class QoderGatewayManager: ObservableObject {
             terminate(pid: p.processIdentifier)
         } else {
             _ = sm.markStopped(); publishState()
+            QoderStore.shared.resetToOffline()
         }
     }
 

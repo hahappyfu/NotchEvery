@@ -17,17 +17,26 @@ struct QoderGatewayConfig: Codable {
     var remote_base_url: String?
     var model: String?
     var session_mode: String?
+    var remote_auth_pool_dir: String?
+
+    /// 默认账号池目录：~/.qoder-cn/pool
+    static var defaultPoolDir: String? {
+        let path = (NSHomeDirectory() as NSString).appendingPathComponent(".qoder-cn/pool")
+        return FileManager.default.fileExists(atPath: path) ? path : nil
+    }
 
     /// 生成一份默认配置：钉死回环 host、指定端口、入站 key 白名单路径，
-    /// 并按 README 硬约束钉死 remote_base_url = gateway.qoder.com.cn（自动探测会命中 lingma 旧域名）。
-    static func `default`(port: Int, authKeysFile: String) -> QoderGatewayConfig {
+    /// 并按 README 硬约束钉死 remote_base_url = gateway.qoder.com.cn（自动探测会命中 lingma 旧域名），
+    /// 如果本地存在 ~/.qoder-cn/pool 则自动配置账号池路径与模型。
+    static func `default`(port: Int, authKeysFile: String, poolDir: String? = defaultPoolDir) -> QoderGatewayConfig {
         QoderGatewayConfig(
             host: "127.0.0.1",
             port: port,
             auth_keys_file: authKeysFile,
             remote_base_url: "https://gateway.qoder.com.cn",
-            model: nil,
-            session_mode: nil
+            model: "Qwen3.8-Flash",
+            session_mode: "auto",
+            remote_auth_pool_dir: poolDir
         )
     }
 
@@ -67,6 +76,19 @@ struct QoderGatewayConfig: Codable {
             enc.outputFormatting = [.prettyPrinted, .sortedKeys]
             let data = try enc.encode(cfg)
             try data.write(to: jsonURL, options: .atomic)
+        } else if let data = try? Data(contentsOf: jsonURL),
+                  var cfg = try? JSONDecoder().decode(QoderGatewayConfig.self, from: data),
+                  cfg.remote_auth_pool_dir == nil,
+                  let pool = defaultPoolDir {
+            // 已有配置文件但未开启 pool_dir，自动补上
+            cfg.remote_auth_pool_dir = pool
+            if cfg.model == nil { cfg.model = "Qwen3.8-Flash" }
+            if cfg.session_mode == nil { cfg.session_mode = "auto" }
+            let enc = JSONEncoder()
+            enc.outputFormatting = [.prettyPrinted, .sortedKeys]
+            if let updated = try? enc.encode(cfg) {
+                try? updated.write(to: jsonURL, options: .atomic)
+            }
         }
 
         if !fm.fileExists(atPath: logURL.path) {

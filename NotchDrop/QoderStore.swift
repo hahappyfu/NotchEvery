@@ -188,6 +188,15 @@ final class QoderStore: ObservableObject {
         await fetchQuotaAndPool(gatewayUp: gatewayUp)
     }
 
+    /// 重置为离线未运行态
+    func resetToOffline() {
+        consecutiveFailures = 0
+        publishIfChanged(\.quota, nil)
+        publishIfChanged(\.poolMembers, [])
+        publishIfChanged(\.poolStatusStickyId, nil)
+        withMutation { isQuotaStale = false }
+    }
+
     func refresh(logURL: URL?) {
         Task { @MainActor in
             await fetchQuotaAndPool()
@@ -198,11 +207,7 @@ final class QoderStore: ObservableObject {
     /// gatewayUp=false（未托管/非 running）→ 直接离线空态，不发注定失败的请求。
     private func fetchQuotaAndPool(gatewayUp: Bool = QoderGatewayManager.shared.isHosting) async {
         if !gatewayUp {
-            consecutiveFailures = 0
-            publishIfChanged(\.quota, nil)
-            publishIfChanged(\.poolMembers, [])
-            publishIfChanged(\.poolStatusStickyId, nil)
-            withMutation { isQuotaStale = false }
+            resetToOffline()
             return
         }
         let bearer = firstAuthKey()
