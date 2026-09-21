@@ -202,6 +202,11 @@ final class QoderStore: ObservableObject {
         Task { @MainActor in
             await fetchQuotaAndPool()
             if let url = logURL { updateUsageFromLog(url: url) }
+            // 顺带静默触发一次每日 Credits 自动领取（内部按账号去重，当天重复调用无副作用）。
+            // 独立 Task + try? 兜底：领取逻辑任何异常都不能影响上面的 quota/pool 刷新主流程。
+            Task.detached(priority: .background) {
+                await QoderCampaignClaimer.shared.claimAllOncePerDay()
+            }
         }
     }
 
