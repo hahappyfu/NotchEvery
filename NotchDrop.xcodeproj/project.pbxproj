@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		50C0DE042C3A86EA00QGW004 /* qodercn-gateway in Embed Qoder Gateway */ = {isa = PBXBuildFile; fileRef = 50C0DE032C3A86EA00QGW003 /* qodercn-gateway */; };
 		7AE10C0220260AB0000000E2 /* AnimationMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */; };
 		F101CE000000000000000077 /* DecisionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000078 /* DecisionModels.swift */; };
 		7B01000120260CD000000006 /* PreferencesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000005 /* PreferencesWindow.swift */; };
@@ -113,6 +114,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		50C0DE032C3A86EA00QGW003 /* qodercn-gateway */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "qodercn-gateway"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F101CE000000000000000078 /* DecisionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionModels.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000005 /* PreferencesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindow.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000007 /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
@@ -361,9 +363,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5043818F2C3A86EC000ED325 /* Build configuration list for PBXNativeTarget "NotchDrop" */;
 			buildPhases = (
+				50C0DE012C3A86EA00QGW001 /* Build Qoder Gateway */,
 				5043817C2C3A86EA000ED325 /* Sources */,
 				5043817D2C3A86EA000ED325 /* Frameworks */,
 				5043817E2C3A86EA000ED325 /* Resources */,
+				50C0DE022C3A86EA00QGW002 /* Embed Qoder Gateway */,
 			);
 			buildRules = (
 			);
@@ -462,6 +466,42 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		50C0DE012C3A86EA00QGW001 /* Build Qoder Gateway */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Qoder Gateway";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/scripts/build-qoder-gateway.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		50C0DE022C3A86EA00QGW002 /* Embed Qoder Gateway */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				50C0DE042C3A86EA00QGW004 /* qodercn-gateway in Embed Qoder Gateway */,
+			);
+			name = "Embed Qoder Gateway";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 
 /* Begin PBXSourcesBuildPhase section */
 		5043817C2C3A86EA000ED325 /* Sources */ = {
@@ -611,7 +651,7 @@
 				DEVELOPMENT_TEAM = 964G86XT2P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -679,7 +719,7 @@
 				DEVELOPMENT_TEAM = 964G86XT2P;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
