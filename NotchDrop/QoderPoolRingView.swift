@@ -4,7 +4,8 @@
 //
 //  网关分区第一张卡：Qoder 账号池。
 //  严格对齐第一页 AntigravityAccountsCardView 的设计系统（360pt 定宽，18/12 边距，3D 对称排布），
-//  每个账号做成【圆形】；顶栏集成状态点、标题、粘性号与启停控制按钮。
+//  每个账号做成【圆形 Orb】：底层哑光槽 + 状态光环 + 尾号 + 状态副标；
+//  顶栏集成状态点、标题、粘性号与启停微胶囊按钮。
 //
 
 import SwiftUI
@@ -14,12 +15,23 @@ struct QoderPoolRingView: View {
     @ObservedObject var store: QoderStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// 三态取色：冷却 amber、最近探针失败 rose、正常 emerald；离线灰。
-    static func ringColor(_ m: QoderPoolMember, isRunning: Bool) -> Color {
-        guard isRunning else { return Color.white.opacity(0.2) }
+    /// Orb 直径（任务 2 规定 48×48pt）。
+    private static let orbDiameter: CGFloat = 48
+
+    /// 取色规则（UI redesign unit A · 任务 1）：消灭「全红报警感」。
+    /// - 主力/粘性号：emerald（配绿光晕）
+    /// - 冷却号：amber（配迷你雪花）
+    /// - 备用未冷却：哑光冰白银圈（正常工作态，探针未通过/未探测同样走此中性色，绝不整圈大红）
+    static func ringColor(_ m: QoderPoolMember, isCurrent: Bool, isRunning: Bool) -> Color {
+        guard isRunning else { return Color.white.opacity(0.20) }
+        if isCurrent { return StudioColor.emerald }
         if m.cooled { return StudioColor.amber }
-        if !m.lastProbeOK { return StudioColor.rose }
-        return StudioColor.emerald
+        return Color.white.opacity(0.38)
+    }
+
+    /// 兼容旧签名的便捷入口（无 isCurrent 上下文时按备用态取色）。仅内部使用。
+    private static func ringColor(_ m: QoderPoolMember, isRunning: Bool) -> Color {
+        ringColor(m, isCurrent: false, isRunning: isRunning)
     }
 
     /// 脱敏 user_id 取尾 4 位显示。
@@ -43,12 +55,13 @@ struct QoderPoolRingView: View {
         return false
     }
 
+    /// 顶栏状态点：running 薄荷绿（带轻微发光）、crashed 暗红、忙态琥珀、stopped 深石墨灰。
     private var statusDotColor: Color {
         switch manager.state {
         case .running: return StudioColor.emerald
-        case .crashed: return StudioColor.rose
+        case .crashed: return StudioColor.rose.opacity(0.75)
         case .starting, .stopping: return StudioColor.amber
-        case .stopped: return Color.white.opacity(0.3)
+        case .stopped: return Color.white.opacity(0.18)
         }
     }
 
@@ -65,6 +78,7 @@ struct QoderPoolRingView: View {
             Circle()
                 .fill(statusDotColor)
                 .frame(width: 7, height: 7)
+                .shadow(color: isRunning ? StudioColor.emerald.opacity(0.55) : .clear, radius: 3, y: 0)
             Text("Qoder 账号池")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.92))
@@ -79,7 +93,7 @@ struct QoderPoolRingView: View {
         }
     }
 
-    // MARK: - 启停按钮（集成在卡片顶栏右侧）
+    // MARK: - 启停微胶囊（集成在卡片顶栏右侧）
 
     @ViewBuilder
     private var toggleButton: some View {
@@ -99,7 +113,7 @@ struct QoderPoolRingView: View {
                         .scaleEffect(0.65)
                 } else {
                     Image(systemName: buttonIcon)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: buttonIconSize, weight: .semibold))
                 }
                 Text(buttonTitle)
                     .font(.system(size: 11, weight: .medium))
@@ -108,6 +122,7 @@ struct QoderPoolRingView: View {
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
             .background(Capsule().fill(buttonBackground))
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
         .disabled(busy)
@@ -115,9 +130,15 @@ struct QoderPoolRingView: View {
         .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: manager.state)
     }
 
+    /// 运行态用极小方形停止图标（约 7pt），其余态维持常规尺寸。
+    private var buttonIconSize: CGFloat {
+        if case .running = manager.state { return 7 }
+        return 10
+    }
+
     private var buttonIcon: String {
         switch manager.state {
-        case .running: return "stop.fill"
+        case .running: return "square.fill"
         case .stopped: return "play.fill"
         case .crashed: return "arrow.clockwise"
         case .starting, .stopping: return "hourglass"
@@ -136,7 +157,7 @@ struct QoderPoolRingView: View {
 
     private var buttonForeground: Color {
         switch manager.state {
-        case .running: return StudioColor.rose
+        case .running: return Color.white.opacity(0.88)
         case .stopped, .crashed: return StudioColor.emerald
         default: return Color.white.opacity(0.6)
         }
@@ -144,13 +165,13 @@ struct QoderPoolRingView: View {
 
     private var buttonBackground: Color {
         switch manager.state {
-        case .running: return StudioColor.rose.opacity(0.12)
+        case .running: return Color.white.opacity(0.08)
         case .stopped, .crashed: return StudioColor.emerald.opacity(0.12)
         default: return Color.white.opacity(0.08)
         }
     }
 
-    // MARK: - 账号成员行（圆形）
+    // MARK: - 账号成员行（圆形 Orb）
 
     private var membersRow: some View {
         let arranged = AntigravityAccountsCardView.symmetricRearrange(
@@ -196,41 +217,35 @@ struct QoderPoolRingView: View {
         return "网关未运行 · 点击右上角启动"
     }
 
+    /// 多层 Orb：底层哑光槽 → 2.5pt 状态光环 → 尾号 + 状态副标。
     private func circleMember(_ account: AntigravityAccount, distance: Int) -> some View {
-        let member = store.poolMembers.first(where: { $0.userId == account.id })
-        let color = Self.ringColor(member ?? .placeholder(account.id), isRunning: isRunning)
+        let member = store.poolMembers.first(where: { $0.userId == account.id }) ?? .placeholder(account.id)
+        let color = Self.ringColor(member, isCurrent: account.isCurrent, isRunning: isRunning)
         let scale: CGFloat = distance == 0 ? 1.08 : (abs(distance) == 1 ? 0.95 : 0.88)
+        let d = Self.orbDiameter
 
         return VStack(spacing: 5) {
             ZStack {
+                // 1. 底层槽：极淡填充 + 细边框，构成哑光玻璃底座
                 Circle()
-                    .stroke(color.opacity(0.9), lineWidth: 3)
-                    .background(Circle().fill(Color.white.opacity(0.06)))
-                VStack(spacing: 1) {
+                    .fill(Color.white.opacity(0.04))
+                Circle()
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+
+                // 2. 状态光环：覆盖底层槽之上的 2.5pt 环形条
+                Circle()
+                    .stroke(color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+
+                // 3. 文字排版：尾号 + 等高状态副标
+                VStack(spacing: 2) {
                     Text(account.name)
-                        .font(.system(size: 10.5, weight: account.isCurrent ? .bold : .medium).monospacedDigit())
-                        .foregroundStyle(Color.white.opacity(account.isCurrent ? 0.95 : 0.7))
-                    if member?.cooled == true {
-                        Image(systemName: "snowflake")
-                            .font(.system(size: 8))
-                            .foregroundStyle(StudioColor.amber)
-                    } else if member.map({ !$0.lastProbeOK }) == true {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 8))
-                            .foregroundStyle(StudioColor.rose)
-                    } else {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 8))
-                            .foregroundStyle(StudioColor.emerald.opacity(0.8))
-                    }
+                        .font(.system(size: 11, weight: account.isCurrent ? .bold : .medium, design: .monospaced))
+                        .foregroundStyle(Color.white.opacity(account.isCurrent ? 0.95 : 0.72))
+                    statusGlyph(member)
                 }
             }
-            .frame(width: 46, height: 46)
-            .overlay(
-                account.isCurrent
-                    ? Circle().stroke(color.opacity(0.25), lineWidth: 5).blur(radius: 3)
-                    : nil
-            )
+            .frame(width: d, height: d)
+            .shadow(color: account.isCurrent && isRunning ? StudioColor.emerald.opacity(0.35) : .clear, radius: 6, y: 0)
         }
         .offset(y: distance == 0 ? -3 : (abs(distance) == 1 ? -1 : 0))
         .scaleEffect(reduceMotion ? 1.0 : scale)
@@ -242,6 +257,30 @@ struct QoderPoolRingView: View {
         .zIndex(distance == 0 ? 3 : (abs(distance) == 1 ? 2 : 1))
         .brightness(-0.10 * Double(abs(distance)))
         .help(tooltip(member))
+    }
+
+    /// 状态副标（各态统一 9pt 占位高度，保证呼吸感一致）：
+    /// - 冷却：8pt 琥珀 snowflake
+    /// - 探针通过 / 主力号：迷你实心绿点
+    /// - 备用未冷却且探针未通过/未探测：极淡灰白短横（中性点缀，不用红三角、不整圈大红）
+    @ViewBuilder
+    private func statusGlyph(_ m: QoderPoolMember) -> some View {
+        ZStack {
+            if m.cooled {
+                Image(systemName: "snowflake")
+                    .font(.system(size: 8))
+                    .foregroundStyle(StudioColor.amber)
+            } else if m.lastProbeOK || m.userId == stickyId {
+                Circle()
+                    .fill(StudioColor.emerald.opacity(0.9))
+                    .frame(width: 5, height: 5)
+            } else {
+                Capsule()
+                    .fill(Color.white.opacity(0.22))
+                    .frame(width: 9, height: 2)
+            }
+        }
+        .frame(height: 9)
     }
 
     private func rotationAngle(for distance: Int) -> Double {
