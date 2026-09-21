@@ -182,6 +182,8 @@ struct AntigravityAccountsCardView: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .fixedSize(horizontal: true, vertical: false)
+                // fixedSize 会抵消省略号，需给姓名一个宽度上限：短名按理想宽自适应，超长名截断出「…」
+                .frame(maxWidth: 70, alignment: .leading)
             Text("已禁用")
                 .font(.system(size: 8.5))
                 .foregroundStyle(Color.white.opacity(0.35))
