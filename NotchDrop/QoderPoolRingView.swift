@@ -201,6 +201,7 @@ struct QoderPoolRingView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .center)
         .animation(reduceMotion ? nil : StudioAnimation.interactiveSpring, value: arranged.map(\.account.id))
     }
 
