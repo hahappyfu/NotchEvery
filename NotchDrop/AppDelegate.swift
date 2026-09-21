@@ -45,6 +45,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             await QoderCampaignClaimer.shared.claimAllOncePerDay()
         }
 
+        // 同上先例：全池额度也「App 启动即探测一次」，不依赖用户是否打开过网关分区（QoderStore.start()
+        // 只在 GatewayZoneView.onAppear 才调用），否则冷启动首张卡一直显示 --。refreshPoolQuotas()
+        // 是 nonisolated async、prober 自带 in-flight 守卫，与后续面板打开的轮询不会冲突。
+        Task.detached(priority: .background) {
+            await QoderStore.shared.refreshPoolQuotas()
+        }
+
         rebuildApplicationWindows()
     }
 

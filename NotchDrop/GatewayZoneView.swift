@@ -50,8 +50,8 @@ struct GatewayZoneView: View {
         VStack(alignment: .leading, spacing: 10) {
             metricsHeader
             metricsGrid
-            if isRunning && store.poolTotalRemaining != nil {
-                Text("· \(store.poolQuotas.count) 个号合计")
+            if showPoolTotal {
+                Text("· 已探测 \(store.poolQuotas.count) / 共 \(poolSize) 号")
                     .font(.system(size: 10.5))
                     .foregroundStyle(Color.white.opacity(0.4))
             }
@@ -101,10 +101,22 @@ struct GatewayZoneView: View {
         }
     }
 
+    /// 全池合计是否有意义可展示：网关在跑（否则数据无意义）且至少探测到一个号（poolTotalRemaining 非 nil）。
+    /// 「剩余额度」取值与小字标注共用，避免两处守卫各写一遍、日后改一漏一。
+    private var showPoolTotal: Bool {
+        isRunning && store.poolTotalRemaining != nil
+    }
+
+    /// 池规模（总号数）以 /v1/pool/status 返回的成员列表为准；该接口尚未回填时兜底为已探测数，
+    /// 避免出现「已探测 3 / 共 0 号」这种荒谬值。
+    private var poolSize: Int {
+        max(store.poolMembers.count, store.poolQuotas.count)
+    }
+
     /// 全池合计来自直连探测（QoderPoolQuotaProber），不依赖网关元数据轮询，故不受 isQuotaStale 影响；
     /// 仅在网关未运行（数据无意义）或尚未探测到任何账号时显示 --。
     private var poolTotalText: String {
-        guard isRunning, let total = store.poolTotalRemaining else { return "--" }
+        guard showPoolTotal, let total = store.poolTotalRemaining else { return "--" }
         return "\(Int(total))"
     }
 
