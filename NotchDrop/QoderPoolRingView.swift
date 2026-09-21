@@ -29,11 +29,6 @@ struct QoderPoolRingView: View {
         return Color.white.opacity(0.38)
     }
 
-    /// 兼容旧签名的便捷入口（无 isCurrent 上下文时按备用态取色）。仅内部使用。
-    private static func ringColor(_ m: QoderPoolMember, isRunning: Bool) -> Color {
-        ringColor(m, isCurrent: false, isRunning: isRunning)
-    }
-
     /// 脱敏 user_id 取尾 4 位显示。
     static func tail(_ userId: String) -> String {
         let trimmed = userId.replacingOccurrences(of: "*", with: "")
