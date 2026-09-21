@@ -170,18 +170,33 @@ func TestQueueRetryDelay(t *testing.T) {
 	if !ok {
 		t.Fatal("queueRetryDelay did not recognise a queue signal")
 	}
-	if want := 30 * time.Second; got != want {
-		t.Errorf("delay = %v, want %v", got, want)
+	if want := 30 * time.Second; got.RetryAfter != want {
+		t.Errorf("RetryAfter = %v, want %v", got.RetryAfter, want)
+	}
+	// waitTime is what the caller budgets against, so it must survive parsing
+	// even though it sits beside retryAfterSeconds at the same escape depth.
+	if want := 232 * time.Second; got.WaitTime != want {
+		t.Errorf("WaitTime = %v, want %v", got.WaitTime, want)
+	}
+	if want := 7633; got.QueueCount != want {
+		t.Errorf("QueueCount = %d, want %d", got.QueueCount, want)
+	}
+	if want := "qfmodel"; got.ModelKey != want {
+		t.Errorf("ModelKey = %q, want %q", got.ModelKey, want)
 	}
 
-	// Missing retryAfterSeconds must still count as queued, on the default wait.
+	// Missing retryAfterSeconds must still count as queued, on the default wait,
+	// and must report no WaitTime so the caller falls back to its own ceiling.
 	noDelay := errors.New(`remote sse status 403: {"code":"10605","message":"{\"isQueued\":true}"}`)
 	got, ok = queueRetryDelay(noDelay)
 	if !ok {
 		t.Fatal("queue signal without an explicit delay was not recognised")
 	}
-	if want := 30 * time.Second; got != want {
-		t.Errorf("fallback delay = %v, want %v", got, want)
+	if want := 30 * time.Second; got.RetryAfter != want {
+		t.Errorf("fallback delay = %v, want %v", got.RetryAfter, want)
+	}
+	if got.WaitTime != 0 {
+		t.Errorf("WaitTime = %v, want 0 when the upstream did not report one", got.WaitTime)
 	}
 
 	// A real per-account limit must not be mistaken for a queue.

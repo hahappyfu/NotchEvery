@@ -16,29 +16,70 @@ import (
 	"time"
 )
 
-// queueRetryRe reads the delay the upstream asks for out of a queue signal. The
-// payload is JSON nested inside JSON, so the quotes arrive backslash-escaped.
-var queueRetryRe = regexp.MustCompile(`retryAfterSeconds\\*":\s*(\d+)`)
+// The queue payload is JSON nested inside JSON, so the quotes arrive
+// backslash-escaped — every field pattern has to allow \\*" between name and colon.
+var (
+	// retryAfterRe is the upstream's suggested poll interval.
+	retryAfterRe = regexp.MustCompile(`retryAfterSeconds\\*":\s*(\d+)`)
+	// waitTimeRe is the upstream's own estimate of how long admission will take.
+	// It is the honest number: on 2026-09-21 it read 472 while retryAfterSeconds
+	// read 30, and the caller's 3×30s budget expired long before admission.
+	waitTimeRe = regexp.MustCompile(`waitTime\\*":\s*(\d+)`)
+	// queueCountRe is the global backlog depth, for diagnostics only.
+	queueCountRe = regexp.MustCompile(`queueCount\\*":\s*(\d+)`)
+	// modelKeyRe names the queued model, for diagnostics only.
+	modelKeyRe = regexp.MustCompile(`modelKey\\*":\s*\\*"([^\\"]+)`)
+)
+
+// queueSignal is the parsed upstream model-queue payload.
+type queueSignal struct {
+	ModelKey string
+	// RetryAfter is how often the upstream wants to be polled.
+	RetryAfter time.Duration
+	// WaitTime is the upstream's estimate of total admission time; zero when the
+	// upstream did not report one.
+	WaitTime time.Duration
+	// QueueCount is the global backlog depth; zero when not reported.
+	QueueCount int
+}
 
 // queueRetryDelay reports whether err is the upstream's global model-queue
-// signal and how long it asked us to wait. Free-tier models (Qwen3.8-Flash /
-// qfmodel) answer 403 with {"isQueued":true,"retryAfterSeconds":30}; measured
-// 2026-09-20 a retry lands inside seconds, so this is a busy flag, not a quota
-// wall. The queue is server-wide — every account sees the same backlog, so
-// switching credentials cannot help, which is why the caller waits instead.
-func queueRetryDelay(err error) (time.Duration, bool) {
+// signal and what it said. Free-tier models (Qwen3.8-Flash / qfmodel) answer 403
+// with {"isQueued":true,"retryAfterSeconds":30,"waitTime":N}. The queue is
+// server-wide — every account sees the same backlog, so switching credentials
+// cannot help, which is why the caller waits instead of rotating.
+func queueRetryDelay(err error) (queueSignal, bool) {
 	msg := err.Error()
 	if !strings.Contains(msg, "isQueued") {
-		return 0, false
+		return queueSignal{}, false
 	}
-	seconds := 30
-	if m := queueRetryRe.FindStringSubmatch(msg); m != nil {
+	sig := queueSignal{RetryAfter: 30 * time.Second}
+	if m := retryAfterRe.FindStringSubmatch(msg); m != nil {
 		if n, convErr := strconv.Atoi(m[1]); convErr == nil && n > 0 {
-			seconds = n
+			sig.RetryAfter = time.Duration(n) * time.Second
 		}
 	}
-	return time.Duration(seconds) * time.Second, true
+	if m := waitTimeRe.FindStringSubmatch(msg); m != nil {
+		if n, convErr := strconv.Atoi(m[1]); convErr == nil && n > 0 {
+			sig.WaitTime = time.Duration(n) * time.Second
+		}
+	}
+	if m := queueCountRe.FindStringSubmatch(msg); m != nil {
+		if n, convErr := strconv.Atoi(m[1]); convErr == nil && n > 0 {
+			sig.QueueCount = n
+		}
+	}
+	if m := modelKeyRe.FindStringSubmatch(msg); m != nil {
+		sig.ModelKey = m[1]
+	}
+	return sig, true
 }
+
+// queueDeadline is how long one request will sit in the upstream queue before
+// handing the error back. The upstream's retryAfterSeconds is a poll interval,
+// not a completion estimate — measured 2026-09-21 it stayed at 30 while waitTime
+// climbed past 470 — so waiting budget is driven by waitTime and this ceiling.
+const queueDeadline = 10 * time.Minute
 
 var ErrPoolExhausted = errors.New("all credentials in pool are cooled or exhausted")
 

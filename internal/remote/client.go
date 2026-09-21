@@ -890,15 +890,41 @@ func (c *Client) modelListStatusError(statusCode int, body string) error {
 	return fmt.Errorf("%s", message)
 }
 
-func (c *Client) MinimalProbe(ctx context.Context, cred Credential) error {
+// MinimalProbe checks that one credential can actually get an answer from the
+// upstream chat endpoint for the given model. The stream must be read, not just
+// the status line: a queued account answers HTTP 200 with the queue signal
+// nested inside the SSE frames, so a status-line-only check reports success for
+// an account that cannot serve a request.
+//
+// It reuses scanSSE so a queue surfaces as the same error Chat produces, which
+// queueRetryDelay then parses. Reading stops at the first usable signal — the
+// queue error, the first content delta, or end of stream — so a healthy account
+// costs one frame rather than a whole completion.
+//
+// A transport abort (the upstream drops the stream mid-response, seen as
+// HTTP/2 INTERNAL_ERROR) is not a probe failure once frames have arrived: the
+// account answered, so the verdict is already known. Only an abort before any
+// usable frame is reported as an error, since nothing was learned.
+//
+// The model is named for symmetry with the chat path. Measured 2026-09-21, the
+// upstream echoes "auto" whether or not X-Model-Key is set, so the header does
+// not by itself select the backend — it is sent so the probe matches what Chat
+// puts on the wire rather than testing a different request shape.
+//
+// An empty model leaves the header off.
+func (c *Client) MinimalProbe(ctx context.Context, cred Credential, model string) error {
 	reqID := newHexID()
-	body, err := c.buildBody(reqID, ChatRequest{Prompt: "hi"})
+	body, err := c.buildBody(reqID, ChatRequest{Prompt: "hi", Model: model})
 	if err != nil {
 		return err
 	}
 	headers, err := c.headers(cred, chatPath, body)
 	if err != nil {
 		return err
+	}
+	if key := strings.TrimSpace(model); key != "" {
+		headers["X-Model-Key"] = key
+		headers["X-Model-Source"] = "system"
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+chatPath+chatQuery, strings.NewReader(body))
 	if err != nil {
@@ -916,13 +942,39 @@ func (c *Client) MinimalProbe(ctx context.Context, cred Credential) error {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("probe status %d: %s", resp.StatusCode, truncate(string(respBody), 300))
 	}
+
+	var sawFrame bool
+	var queueErr error
+	scanErr := scanSSE(resp.Body, func(event sseEvent) error {
+		sawFrame = true
+		if event.Content != "" || event.Reasoning != "" || len(event.ToolCalls) > 0 || event.Done {
+			return errProbeSettled
+		}
+		return nil
+	})
+	// parseSSEPayload reports a queued account as this error; queueRetryDelay
+	// parses it back out, so hand it up unchanged.
+	if scanErr != nil && strings.Contains(scanErr.Error(), "remote sse status") {
+		queueErr = scanErr
+		scanErr = nil
+	}
+	if queueErr != nil {
+		return fmt.Errorf("probe: %w", queueErr)
+	}
+	if scanErr != nil && !errors.Is(scanErr, errProbeSettled) && !sawFrame {
+		return fmt.Errorf("probe read stream: %w", scanErr)
+	}
 	return nil
 }
 
-// maxQueueWaits caps how long one request will sit out the upstream model queue
-// before handing the error back. At the observed retryAfterSeconds of 30 this is
-// roughly 90 seconds; admission typically happens on the first retry.
-const maxQueueWaits = 3
+// errProbeSettled stops the probe scan once a usable frame has been seen.
+var errProbeSettled = errors.New("probe settled")
+
+// queueAttempts caps how many times one request will re-poll the upstream model
+// queue. It is a backstop against an upstream that keeps signalling queue
+// forever; the real budget is queueDeadline, since each retry is paced by the
+// upstream's retryAfterSeconds and admission is judged against its waitTime.
+const queueAttempts = 60
 
 func (c *Client) Chat(ctx context.Context, request ChatRequest, onDelta func(StreamEvent)) (*ChatResult, error) {
 	if c.pool == nil {
@@ -936,6 +988,9 @@ func (c *Client) Chat(ctx context.Context, request ChatRequest, onDelta func(Str
 	inFlightExcluded := make(map[string]bool)
 	maxSwitches := c.pool.cfg.MaxSwitches
 	queueWaits := 0
+	// queueWaitStart timestamps the first retry so the budget is measured against
+	// wall-clock time spent queued, not the number of polls.
+	var queueWaitStart time.Time
 	var lastErr error
 
 	for attempt := 0; attempt <= maxSwitches; attempt++ {
@@ -992,24 +1047,35 @@ func (c *Client) Chat(ctx context.Context, request ChatRequest, onDelta func(Str
 		res, err := c.scanChatResponse(resp, request, requestID, cred, onDelta)
 		if err != nil {
 			lastErr = err
-			// Global model queue: the free tier answers 403 with isQueued, and a
-			// retry lands in seconds. Every account shares the queue, so
-			// switching credentials gains nothing — wait the delay the upstream
-			// asked for and re-run this same attempt. Bounded so a jammed queue
-			// fails fast instead of hanging the client.
-			if wait, queued := queueRetryDelay(err); queued {
-				if queueWaits >= maxQueueWaits {
-					log.Printf("[client] %s still queued after %d waits; giving up",
-						strings.TrimSpace(request.Model), queueWaits)
+			// Global model queue: the free tier answers 403 with isQueued. Every
+			// account shares the queue, so switching credentials gains nothing —
+			// wait and re-run this same attempt. The budget comes from the
+			// upstream's waitTime (its estimate of admission), paced by its
+			// retryAfterSeconds, both capped by queueDeadline so a jammed queue
+			// fails in bounded time instead of hanging the client.
+			if sig, queued := queueRetryDelay(err); queued {
+				if queueWaitStart.IsZero() {
+					queueWaitStart = time.Now()
+				}
+				waited := time.Since(queueWaitStart)
+				budget := sig.WaitTime
+				if budget <= 0 || budget > queueDeadline {
+					budget = queueDeadline
+				}
+				if queueWaits >= queueAttempts || waited+sig.RetryAfter > budget {
+					log.Printf("[client] %s still queued after %d waits (%s; upstream reported waitTime=%s queueCount=%d); giving up",
+						strings.TrimSpace(request.Model), queueWaits, waited.Round(time.Second),
+						sig.WaitTime.Round(time.Second), sig.QueueCount)
 					return nil, err
 				}
 				queueWaits++
-				log.Printf("[client] %s queued by upstream; waiting %v then retrying (%d/%d)",
-					strings.TrimSpace(request.Model), wait, queueWaits, maxQueueWaits)
+				log.Printf("[client] %s queued by upstream; waiting %v then retrying (%d, %s of %s budget; queueCount=%d)",
+					strings.TrimSpace(request.Model), sig.RetryAfter, queueWaits,
+					(waited + sig.RetryAfter).Round(time.Second), budget.Round(time.Second), sig.QueueCount)
 				select {
 				case <-ctx.Done():
 					return nil, ctx.Err()
-				case <-time.After(wait):
+				case <-time.After(sig.RetryAfter):
 				}
 				attempt--
 				delete(inFlightExcluded, cred.UserID)

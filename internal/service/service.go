@@ -540,7 +540,7 @@ func (s *Service) getOrCreateRemoteClient() *remote.Client {
 				s.pool = created
 				s.remoteClient.SetPool(s.pool)
 				s.pool.StartProbeLoop(context.Background(), func(ctx context.Context, cred remote.Credential) error {
-					return s.remoteClient.MinimalProbe(ctx, cred)
+					return s.remoteClient.MinimalProbe(ctx, cred, s.DefaultModel())
 				})
 				s.pool.StartQuotaCheckLoop(context.Background())
 			} else {
