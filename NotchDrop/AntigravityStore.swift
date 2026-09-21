@@ -25,6 +25,12 @@ public struct AntigravityAccount: Identifiable, Equatable {
     public let percentage: Int
     public let resetTime: Date?
     public let lastActiveTime: Date?
+    /// 单账号文件（accounts/<id>.json）里是否显式写了 `disabled` 字段；false 表示缺省，需要看索引兜底。仅 loadAccounts 内部使用。
+    var rawDisabledPresent: Bool = false
+    /// rawDisabledPresent 为 true 时该字段的实际值。
+    var rawDisabledValue: Bool = false
+    /// 单账号文件里是否显式写了 `proxy_disabled` 字段；false 表示缺省，需要看索引兜底。
+    var rawProxyDisabledPresent: Bool = false
 
     public init(
         id: String,
@@ -35,7 +41,10 @@ public struct AntigravityAccount: Identifiable, Equatable {
         isProxyDisabled: Bool = false,
         percentage: Int,
         resetTime: Date?,
-        lastActiveTime: Date? = nil
+        lastActiveTime: Date? = nil,
+        rawDisabledPresent: Bool = false,
+        rawDisabledValue: Bool = false,
+        rawProxyDisabledPresent: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -46,6 +55,9 @@ public struct AntigravityAccount: Identifiable, Equatable {
         self.percentage = percentage
         self.resetTime = resetTime
         self.lastActiveTime = lastActiveTime
+        self.rawDisabledPresent = rawDisabledPresent
+        self.rawDisabledValue = rawDisabledValue
+        self.rawProxyDisabledPresent = rawProxyDisabledPresent
     }
 }
 
@@ -270,15 +282,19 @@ public final class AntigravityStore: ObservableObject {
             let emailKey = acc.email.lowercased()
             let actDate = activeTimes[emailKey]
             let isCurrent = (acc.id == dynamicCurrentId)
-            // 单账号文件的开关常与索引不同步，两边任一标记禁用即视为禁用（取 OR）
+            // 单账号文件（accounts/<id>.json）是权威来源；索引 accounts.json 里的同名标记可能是历史残留，
+            // 只有当单账号文件根本没写这个字段时，才用索引的值兜底（而不是两边 OR）。
             let indexFlags = index.flags[acc.id] ?? AntigravityIndex.AccountFlags()
-            let isProxyDisabled = acc.isProxyDisabled || indexFlags.proxyDisabled
+            let fileHasProxyFlag = acc.rawProxyDisabledPresent
+            let isProxyDisabled = fileHasProxyFlag ? acc.isProxyDisabled : indexFlags.proxyDisabled
+            let fileHasDisabledFlag = acc.rawDisabledPresent
+            let disabledResolved = fileHasDisabledFlag ? acc.rawDisabledValue : indexFlags.disabled
             return AntigravityAccount(
                 id: acc.id,
                 name: acc.name,
                 email: acc.email,
                 isCurrent: isCurrent,
-                isDisabled: acc.isDisabled || indexFlags.disabled || isProxyDisabled,
+                isDisabled: disabledResolved || isProxyDisabled,
                 isProxyDisabled: isProxyDisabled,
                 percentage: acc.percentage,
                 resetTime: acc.resetTime,
@@ -370,7 +386,10 @@ public final class AntigravityStore: ObservableObject {
             isDisabled: isDisabled,
             isProxyDisabled: isProxyDisabled,
             percentage: percentage,
-            resetTime: resetDate
+            resetTime: resetDate,
+            rawDisabledPresent: raw.disabled != nil,
+            rawDisabledValue: raw.disabled == true,
+            rawProxyDisabledPresent: raw.proxy_disabled != nil
         )
     }
 
