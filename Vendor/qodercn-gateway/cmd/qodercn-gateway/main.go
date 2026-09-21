@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -99,6 +100,20 @@ func main() {
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	// notchevery-patch: parent-death watchdog. When embedded as a helper inside
+	// NotchEvery.app, the manager keeps a pipe write-end open on our stdin; when the
+	// parent dies (fd closed), ReadStdin returns EOF and we shut down like SIGTERM.
+	go func() {
+		buf := make([]byte, 1)
+		for {
+			n, err := os.Stdin.Read(buf)
+			if (err != nil || n == 0) && !errors.Is(err, syscall.EINTR) {
+				sigCh <- syscall.SIGTERM
+				return
+			}
+		}
+	}()
 
 	select {
 	case err := <-errCh:
