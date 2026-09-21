@@ -292,6 +292,7 @@ struct QoderPoolRingView: View {
         guard let m else { return "" }
         var s = "\(m.userId)\n来源: \(m.source)"
         s += "\n状态: \(m.cooled ? "冷却中" : "活跃") · 探针\(m.lastProbeOK ? "通过" : "未通过/未探")"
+        if let q = store.poolQuotas.first(where: { $0.userId == m.userId }) { s += "\n余额 \(Int(q.totalRemaining)) credits" }
         if let t = m.lastUsedAt { s += "\n最近使用: \(t.formatted(date: .omitted, time: .shortened))" }
         return s
     }
