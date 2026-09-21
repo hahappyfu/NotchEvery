@@ -38,6 +38,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         _ = EventMonitors.shared
         determineIfProcessIdentifierMatches()
 
+        // 设计规范要求的「App 启动即异步巡检一次」：不能依赖用户是否打开过网关分区页面
+        // （QoderStore.start() 只在 GatewayZoneView.onAppear 时才被调用）。claimAllOncePerDay()
+        // 内部按账号当天去重 + in-flight 守卫，重复触发无副作用。
+        Task.detached(priority: .background) {
+            await QoderCampaignClaimer.shared.claimAllOncePerDay()
+        }
+
         rebuildApplicationWindows()
     }
 

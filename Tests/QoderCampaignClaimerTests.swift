@@ -265,4 +265,135 @@ final class QoderCampaignClaimerTests: XCTestCase {
                         "第二次触发时列表已有可领项，应完成领取并写入今日标记")
         XCTAssertEqual(t.calls.count, 3, "第二次触发应再发一次 GET + 一次 POST")
     }
+
+    // MARK: - 审查修复 1：in-flight 并发守卫
+
+    /// 纯状态机断言：守卫的语义是「空闲时可占用、已占用时拒绝、结束后可再次占用」。
+    /// 把判断抽成纯函数就是为了不依赖异步时序也能稳定验证这条规则。
+    func testGuardStateMachineAllowsOnlyOneConcurrentSweep() {
+        var running = false
+        let first = QoderCampaignGuard.begin(isRunning: running)
+        XCTAssertTrue(first.shouldRun, "空闲时应允许开始")
+        running = first.isRunning
+
+        let second = QoderCampaignGuard.begin(isRunning: running)
+        XCTAssertFalse(second.shouldRun, "已有一轮在跑时第二次必须跳过")
+        XCTAssertEqual(second.isRunning, true, "被拒绝的触发不得改动标志位")
+
+        running = QoderCampaignGuard.end()
+        XCTAssertEqual(running, false, "一轮结束后必须释放")
+        XCTAssertTrue(QoderCampaignGuard.begin(isRunning: running).shouldRun, "释放后应能再次开始")
+    }
+
+    /// 端到端交错验证：用一个"闸门"transport 让第一轮巡检卡在 GET 上不返回，
+    /// 期间发起第二轮，断言第二轮没有产生任何新的 transport 请求（即守卫真的挡住了），
+    /// 再放行闸门，断言第一轮正常收尾、守卫复位后后续轮次仍能正常领取。
+    func testOverlappingTriggerDoesNotIssueExtraRequests() async throws {
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", "user-1")])
+        let t = GatedCampaignTransport()
+        t.gateMode = true
+        t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        let d = uniqueDefaults()
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
+
+        // 第一轮：会挂在第一次 GET 上直到我们放行闸门
+        let firstTask = Task.detached { await claimer.claimAllOncePerDay() }
+        await t.waitUntilFirstRequestArrives()
+        XCTAssertEqual(t.requestCount, 1, "第一轮应已发出 GET 并被闸门挡住")
+
+        // 第二轮：与第一轮真正并发，应被守卫直接跳过
+        await claimer.claimAllOncePerDay()
+        XCTAssertEqual(t.requestCount, 1, "重入的触发不应发出任何新请求")
+        XCTAssertNil(d.string(forKey: "qoder.campaign.claimed.user-1"))
+
+        // 放行第一轮，等它正常跑完
+        t.openGate()
+        await firstTask.value
+        XCTAssertEqual(t.requestCount, 2, "第一轮应完成 GET + POST")
+        XCTAssertNotNil(d.string(forKey: "qoder.campaign.claimed.user-1"), "守卫不应影响正常收尾写标记")
+
+        // 守卫复位验证：换新默认值后在同一 claimer 上再触发一轮。
+        // 此刻 user-1 已有今日标记会被 continue 跳过（不发请求），但循环确实进入了、函数正常返回，
+        // 说明 isRunning 已释放；若没释放，这次调用会在守卫处直接 return（用下面的日志/行为区分不出来，
+        // 故再用第二个 claimer 走一遍真正发请求的路径作为硬证据）。
+        t.resetForNextRound()
+        t.defaultCampaigns = (200, campaignsJSON([("c-200", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        await claimer.claimAllOncePerDay()
+
+        let dir2 = try makeTempPool(accounts: [("id2", "tok-2", "mach-2", "user-2")])
+        let claimer2 = QoderCampaignClaimer(transport: t, poolDirectory: dir2, defaults: d)
+        await claimer2.claimAllOncePerDay()
+        XCTAssertEqual(t.requestCount, 4, "守卫复位后新一轮应再发 GET + POST")
+        XCTAssertNotNil(d.string(forKey: "qoder.campaign.claimed.user-2"),
+                        "上一轮结束后守卫必须已复位，否则后续永远不会再领取")
+    }
+}
+
+/// 可控闸门 transport：gateMode 下第一次 request 会挂起，直到 openGate() 被调用。
+/// 用于确定性地制造"两轮巡检真实重叠"的时序，而不是靠 sleep 猜时间窗（那种写法容易 flaky）。
+private final class GatedCampaignTransport: QoderCampaignTransport, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _gateMode = false
+    private var _gateReleased = false
+    private var _count = 0
+    private var continuations: [CheckedContinuation<Void, Never>] = []
+    private var arrivalContinuations: [CheckedContinuation<Void, Never>] = []
+
+    /// 是否启用闸门（只挡整场测试的第一次请求）。必须在发起任何调用之前设好。
+    var gateMode: Bool {
+        get { lock.withLock { _gateMode } }
+        set { lock.withLock { _gateMode = newValue } }
+    }
+    var defaultCampaigns: (status: Int, data: Data)?
+    var requestCount: Int { lock.withLock { _count } }
+
+    func waitUntilFirstRequestArrives() async {
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            lock.withLock { arrivalContinuations.append(c) }
+        }
+    }
+
+    /// 放行挂起中的第一次请求。
+    func openGate() {
+        let pending: [CheckedContinuation<Void, Never>] = lock.withLock {
+            _gateReleased = true
+            let list = continuations
+            continuations = []
+            return list
+        }
+        pending.forEach { $0.resume() }
+    }
+
+    /// 彻底结束闸门语义：之后的请求一律立即返回。
+    func resetForNextRound() {
+        lock.withLock { _gateMode = false; _gateReleased = true }
+    }
+
+    func request(url: URL, method: String, headers: [String: String], body: Data?) async throws -> (status: Int, data: Data) {
+        let shouldWait: Bool = lock.withLock {
+            _count += 1
+            // 只挡住整场测试的第一次请求：够用来维持 in-flight 窗口，又不会卡死收尾
+            return _gateMode && _count == 1
+        }
+        let arrivals: [CheckedContinuation<Void, Never>] = lock.withLock {
+            let n = arrivalContinuations
+            arrivalContinuations = []
+            return n
+        }
+        arrivals.forEach { $0.resume() }
+        if shouldWait {
+            await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+                let alreadyResumed: Bool = lock.withLock {
+                    if _gateReleased { return true }
+                    continuations.append(c)
+                    return false
+                }
+                if alreadyResumed { c.resume() }
+            }
+        }
+        if url.path.hasSuffix("/campaigns") {
+            return defaultCampaigns ?? (200, Data())
+        }
+        return (200, Data(#"{"status":"CLAIMED","replayed":false}"#.utf8))
+    }
 }

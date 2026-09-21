@@ -20,10 +20,10 @@ protocol QoderCampaignTransport {
     func request(url: URL, method: String, headers: [String: String], body: Data?) async throws -> (status: Int, data: Data)
 }
 
-/// 默认实现：URLSession，30s 超时。
+/// 默认实现：URLSession，15s 超时（与 URLSessionQoderTransport 对齐，避免单条卡住的请求拖长整轮巡检）。
 struct URLSessionQoderCampaignTransport: QoderCampaignTransport {
     func request(url: URL, method: String, headers: [String: String], body: Data?) async throws -> (status: Int, data: Data) {
-        var req = URLRequest(url: url, timeoutInterval: 30)
+        var req = URLRequest(url: url, timeoutInterval: 15)
         req.httpMethod = method
         for (k, v) in headers { req.setValue(v, forHTTPHeaderField: k) }
         req.httpBody = body
@@ -93,6 +93,23 @@ enum QoderClaimOutcome: Equatable {
     case failure(String)              // 带原因的失败（token 失效 / 网络异常 / 解码失败等）
 }
 
+// MARK: - 并发守卫
+
+/// in-flight 守卫的纯状态转移：`begin` 只有在当前空闲时才占用成功并返回 true（表示"可以开始跑"），
+/// 已被占用则返回 false（本次触发应直接跳过）；`end` 无条件释放。
+///
+/// 抽成无副作用的静态函数，是为了让守卫本身可脱离异步时序单独断言
+/// （Swift XCTest 对真实并发交错的测试容易 flaky，这里用等价的状态机验证代替）。
+enum QoderCampaignGuard {
+    /// 尝试占用守卫。返回 shouldRun=false 表示已有一轮在跑，调用方应直接跳过本次触发。
+    static func begin(isRunning: Bool) -> (shouldRun: Bool, isRunning: Bool) {
+        if isRunning { return (false, true) }
+        return (true, true)
+    }
+    /// 一轮结束后释放守卫（无条件置回空闲）。
+    static func end() -> Bool { false }
+}
+
 // MARK: - Claimer
 
 final class QoderCampaignClaimer {
@@ -103,6 +120,11 @@ final class QoderCampaignClaimer {
     /// 当天去重存储（UserDefaults 持久化，App 重启不重复刷；测试可注入独立 suite 隔离）
     private let defaults: UserDefaults
     private let now: () -> Date
+    /// 本类不是 actor 隔离的，且 claimAllOncePerDay() 由 Task.detached 在后台线程发起，
+    /// 多个 detached Task 可能真正并行进入这里，故标志位必须加锁访问，不能用裸 Bool（数据竞争）。
+    /// 复用仓库既有的 UnfairLock（SignalPipeline.swift）。
+    private let stateLock = UnfairLock()
+    private var isRunning = false
 
     init(transport: QoderCampaignTransport = URLSessionQoderCampaignTransport(),
          poolDirectory: URL? = nil,
@@ -213,6 +235,20 @@ final class QoderCampaignClaimer {
     /// 只有真正领到（新领取或幂等命中）才算「今天处理过了」；`.nothingToClaim`（当前无可领项，
     /// 可能只是还没到活动刷新窗口）和 `.failure` 都不写标记，留待下次触发重新查一遍。
     func claimAllOncePerDay() async {
+        // 并发守卫：refresh() 每 15s 触发一次，而单轮巡检（账号数 × GET/POST 超时）很容易超过 15s，
+        // 不加守卫会叠加多个 detached Task 对同一批未标记账号重复发请求 —— 对逆向的活动接口这是
+        // 最容易触发服务端风控的行为。命中重入时直接跳过本次触发，不做额外错误处理。
+        let shouldRun: Bool = stateLock.withLock {
+            let r = QoderCampaignGuard.begin(isRunning: isRunning)
+            isRunning = r.isRunning
+            return r.shouldRun
+        }
+        guard shouldRun else {
+            claimLog.info("claim sweep already in flight, skipping this trigger")
+            return
+        }
+        defer { stateLock.withLock { isRunning = QoderCampaignGuard.end() } }
+
         let accounts = scanAccounts()
         guard !accounts.isEmpty else {
             claimLog.info("no pool accounts found at \(self.poolDirectory.path), skip")
