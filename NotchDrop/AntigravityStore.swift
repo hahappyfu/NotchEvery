@@ -164,7 +164,10 @@ public final class AntigravityStore: ObservableObject {
                 isProxyDisabled: acc.isProxyDisabled,
                 percentage: acc.percentage,
                 resetTime: acc.resetTime,
-                lastActiveTime: acc.lastActiveTime
+                lastActiveTime: acc.lastActiveTime,
+                rawDisabledPresent: acc.rawDisabledPresent,
+                rawDisabledValue: acc.rawDisabledValue,
+                rawProxyDisabledPresent: acc.rawProxyDisabledPresent
             )
         }
 
