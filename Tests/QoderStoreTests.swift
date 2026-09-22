@@ -288,4 +288,92 @@ final class QoderStoreTests: XCTestCase {
 
         XCTAssertFalse(store.isProbingPoolQuotas, "全部触发结束后标志位应复位")
     }
+
+    // MARK: - 今日真实消耗（余额基准线，替代日志名义 credits 累加）
+
+    private func uniqueDefaults() -> UserDefaults {
+        let suite = "QoderStoreTests-\(UUID().uuidString)"
+        return UserDefaults(suiteName: suite)!
+    }
+
+    @MainActor
+    func testDailyBaselineCapturedOnFirstProbeAndConsumptionComputed() async {
+        let prober = FakeQuotaProberStub(result: [
+            QoderAccountQuota(userId: "user-1", planRemaining: 300, addOnRemaining: 400),
+        ])
+        let store = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober, defaults: uniqueDefaults())
+        XCTAssertNil(store.todayRealConsumption, "还没探测过，基准线未建立，不能凭空显示 0 或任何数字")
+
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(store.dailyBaselineRemaining ?? 0, 700, accuracy: 0.001, "当天第一次探测必须把当前余额记为基准线")
+        XCTAssertEqual(store.todayRealConsumption ?? -1, 0, accuracy: 0.001, "刚建立基准线、还没消耗，应为 0")
+
+        prober.result = [QoderAccountQuota(userId: "user-1", planRemaining: 250, addOnRemaining: 400)]
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(store.dailyBaselineRemaining ?? 0, 700, accuracy: 0.001, "基准线一旦建立，后续探测不得改动它")
+        XCTAssertEqual(store.todayRealConsumption ?? -1, 50, accuracy: 0.001, "真实消耗 = 基准线 700 - 当前 650")
+    }
+
+    /// 充值 / 每日重置到账：余额不降反升时，基准线要跟着抬到新高点，否则「消耗」会被 max(0,...)
+    /// 钳成 0 并长期卡住，之后真实下降反而看不出来。
+    @MainActor
+    func testDailyBaselineRaisesWhenBalanceGoesUp() async {
+        let prober = FakeQuotaProberStub(result: [
+            QoderAccountQuota(userId: "user-1", planRemaining: 100, addOnRemaining: 0),
+        ])
+        let store = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober, defaults: uniqueDefaults())
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(store.dailyBaselineRemaining ?? 0, 100, accuracy: 0.001)
+
+        prober.result = [QoderAccountQuota(userId: "user-1", planRemaining: 180, addOnRemaining: 0)]
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(store.dailyBaselineRemaining ?? 0, 180, accuracy: 0.001, "余额上涨（充值/重置）时基准线要抬到新高点")
+        XCTAssertEqual(store.todayRealConsumption ?? -1, 0, accuracy: 0.001, "刚抬到新高点、还没消耗，应为 0")
+
+        prober.result = [QoderAccountQuota(userId: "user-1", planRemaining: 160, addOnRemaining: 0)]
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(store.todayRealConsumption ?? -1, 20, accuracy: 0.001, "之后真实下降要相对新基准线算，不能被旧基准线卡住")
+    }
+
+    /// 隔天自然换新基准线：跟 `QoderCampaignClaimer` 的按天隔离同一套路，不写清理逻辑，靠 Key 带日期天然重置。
+    @MainActor
+    func testDailyBaselineResetsOnNewDay() async {
+        var day = Date(timeIntervalSince1970: 1_700_000_000)
+        let prober = FakeQuotaProberStub(result: [
+            QoderAccountQuota(userId: "user-1", planRemaining: 300, addOnRemaining: 0),
+        ])
+        let store = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober,
+                               defaults: uniqueDefaults(), now: { day })
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(store.dailyBaselineRemaining ?? 0, 300, accuracy: 0.001)
+
+        prober.result = [QoderAccountQuota(userId: "user-1", planRemaining: 250, addOnRemaining: 0)]
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(store.todayRealConsumption ?? -1, 50, accuracy: 0.001, "前置条件：当天已产生 50 消耗")
+
+        day = day.addingTimeInterval(86_400)   // 恰好 24 小时后必然跨到下一个日历日
+        prober.result = [QoderAccountQuota(userId: "user-1", planRemaining: 250, addOnRemaining: 0)]
+        await store.refreshPoolQuotas()
+        XCTAssertEqual(store.dailyBaselineRemaining ?? 0, 250, accuracy: 0.001, "隔天第一次探测应把当时余额当作新基准线，不带昨天的账")
+        XCTAssertEqual(store.todayRealConsumption ?? -1, 0, accuracy: 0.001, "新的一天刚开始，消耗应归零重算")
+    }
+
+    /// App 重启（新实例、同一份 UserDefaults）不能把当天已建立的基准线弄丢，否则「今日真实消耗」
+    /// 每次重启都会清零重来，跟用户预期的"今天一共花了多少"不符。
+    @MainActor
+    func testDailyBaselinePersistsAcrossStoreInstances() async {
+        let defaults = uniqueDefaults()
+        let prober = FakeQuotaProberStub(result: [
+            QoderAccountQuota(userId: "user-1", planRemaining: 300, addOnRemaining: 0),
+        ])
+        let first = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober, defaults: defaults)
+        await first.refreshPoolQuotas()
+        XCTAssertEqual(first.dailyBaselineRemaining ?? 0, 300, accuracy: 0.001)
+
+        prober.result = [QoderAccountQuota(userId: "user-1", planRemaining: 270, addOnRemaining: 0)]
+        let revived = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober, defaults: defaults)
+        XCTAssertEqual(revived.dailyBaselineRemaining ?? 0, 300, accuracy: 0.001, "新实例初始化时应从 UserDefaults 读回当天已建立的基准线")
+        await revived.refreshPoolQuotas()
+        XCTAssertEqual(revived.todayRealConsumption ?? -1, 30, accuracy: 0.001, "重启后消耗继续按同一基准线算，不能清零重来")
+    }
 }

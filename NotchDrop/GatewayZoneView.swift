@@ -90,7 +90,7 @@ struct GatewayZoneView: View {
             )
             metricCell(
                 title: "今日 credits",
-                value: isRunning && !store.isQuotaStale ? String(format: "%.2f", store.today.credits) : "--",
+                value: todayCreditsText,
                 unit: ""
             )
             metricCell(
@@ -118,6 +118,15 @@ struct GatewayZoneView: View {
     private var poolTotalText: String {
         guard showPoolTotal, let total = store.poolTotalRemaining else { return "--" }
         return "\(Int(total))"
+    }
+
+    /// 「今日 credits」显示的是真实消耗（当天第一次探测到的余额基准线 − 当前余额），不是日志里
+    /// 逐条 `credits=` 字段的累加值——后者是网关按公式算的名义值，实测与真实余额变化完全不成比例
+    /// （2026-09-22 装机版：名义累加 331.31，真实余额全天只动了 3 个 credits），并排展示会误导。
+    /// 基准线要等当天第一次探测成功才建立，探测本身也不受 isQuotaStale 影响（同 `poolTotalText`）。
+    private var todayCreditsText: String {
+        guard let consumption = store.todayRealConsumption else { return "--" }
+        return String(format: "%.2f", consumption)
     }
 
     private func metricCell(title: String, value: String, unit: String) -> some View {

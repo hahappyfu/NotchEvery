@@ -176,6 +176,48 @@ final class QoderStore: ObservableObject {
         poolQuotas.isEmpty ? nil : poolQuotas.reduce(0) { $0 + $1.totalRemaining }
     }
 
+    /// 当天第一次探测到全池余额时记下的快照，作为「今日真实消耗」的基准线。
+    /// 持久化到 UserDefaults（Key 带当天日期），App 重启同一天内不重置，隔天自然换新基准线
+    /// （跟 `QoderCampaignClaimer` 的按天隔离同一套路，不额外写清理逻辑）。
+    @Published private(set) var dailyBaselineRemaining: Double?
+
+    /// 今日真实消耗 = 当天基准线 − 当前全池剩余，钳到不小于 0。
+    /// 之所以单独算这个而不是复用 `today.credits`（日志里逐条 `credits=` 字段的累加）：
+    /// 那个字段是网关按公式算出来的「名义值」，实测与账号真实余额变化完全不成比例
+    /// （2026-09-22 装机版实测：名义累加 331.31，真实余额全天只动了 3 个 credits），
+    /// 拿去跟「剩余额度」并排展示会误导用户以为那是真实扣费。这里改用两次真实余额探测做差。
+    var todayRealConsumption: Double? {
+        guard let baseline = dailyBaselineRemaining, let current = poolTotalRemaining else { return nil }
+        return max(0, baseline - current)
+    }
+
+    /// 每次探测到新余额后调用：当天第一次探测建立基准线；之后如果余额不降反升（充值/每日
+    /// 重置到账），把基准线抬到新高点，避免「消耗」被算成负数后长期显示 0、看不到真实下降。
+    private func updateDailyBaselineIfNeeded(currentTotal: Double?) {
+        guard let currentTotal else { return }
+        let key = Self.dailyBaselineKey(now())
+        let stored = defaults.dictionary(forKey: key)
+        if stored == nil {
+            // 当天第一次探测到数据：建立基准线。
+            persistDailyBaseline(currentTotal)
+            return
+        }
+        guard let baseline = stored?["remaining"] as? Double else { return }
+        if currentTotal > baseline {
+            persistDailyBaseline(currentTotal)
+        }
+    }
+
+    private func persistDailyBaseline(_ value: Double) {
+        let key = Self.dailyBaselineKey(now())
+        defaults.set(["remaining": value, "date": Self.dayString(now())], forKey: key)
+        dailyBaselineRemaining = value
+    }
+
+    private static func dailyBaselineKey(_ date: Date) -> String {
+        "QoderStore_dailyBaselineRemaining_\(dayString(date))"
+    }
+
     /// 测试可见：objectWillChange 发射计数，验证发布去重。
     private(set) var objectWillChangeCountForTest = 0
 
@@ -192,20 +234,34 @@ final class QoderStore: ObservableObject {
     private var quotaTimerTask: Task<Void, Never>?
     private var logTailerCursor = QoderLogTailer.Cursor()
     private var aggregator = QoderAggregator()
+    /// 当天余额基准线持久化位置（与 `QoderCampaignClaimer` 的按天隔离同一套路，测试注入独立 suite 隔离）。
+    private let defaults: UserDefaults
+    /// 注入时钟，测试「隔天自然换新基准线」用；生产走 `Date.init`。
+    private let now: () -> Date
 
     init(port: Int? = nil,
          transport: QoderHTTPTransport = URLSessionQoderTransport(),
          authKeysFile: URL? = nil,
-         quotaProber: any QoderPoolQuotaProbing = QoderPoolQuotaProber.shared) {
+         quotaProber: any QoderPoolQuotaProbing = QoderPoolQuotaProber.shared,
+         defaults: UserDefaults? = nil,
+         now: @escaping () -> Date = Date.init) {
         self.port = port ?? QoderGatewayManager.configuredPort
         self.transport = transport
         self.quotaProber = quotaProber
+        self.defaults = defaults ?? .standard
+        self.now = now
         if let k = authKeysFile {
             self.authKeysFile = k
         } else {
             let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
                 ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
             self.authKeysFile = base.appendingPathComponent("NotchEvery/qoder-gateway/authkeys")
+        }
+        // 冷启动先读回当天已持久化的基准线：没有这一步，App 每次重启都会把「今日真实消耗」
+        // 清零重算，跟「今日请求/今日 credits」那种日志累加口径不一样，重启不该丢历史。
+        if let stored = self.defaults.dictionary(forKey: Self.dailyBaselineKey(self.now())),
+           let baseline = stored["remaining"] as? Double {
+            self.dailyBaselineRemaining = baseline
         }
         // 追踪自身发布次数用于去重断言
         _ = objectWillChange.sink { [weak self] in self?.objectWillChangeCountForTest += 1 }
@@ -385,6 +441,7 @@ final class QoderStore: ObservableObject {
         guard let quotas = await self.quotaProber.probeAll() else { return }
         await Task { @MainActor in
             publishIfChanged(\.poolQuotas, quotas)
+            updateDailyBaselineIfNeeded(currentTotal: poolTotalRemaining)
         }.value
     }
 
