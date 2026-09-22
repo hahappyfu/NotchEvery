@@ -95,7 +95,8 @@ final class QoderCampaignClaimer {
     /// 当天去重存储（UserDefaults 持久化，App 重启不重复刷；测试可注入独立 suite 隔离）
     private let defaults: UserDefaults
     private let now: () -> Date
-    /// 本类不是 actor 隔离的，且 claimAllOncePerDay() 由 Task.detached 在后台线程发起，
+    /// 本类不是 actor 隔离的，且 claimAll() 由 Task.detached 在后台线程发起（QoderStore.runCampaignClaim /
+    /// AppDelegate 冷启动巡检），
     /// 多个 detached Task 可能真正并行进入这里，故标志位必须加锁访问，不能用裸 Bool（数据竞争）。
     /// 复用仓库既有的 UnfairLock（SignalPipeline.swift）。
     private let stateLock = UnfairLock()
@@ -275,12 +276,6 @@ final class QoderCampaignClaimer {
         return outcomes
     }
 
-    /// 兼容既有调用点（AppDelegate 冷启动、QoderStore 15s 轮询与 start()）：语义与 `claimAll()` 完全一致——
-    /// 「每天一次」从来不是靠额外标志位实现的，而是靠上面按账号当天去重，故直接转发，避免两份实现漂移。
-    func claimAllOncePerDay() async {
-        _ = await claimAll()
-    }
-
     // MARK: 签到状态查询与持久化
 
     /// 当天全部账号的签到结果快照（Key = userId）。跨天时自然变为空字典（读的是新一天的 Key）。
@@ -288,9 +283,41 @@ final class QoderCampaignClaimer {
         outcomesLock.withLock { syncedDailyOutcomesLocked() }
     }
 
-    /// 单号签到状态文案，供 Orb tooltip 与列表共用。当天无记录 = 待签到。
+    /// 单号签到状态文案。当天无记录 = 待签到。
+    /// - Parameter userId: **凭证文件里的完整 userId**。UI 侧拿到的多半是网关的脱敏串
+    ///   （`01a**…**057`），传那个请用 `statusDescription(forOrbId:amongAllOrbs:)`。
     func statusDescription(for userId: String) -> String {
         Self.statusText(for: dailyOutcomes[userId])
+    }
+
+    /// 同上，但入参是 Orb 侧 id（可能是脱敏串），并带整屏 Orb 做歧义保护。QoderPoolRingView tooltip 用这条。
+    func statusDescription(forOrbId orbId: String, amongAllOrbs orbIds: [String]) -> String {
+        Self.statusText(forOrbId: orbId, amongAllOrbs: orbIds, in: dailyOutcomes)
+    }
+
+    /// Orb 侧 id → 当日签到结果。
+    ///
+    /// 为什么不能直接查字典：签到结果的 Key 是凭证文件里的**完整 UUID**，而 UI 侧 Orb 的 id 是网关
+    /// `/v1/pool/status` 返回的**脱敏串**，两者永远不相等 —— 与「Orb 余额恒 `--`」是同一个坑
+    /// （详见 `QoderPoolIdMatcher` 头注释），故复用它的 `matches` 做前后缀匹配。
+    /// 口径同样严格：**任何歧义一律判不可确定返回 nil**（UI 降级为「待签到」），绝不张冠李戴。
+    static func outcome(forOrbId orbId: String,
+                        amongAllOrbs orbIds: [String],
+                        in outcomes: [String: QoderClaimOutcome]) -> QoderClaimOutcome? {
+        let hits = outcomes.keys.filter { QoderPoolIdMatcher.matches(orbId: orbId, quotaId: $0) }
+        // 命中 Key 天然互异（字典键），故 0 个 = 无记录、>1 个 = 歧义，都判不可确定。
+        guard hits.count == 1, let only = hits.first else { return nil }
+        // 反向保护：同一个 Key 被整屏里多个 Orb 认领时，说明这几个 Orb 无法区分，同样不猜。
+        let owners = orbIds.filter { QoderPoolIdMatcher.matches(orbId: $0, quotaId: only) }.count
+        guard owners <= 1 else { return nil }
+        return outcomes[only]
+    }
+
+    /// UI 入口：给单个 Orb 出文案（形状对齐 `QoderPoolIdMatcher.quota(for:amongAllOrbs:in:)`）。
+    static func statusText(forOrbId orbId: String,
+                           amongAllOrbs orbIds: [String],
+                           in outcomes: [String: QoderClaimOutcome]) -> String {
+        statusText(for: outcome(forOrbId: orbId, amongAllOrbs: orbIds, in: outcomes))
     }
 
     /// 「今日签到: x/y」的分子口径：claimed 与 alreadyClaimed 都算今天拿到过。
@@ -342,9 +369,17 @@ final class QoderCampaignClaimer {
         }
     }
 
+    /// 日期 Key 专用格式器：`yyyy-MM-dd` + en_US_POSIX（不受用户地区/日历设置影响），配置在初始化后
+    /// 不再改动，故可静态复用，免去每次访问签到状态都新建一个 DateFormatter。
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
     private static func dayString(_ d: Date) -> String {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
-        return f.string(from: d)
+        dayFormatter.string(from: d)
     }
 }
 

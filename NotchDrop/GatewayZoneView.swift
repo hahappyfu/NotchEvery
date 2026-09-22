@@ -14,10 +14,6 @@ struct GatewayZoneView: View {
     @StateObject var vm: NotchViewModel
     @ObservedObject var manager = QoderGatewayManager.shared
     @ObservedObject var store = QoderStore.shared
-    /// 「一键签到」进行中标志：签到要跑完整一轮网络巡检（账号数 × GET/POST），耗时不短，
-    /// 用本地状态把按钮置灰并给出文案反馈；同时它也是收尾后让这一行重算的驱动源
-    /// （QoderCampaignClaimer 不是 ObservableObject，见其类内注释）。
-    @State private var isClaimingCredits = false
 
     var body: some View {
         VStack(spacing: 10) {
@@ -193,29 +189,28 @@ struct GatewayZoneView: View {
     }
 
     /// 页脚第二行：今日 credits 签到进度 + 一键签到入口。签到走本地账号池凭证文件，与网关在不在跑无关，
-    /// 故不受 isRunning 门控。分子口径（claimed + alreadyClaimed）由 claimer 的纯函数统一裁决；
+    /// 故不受 isRunning 门控。数据源是 `store.claimOutcomes`（不是直读 claimer）：这样后台静默巡检
+    /// 一完成就能靠 ObservableObject 自动刷新，不必等下一个额度轮询周期。
     /// 分母优先用网关回填的成员数，未回填时退回当日已有记录的账号数，避免出现「已领 2 / 共 0」的自相矛盾。
     private var dailyClaimRow: some View {
-        let outcomes = QoderCampaignClaimer.shared.dailyOutcomes
+        let outcomes = store.claimOutcomes
         let claimed = QoderCampaignClaimer.claimedCount(in: outcomes)
         let total = max(store.poolMembers.count, outcomes.count)
+        let claiming = store.isClaimingCampaignCredits
         return HStack(spacing: 8) {
             Text("今日签到: \(claimed)/\(total)")
                 .font(.system(size: 10.5))
                 .foregroundStyle(Color.white.opacity(0.45))
             Spacer()
-            Button(isClaimingCredits ? "签到中…" : "一键签到") {
-                isClaimingCredits = true
-                Task {
-                    _ = await QoderCampaignClaimer.shared.claimAll()
-                    await store.refreshPoolQuotas()
-                    isClaimingCredits = false
-                }
+            Button(claiming ? "签到中…" : "一键签到") {
+                // 进行中标志位与整轮签到都在 store 里（QoderStore 是 @MainActor ObservableObject）：
+                // View 的计算属性不保证 MainActor 隔离，把状态写回放这儿才不会落到非主线程执行器。
+                Task { await store.triggerManualCampaignClaim() }
             }
             .buttonStyle(.plain)
             .font(.system(size: 10.5, weight: .medium))
-            .foregroundStyle(isClaimingCredits ? Color.white.opacity(0.45) : StudioColor.emerald)
-            .disabled(isClaimingCredits)
+            .foregroundStyle(claiming ? Color.white.opacity(0.45) : StudioColor.emerald)
+            .disabled(claiming)
         }
     }
 }

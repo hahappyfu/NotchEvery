@@ -332,14 +332,22 @@ struct QoderPoolRingView: View {
         QoderPoolIdMatcher.quota(for: userId, amongAllOrbs: orbIds, in: store.poolQuotas)
     }
 
+    /// 该 Orb 的当日签到文案。数据源取 `store.claimOutcomes`（随 ObservableObject 自动刷新），
+    /// 且必须走 claimer 的 Orb 版解析：签到结果的 Key 是凭证文件里的完整 UUID，而这里传进来的
+    /// `m.userId` 是网关 `/v1/pool/status` 的**脱敏串**，直接查字典永远 miss → tooltip 会恒显「待签到」
+    /// （与「Orb 余额恒 `--`」同一个坑，口径与歧义剔除详见 QoderPoolIdMatcher 头注释）。
+    private func claimStatus(for orbId: String) -> String {
+        QoderCampaignClaimer.statusText(forOrbId: orbId, amongAllOrbs: orbIds, in: store.claimOutcomes)
+    }
+
     private func tooltip(_ m: QoderPoolMember?) -> String {
         guard let m else { return "" }
         var s = "\(m.userId)\n来源: \(m.source)"
         s += "\n状态: \(m.cooled ? "冷却中" : "活跃") · 探针\(m.lastProbeOK ? "通过" : "未通过/未探")"
         if let q = quota(for: m.userId) { s += "\n余额 \(Int(q.totalRemaining)) credits" }
         if let t = m.lastUsedAt { s += "\n最近使用: \(t.formatted(date: .omitted, time: .shortened))" }
-        // 每日 credits 签到状态：读 claimer 当天快照，无记录即「待签到」。
-        s += "\n今日签到: \(QoderCampaignClaimer.shared.statusDescription(for: m.userId))"
+        // 每日 credits 签到状态：按脱敏 Orb id 解析到完整 UUID 的结果，无记录 / 歧义均降级为「待签到」。
+        s += "\n今日签到: \(claimStatus(for: m.userId))"
         return s
     }
 }

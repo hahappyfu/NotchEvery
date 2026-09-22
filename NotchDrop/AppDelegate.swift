@@ -39,10 +39,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         determineIfProcessIdentifierMatches()
 
         // 设计规范要求的「App 启动即异步巡检一次」：不能依赖用户是否打开过网关分区页面
-        // （QoderStore.start() 只在 GatewayZoneView.onAppear 时才被调用）。claimAllOncePerDay()
-        // 内部按账号当天去重 + in-flight 守卫，重复触发无副作用。
+        // （QoderStore.start() 只在 GatewayZoneView.onAppear 时才被调用）。claimAll() 内部按账号
+        // 当天去重 + in-flight 守卫，重复触发无副作用；走 store 是为了结果能顺手回填 claimOutcomes。
         Task.detached(priority: .background) {
-            await QoderCampaignClaimer.shared.claimAllOncePerDay()
+            await QoderStore.shared.runCampaignClaim()
         }
 
         // 同上先例：全池额度也「App 启动即探测一次」，不依赖用户是否打开过网关分区（QoderStore.start()

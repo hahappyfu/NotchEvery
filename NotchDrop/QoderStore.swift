@@ -147,6 +147,15 @@ final class QoderStore: ObservableObject {
     /// 手动刷新（第三页账号池「刷新」按钮）进行中的标志位，仅用于按钮自身置灰/转圈反馈；
     /// 不互斥定时轮询——底层 prober 自带 in-flight 守卫，两路并发探测本身就不会打架。
     @Published private(set) var isProbingPoolQuotas: Bool = false
+    /// 当日各账号的 credits 签到结果（Key = 凭证文件里的完整 userId），由 `runCampaignClaim()` 从
+    /// QoderCampaignClaimer 回填。放这儿而不是让 UI 直读 claimer，是因为 claimer 不是 ObservableObject
+    /// （网络巡检跑在 detached 后台任务里，见其类内注释），后台静默领取完成后没人发布变化 ——
+    /// 走 @Published 才能让「今日签到 x/y」与各 Orb tooltip 不用等下一个额度轮询周期就自动刷新。
+    @Published private(set) var claimOutcomes: [String: QoderClaimOutcome] = [:]
+    /// 「一键签到」进行中的标志位，仅供按钮置灰/换文案（与 `isProbingPoolQuotas` 同一设计）。
+    /// 收在 store 而不是 View 的 @State：View 的计算属性不保证 MainActor 隔离，
+    /// 在按钮里 `Task {}` 中写 @State 会落到非主线程执行器上。
+    @Published private(set) var isClaimingCampaignCredits: Bool = false
 
     /// 全池剩余额度合计；空数组表示「还没探测到任何数据」而非「真的是 0」，故返回 nil 供 UI 显示 --。
     var poolTotalRemaining: Double? {
@@ -197,11 +206,15 @@ final class QoderStore: ObservableObject {
         RunLoop.main.add(t, forMode: .common)
         timer = t
         storeLog.info("QoderStore started, interval 15s, port \(self.port)")
+        // 面板打开先拿 claimer 当天已持久化的结果占位：冷启动时后台巡检还要几秒才回得来，
+        // 少了这一步「今日签到 x/y」与 tooltip 会先空一帧显示成全员待签到。
+        publishIfChanged(\.claimOutcomes, QoderCampaignClaimer.shared.dailyOutcomes)
         // 只要 start() 被调用（不管是不是因为面板打开才调用的），就无条件异步发起一次每日巡检，
         // 保证 App 生命周期内至少尝试过一次自动领取，不完全依赖 refresh() 的轮询节奏。
-        // claimAllOncePerDay() 内部按账号当天去重，重复触发无副作用；detached + 不阻塞主线程。
-        Task.detached(priority: .background) {
-            await QoderCampaignClaimer.shared.claimAllOncePerDay()
+        // claimAll() 内部按账号当天去重，重复触发无副作用；detached + 不阻塞主线程。
+        Task.detached(priority: .background) { [weak self] in
+            guard let store = self else { return }
+            await store.runCampaignClaim()
         }
         // 启动即异步探测一次全池额度，不等第一次 refresh 轮询节奏。
         Task.detached(priority: .background) { [weak self] in
@@ -236,6 +249,30 @@ final class QoderStore: ObservableObject {
         await refreshPoolQuotas()
     }
 
+    /// 第三页「一键签到」按钮手动触发一轮 credits 签到。与 `triggerManualQuotaRefresh()` 同款设计：
+    /// 标志位只为按钮自身的置灰/换文案反馈，真正防并发的是 claimer 内部的 in-flight 守卫 +
+    /// 按账号当天去重（连点、或与后台静默巡检撞车都不会重复发请求）。
+    /// 收尾再刷一次全池额度：签到本身会改余额，不刷就要等 60s 才能在卡上看出来。
+    func triggerManualCampaignClaim() async {
+        guard !isClaimingCampaignCredits else { return }
+        isClaimingCampaignCredits = true
+        defer { isClaimingCampaignCredits = false }
+        await runCampaignClaim()
+        await refreshPoolQuotas()
+    }
+
+    /// 驱动一轮签到并把结果回填 `claimOutcomes`，返回结果字典（按钮侧不关心，自动巡检侧便于直接取用）。
+    /// nonisolated：与 `refreshPoolQuotas()` 同一套路 —— 整轮巡检是「账号数 × GET/POST 超时」的网络活，
+    /// 不能压在 MainActor 上；回填切回 MainActor 写 @Published，避免跨隔离数据竞争。
+    @discardableResult
+    nonisolated func runCampaignClaim() async -> [String: QoderClaimOutcome] {
+        let outcomes = await QoderCampaignClaimer.shared.claimAll()
+        await Task { @MainActor in
+            publishIfChanged(\.claimOutcomes, outcomes)
+        }.value
+        return outcomes
+    }
+
     /// 供单测直接驱动一次刷新（gatewayUp 注入脱离全局 shared）。
     func refreshNow(gatewayUp: Bool = true) async {
         await fetchQuotaAndPool(gatewayUp: gatewayUp)
@@ -255,9 +292,10 @@ final class QoderStore: ObservableObject {
             await fetchQuotaAndPool()
             if let url = logURL { updateUsageFromLog(url: url) }
             // 顺带静默触发一次每日 Credits 自动领取（内部按账号去重，当天重复调用无副作用）。
-            // 独立 Task + try? 兜底：领取逻辑任何异常都不能影响上面的 quota/pool 刷新主流程。
-            Task.detached(priority: .background) {
-                await QoderCampaignClaimer.shared.claimAllOncePerDay()
+            // 独立 detached Task：领取逻辑任何异常/耗时都不能影响上面的 quota/pool 刷新主流程。
+            Task.detached(priority: .background) { [weak self] in
+                guard let store = self else { return }
+                await store.runCampaignClaim()
             }
             // 顺带异步探测一次全池额度；prober 自带 in-flight 守卫，15s 轮询节奏下若上一轮还没跑完会自动跳过。
             Task.detached(priority: .background) { [weak self] in

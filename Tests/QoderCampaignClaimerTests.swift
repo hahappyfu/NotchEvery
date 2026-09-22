@@ -168,7 +168,7 @@ final class QoderCampaignClaimerTests: XCTestCase {
         let d = uniqueDefaults()
         let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
 
-        await claimer.claimAllOncePerDay()
+        await claimer.claimAll()
 
         // user-2 应该正常走完 GET+POST 两步
         XCTAssertTrue(t.calls.contains { $0.method == "POST" && $0.headers["Authorization"] == "Bearer tok-good" },
@@ -180,7 +180,7 @@ final class QoderCampaignClaimerTests: XCTestCase {
         // 再跑一次：user-2 已标记今天处理过，不应再次触发任何针对 tok-good 的请求
         let goodCallsAfterFirstRun = t.calls.filter { $0.headers["Authorization"] == "Bearer tok-good" }.count
         XCTAssertEqual(goodCallsAfterFirstRun, 2)   // GET + POST
-        await claimer.claimAllOncePerDay()
+        await claimer.claimAll()
         XCTAssertEqual(t.calls.filter { $0.headers["Authorization"] == "Bearer tok-good" }.count, goodCallsAfterFirstRun,
                        "当天已处理过的账号不应再次发起请求")
     }
@@ -192,11 +192,11 @@ final class QoderCampaignClaimerTests: XCTestCase {
         t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
         let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: uniqueDefaults())
 
-        await claimer.claimAllOncePerDay()
+        await claimer.claimAll()
         let firstRunCount = t.calls.count
         XCTAssertEqual(firstRunCount, 2)
 
-        await claimer.claimAllOncePerDay()   // 同一天第二次调用
+        await claimer.claimAll()   // 同一天第二次调用
         XCTAssertEqual(t.calls.count, firstRunCount, "当天已处理过的账号不应再次发起任何请求")
     }
 
@@ -216,7 +216,7 @@ final class QoderCampaignClaimerTests: XCTestCase {
         let d = uniqueDefaults()
         let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
 
-        await claimer.claimAllOncePerDay()
+        await claimer.claimAll()
 
         XCTAssertEqual(d.string(forKey: "qoder.campaign.claimed.user-1").map { _ in true }, true,
                        "至少有一条领取成功，应该写入今日标记")
@@ -238,7 +238,7 @@ final class QoderCampaignClaimerTests: XCTestCase {
         let d = uniqueDefaults()
         let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
 
-        await claimer.claimAllOncePerDay()
+        await claimer.claimAll()
 
         XCTAssertNil(d.string(forKey: "qoder.campaign.claimed.user-1"),
                      "全部失败不应该写入今日标记，否则当天不会重试")
@@ -254,13 +254,13 @@ final class QoderCampaignClaimerTests: XCTestCase {
         let d = uniqueDefaults()
         let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
 
-        await claimer.claimAllOncePerDay()
+        await claimer.claimAll()
         XCTAssertNil(d.string(forKey: "qoder.campaign.claimed.user-1"))
         XCTAssertEqual(t.calls.count, 1, "第一次触发只发了 GET")
 
         // 模拟活动刷新窗口到了：列表里现在有了可领项
         t.defaultCampaigns = (200, campaignsJSON([("c-new", "CLAIM_BENEFIT", "CLAIMABLE")]))
-        await claimer.claimAllOncePerDay()
+        await claimer.claimAll()
         XCTAssertNotNil(d.string(forKey: "qoder.campaign.claimed.user-1"),
                         "第二次触发时列表已有可领项，应完成领取并写入今日标记")
         XCTAssertEqual(t.calls.count, 3, "第二次触发应再发一次 GET + 一次 POST")
@@ -297,12 +297,12 @@ final class QoderCampaignClaimerTests: XCTestCase {
         let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
 
         // 第一轮：会挂在第一次 GET 上直到我们放行闸门
-        let firstTask = Task.detached { await claimer.claimAllOncePerDay() }
+        let firstTask = Task.detached { await claimer.claimAll() }
         await t.waitUntilFirstRequestArrives()
         XCTAssertEqual(t.requestCount, 1, "第一轮应已发出 GET 并被闸门挡住")
 
         // 第二轮：与第一轮真正并发，应被守卫直接跳过
-        await claimer.claimAllOncePerDay()
+        await claimer.claimAll()
         XCTAssertEqual(t.requestCount, 1, "重入的触发不应发出任何新请求")
         XCTAssertNil(d.string(forKey: "qoder.campaign.claimed.user-1"))
 
@@ -318,11 +318,11 @@ final class QoderCampaignClaimerTests: XCTestCase {
         // 故再用第二个 claimer 走一遍真正发请求的路径作为硬证据）。
         t.resetForNextRound()
         t.defaultCampaigns = (200, campaignsJSON([("c-200", "CLAIM_BENEFIT", "CLAIMABLE")]))
-        await claimer.claimAllOncePerDay()
+        await claimer.claimAll()
 
         let dir2 = try makeTempPool(accounts: [("id2", "tok-2", "mach-2", "user-2")])
         let claimer2 = QoderCampaignClaimer(transport: t, poolDirectory: dir2, defaults: d)
-        await claimer2.claimAllOncePerDay()
+        await claimer2.claimAll()
         XCTAssertEqual(t.requestCount, 4, "守卫复位后新一轮应再发 GET + POST")
         XCTAssertNotNil(d.string(forKey: "qoder.campaign.claimed.user-2"),
                         "上一轮结束后守卫必须已复位，否则后续永远不会再领取")
@@ -432,6 +432,64 @@ final class QoderCampaignClaimerTests: XCTestCase {
                       "tooltip 需以「签到失败」开头带上原因")
         XCTAssertEqual(QoderCampaignClaimer.claimedCount(in: claimer.dailyOutcomes), 0)
         XCTAssertNil(d.string(forKey: "qoder.campaign.claimed.user-1"), "失败不得写今日去重标记")
+    }
+
+    // MARK: - 审查修复 Critical-1：Orb 侧脱敏 id 必须能命中字典里的完整 UUID
+
+    /// 网关 `/v1/pool/status` 下发的 userId 是「头 3 位 + 等长星号 + 尾 3 位」的脱敏串
+    /// （实测形如 `01a************057`），而 dailyOutcomes 的 Key 是凭证文件里的完整 UUID。
+    /// 直接下标查表恒 nil → tooltip 永远谎报「待签到」，与「Orb 余额恒 `--`」同源，故必须走 matcher 口径。
+    private func masked(_ fullUserId: String) -> String {
+        let bare = fullUserId.replacingOccurrences(of: "-", with: "")
+        return String(bare.prefix(3)) + String(repeating: "*", count: bare.count - 6) + String(bare.suffix(3))
+    }
+
+    /// 纯函数层：脱敏串按前后缀命中唯一 Key；网关不脱敏（等长精确相等）时同样命中；查不到降级「待签到」。
+    func testMaskedOrbIdResolvesToFullUuidOutcome() {
+        let full = "01a0be10-1243-7afc-be98-96fdf904b057"
+        let orb = masked(full)
+        let outcomes: [String: QoderClaimOutcome] = [full: .claimed]
+
+        XCTAssertEqual(QoderCampaignClaimer.statusText(forOrbId: orb, amongAllOrbs: [orb], in: outcomes), "已领取",
+                       "脱敏 id 必须解析到完整 UUID 的记录")
+        XCTAssertEqual(QoderCampaignClaimer.statusText(forOrbId: full, amongAllOrbs: [full], in: outcomes), "已领取",
+                       "网关某天不脱敏时退化为精确相等，仍要命中")
+        XCTAssertNil(QoderCampaignClaimer.outcome(forOrbId: masked("9fe1c2d3-4455-8866-aabb-ccddeeff0099"),
+                                                  amongAllOrbs: [], in: outcomes),
+                     "头尾都对不上的 Orb 不得乱撞别人的记录")
+    }
+
+    /// 端到端：账号池凭证里的 userId 本就是完整 UUID，跑完一轮签到后（含重启后的新实例）用脱敏串查状态应命中。
+    func testMaskedOrbIdHitsRealSweepOutcomeAcrossRestart() async throws {
+        let full = "01a0be10-1243-7afc-be98-96fdf904b057"
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", full)])
+        let t = FakeCampaignTransport()
+        t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        let d = uniqueDefaults()
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
+
+        await claimer.claimAll()
+        let orb = masked(full)
+        XCTAssertEqual(claimer.statusDescription(forOrbId: orb, amongAllOrbs: [orb]), "已领取")
+
+        // 重启：新实例从同一份 UserDefaults 取回当日字典，脱敏串仍须命中
+        let revived = QoderCampaignClaimer(transport: FakeCampaignTransport(), poolDirectory: dir, defaults: d)
+        XCTAssertEqual(revived.statusDescription(forOrbId: orb, amongAllOrbs: [orb]), "已领取")
+    }
+
+    /// 歧义剔除：命中多个 Key、或同一个 Key 被整屏多个 Orb 认领，都判不可确定 → 「待签到」，绝不张冠李戴。
+    func testAmbiguousOrbIdDegradesInsteadOfGuessing() {
+        let a = "01a0be10-1243-7afc-be98-96fdf904b057"
+        let b = "01a0be10-1243-7afc-be98-96fdf999b057"   // 与 a 头尾 3 位完全相同，中段才不同
+        let orb = masked(a)
+        XCTAssertTrue(QoderPoolIdMatcher.matches(orbId: orb, quotaId: b), "先确认这俩确实互相撞")
+
+        // 一对多：两个 Key 都能命中同一个 Orb → 不敢猜
+        XCTAssertEqual(QoderCampaignClaimer.statusText(forOrbId: orb, amongAllOrbs: [orb], in: [a: .claimed, b: .nothingToClaim]),
+                       "待签到")
+        // 多对一：同一个 Key 被屏上两个 Orb 认领（一个脱敏、一个原文）→ 同样不敢猜
+        XCTAssertEqual(QoderCampaignClaimer.statusText(forOrbId: orb, amongAllOrbs: [orb, a], in: [a: .claimed]),
+                       "待签到")
     }
 }
 
