@@ -312,14 +312,55 @@ final class QoderGatewayManager: ObservableObject {
         shell("/bin/ps", ["-p", "\(pid)", "-o", "comm="]).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// stdout/stderr 共用的单一串行写入队列。两个 pipe 各有一个读循环，但落盘必须串行化：
+    /// 旧实现让两个循环各自 `FileHandle(forWritingTo:)` + `seekToEndOfFile()` + `write()`，
+    /// 两个 fd 的 seek 与 write 之间没有原子性，会互相覆写 —— 日志里出现过
+    /// `...remote u2026/09/22 16:41:39 remote warmup completed`（半截 usage 行被启动日志盖掉）
+    /// 就是这事留下的疤。
+    private static let logWriteQueue = DispatchQueue(label: "com.hahappyfu.NotchEvery.gateway-log-writer")
+    /// 以 O_APPEND 打开的日志句柄：内核保证每次 write 原子追加到末尾，不需要也不能自己 seek。
+    private var logWriteHandle: FileHandle?
+
+    /// 惰性打开（不 truncate）日志文件。失败返回 nil，由调用方决定重试。
+    private func ensureLogHandle(_ url: URL) {
+        guard logWriteHandle == nil else { return }
+        let fd = open(url.path, O_WRONLY | O_CREAT | O_APPEND, 0o644)
+        guard fd >= 0 else { return }
+        logWriteHandle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+    }
+
+    /// 把一个子进程输出管道持续排干到日志文件，直到写端关闭（进程退出）为止。
+    ///
+    /// 旧实现是 `try? handle.read(upToCount:) ?? Data()` 然后 `if data.isEmpty { break }`：
+    /// 一次瞬时读错误（被 `try?` 吞成 nil）或一次暂时无数据，都会让循环**永久退出**。
+    /// 后果不止是日志丢失 —— 管道缓冲区（16KB）写满后，Go 进程下一次 `log.Printf` 会阻塞，
+    /// 整个网关卡死，客户端只看到连接被取消（真机表现：日志停在某行半截处，重启 App 也刷不出来）。
+    /// 这里改用 POSIX read + 显式 errno 分支：EAGAIN/EINTR 小睡重试，只有真 EOF（read==0）才收工。
     private func drain(_ handle: FileHandle, to url: URL) {
-        DispatchQueue.global(qos: .background).async {
+        let fd = handle.fileDescriptor
+        // 设为非阻塞，让「暂时没数据」能以 EAGAIN 显式返回，而不是被当成结束信号。
+        let flags = fcntl(fd, F_GETFL, 0)
+        if flags >= 0 { _ = fcntl(fd, F_SETFL, flags | O_NONBLOCK) }
+
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self else { return }
+            Self.logWriteQueue.sync { self.ensureLogHandle(url) }
+
+            var buf = [UInt8](repeating: 0, count: 65536)
             while true {
-                let data = (try? handle.read(upToCount: 4096)) ?? Data()
-                if data.isEmpty { break }
-                if let fh = try? FileHandle(forWritingTo: url) {
-                    fh.seekToEndOfFile(); fh.write(data); try? fh.close()
+                let n = read(fd, &buf, buf.count)
+                if n > 0 {
+                    let chunk = Data(buf[0..<n])
+                    Self.logWriteQueue.sync { self.logWriteHandle?.write(chunk) }
+                    continue
                 }
+                if n == 0 { return }                    // 真 EOF：写端已关闭，子进程退出
+                if errno == EINTR { continue }          // 被信号打断，立刻重试
+                if errno == EAGAIN || errno == EWOULDBLOCK {
+                    usleep(20_000)                      // 暂时没数据，小睡后重试，绝不退出
+                    continue
+                }
+                usleep(100_000)                         // 其它瞬时错误同样重试而非放弃
             }
         }
     }

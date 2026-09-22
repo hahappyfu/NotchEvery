@@ -1046,6 +1046,12 @@ func (c *Client) Chat(ctx context.Context, request ChatRequest, onDelta func(Str
 			if verdict == VerdictSwitch && attempt < maxSwitches {
 				continue
 			}
+			// Propagated (no switch): the account is fine, the request isn't.
+			// Log it anyway — an earlier revision returned here silently, and a
+			// client-side 400 then left NO trace in the log at all, which made
+			// "why does model X fail?" unanswerable from the gateway's own output.
+			log.Printf("[client] upstream rejected %s on user %s (status %d, no switch): %v",
+				strings.TrimSpace(request.Model), maskIdentifier(cred.UserID), resp.StatusCode, lastErr)
 			return nil, lastErr
 		}
 
@@ -1106,6 +1112,10 @@ func (c *Client) Chat(ctx context.Context, request ChatRequest, onDelta func(Str
 						maskIdentifier(cred.UserID), attempt+1, maxSwitches, err)
 					continue
 				}
+				// Propagated: account stays healthy, request was bad. Still log it
+				// so a failing model is diagnosable from the gateway's own output.
+				log.Printf("[client] upstream rejected %s on user %s via SSE (status %d, no switch): %v",
+					strings.TrimSpace(request.Model), maskIdentifier(cred.UserID), sseStatus, err)
 			}
 			return nil, err
 		}

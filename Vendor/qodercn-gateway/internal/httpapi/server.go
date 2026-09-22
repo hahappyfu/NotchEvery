@@ -1532,9 +1532,17 @@ func normalizeAnthropicRequest(req anthropicRequest) (service.ChatRequest, error
 		case "user":
 			text, toolResults := extractAnthropicUserContent(message.Content)
 			images := extractAnthropicImages(message.Content)
-			if text != "" || len(images) > 0 {
-				messages = append(messages, service.ChatMessage{Role: role, Text: text, Images: images})
-			}
+			// Tool results MUST be emitted before any text from the same turn.
+			// OpenAI-shaped upstreams (DeepSeek in particular) require the tool
+			// messages to immediately follow the assistant message carrying the
+			// matching tool_calls; a role:"user" text message wedged in between
+			// breaks that adjacency and the upstream rejects the whole request with
+			// "An assistant message with 'tool_calls' must be followed by tool
+			// messages responding to each 'tool_call_id'". Anthropic clients
+			// legitimately put text and tool_result blocks in ONE user turn (Claude
+			// Desktop/Code do this constantly), so emitting text first made every
+			// such request fail on DeepSeek while working on more lenient backends
+			// (Qwen3.8-Flash tolerates it). Text goes after the tool turns.
 			for _, tr := range toolResults {
 				text := tr.Content
 				if tr.IsError {
@@ -1550,6 +1558,9 @@ func normalizeAnthropicRequest(req anthropicRequest) (service.ChatRequest, error
 					text = "(no output)" // keep the tool turn paired with its tool_use
 				}
 				messages = append(messages, service.ChatMessage{Role: "tool", Text: text, ToolCallID: tr.ToolUseID, Images: tr.Images})
+			}
+			if text != "" || len(images) > 0 {
+				messages = append(messages, service.ChatMessage{Role: role, Text: text, Images: images})
 			}
 		case "assistant":
 			text, reasoning, calls := extractAnthropicAssistantContent(message.Content)
