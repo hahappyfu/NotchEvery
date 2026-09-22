@@ -114,10 +114,10 @@ struct GatewayZoneView: View {
     }
 
     /// 全池合计来自直连探测（QoderPoolQuotaProber），不依赖网关元数据轮询，故不受 isQuotaStale 影响；
-    /// 仅在网关未运行（数据无意义）或尚未探测到任何账号时显示 --。
+    /// 仅在网关未运行（数据无意义）、尚未探测到任何账号、或合计为非法浮点（NaN/±∞/超界）时显示 --。
     private var poolTotalText: String {
         guard showPoolTotal, let total = store.poolTotalRemaining else { return "--" }
-        return "\(Int(total))"
+        return total.safeCreditsText
     }
 
     /// 「今日 credits」显示的是真实消耗（当天第一次探测到的余额基准线 − 当前余额），不是日志里

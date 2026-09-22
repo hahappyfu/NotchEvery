@@ -312,10 +312,10 @@ struct QoderPoolRingView: View {
     }
 
     /// 环下方余额小字：显示该号剩余额度（Int 取整，与顶部卡口径一致）。
-    /// 未探测到余额时显示占位「--」并保留等高占位，避免各 Orb 高度不齐。
+    /// 未探测到余额、或浮点为非法值（NaN/±∞/超界）时显示占位「--」并保留等高占位，避免各 Orb 高度不齐。
     @ViewBuilder
     private func balanceLabel(for userId: String) -> some View {
-        let text = quota(for: userId).map { "\(Int($0.totalRemaining))" } ?? "--"
+        let text = quota(for: userId)?.totalRemaining.safeCreditsText ?? "--"
         Text(text)
             .font(.system(size: 9, weight: .medium).monospacedDigit())
             .foregroundStyle(Color.white.opacity(userId == stickyId ? 0.85 : 0.5))
@@ -344,7 +344,7 @@ struct QoderPoolRingView: View {
         guard let m else { return "" }
         var s = "\(m.userId)\n来源: \(m.source)"
         s += "\n状态: \(m.cooled ? "冷却中" : "活跃") · 探针\(m.lastProbeOK ? "通过" : "未通过/未探")"
-        if let q = quota(for: m.userId) { s += "\n余额 \(Int(q.totalRemaining)) credits" }
+        if let q = quota(for: m.userId) { s += "\n余额 \(q.totalRemaining.safeCreditsText) credits" }
         if let t = m.lastUsedAt { s += "\n最近使用: \(t.formatted(date: .omitted, time: .shortened))" }
         // 每日 credits 签到状态：按脱敏 Orb id 解析到完整 UUID 的结果，无记录 / 歧义均降级为「待签到」。
         s += "\n今日签到: \(claimStatus(for: m.userId))"

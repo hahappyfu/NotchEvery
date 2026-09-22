@@ -270,7 +270,7 @@ final class QoderGatewayManager: ObservableObject {
                 QoderStore.shared.refresh(logURL: self.gatewayLogURL)
             }
         } else {
-            self.terminate(pid: p.processIdentifier)
+            self.terminate(process: p)
             self.failCrash("启动超时（20s 未监听 \(self.port)）")
         }
     }
@@ -283,19 +283,50 @@ final class QoderGatewayManager: ObservableObject {
         stdinWriteEnd?.closeFile()
         stdinWriteEnd = nil
         if let p = process, p.isRunning {
-            terminate(pid: p.processIdentifier)
+            terminate(process: p)
         } else {
             _ = sm.markStopped(); publishState()
             QoderStore.shared.resetToOffline()
         }
     }
 
-    /// SIGTERM，3s 未退 SIGKILL。
+    /// SIGTERM，3s 内未见退出事件才补 SIGKILL。
     private func terminate(pid: Int32) {
+        watchExitThenEscalate(pid: pid)
         kill(pid, SIGTERM)
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 3) {
-            if kill(pid, 0) == 0 { kill(pid, SIGKILL) }
+    }
+
+    /// 持有 Process 对象时优先让 Foundation 亲自发终止信号（进程归属与收尸都由它跟踪）。
+    /// 退出监听与 SIGKILL 兜底同 pid 版：`isRunning` 为真意味着尚未被 Foundation 收尸，
+    /// 此时 pid 绝不会被内核复用（僵尸态占位），terminate() 不会打错人。
+    private func terminate(process p: Process) {
+        guard p.isRunning else { return }
+        watchExitThenEscalate(pid: p.processIdentifier)
+        p.terminate()
+    }
+
+    /// 先向内核登记该 pid 的退出监听，再安排 3s 兜底 SIGKILL：进程一退出（exit 事件即刻触发）
+    /// 就取消兜底、绝不补刀；只有 3s 期满仍无退出事件才发送 SIGKILL。
+    ///
+    /// 旧实现是「3s 后 kill(pid, 0) == 0 即 SIGKILL」：进程若在 3s 内退出，pid 可被内核复用给
+    /// 其它用户进程，此时探测到的“存活”其实是顶着同一 pid 的冒名者 —— SIGKILL 直接误杀无关进程。
+    /// process source 走内核进程事件（kqueue EVFILT_PROC），对「已退出/已收尸」的 pid 注册时
+    /// libdispatch 会立即合成一次 exit 事件（已在真机验证），不存在“退出无人知晓”而误补刀的窗口。
+    private func watchExitThenEscalate(pid: Int32) {
+        let source = DispatchSource.makeProcessSource(
+            identifier: pid, eventMask: .exit, queue: .global(qos: .utility))
+        let fallback = DispatchWorkItem {
+            // exit 事件先到、handler 尚未跑完时兜底可能已入队：isCancelled 双保险，进程已退绝不发 SIGKILL。
+            guard !source.isCancelled else { return }
+            kill(pid, SIGKILL)
+            source.cancel()
         }
+        source.setEventHandler {
+            source.cancel()   // 先翻 isCancelled（对兜底可见），再取消定时器，堵住两者之间的竞态
+            fallback.cancel()
+        }
+        source.resume()
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 3, execute: fallback)
     }
 
     /// 列出占用本端口、且可执行路径 == 内嵌网关路径的陈旧 pid。

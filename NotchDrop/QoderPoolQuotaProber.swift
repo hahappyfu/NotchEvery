@@ -22,6 +22,19 @@ struct QoderAccountQuota: Equatable {
     var totalRemaining: Double { planRemaining + addOnRemaining }
 }
 
+extension Double {
+    /// 展示用安全取整：NaN / ±∞ / 负值 / 超出 Int 范围一律回落 nil。
+    /// 上游 JSON 的余额是浮点且不可信（NaN、无界极端值都可能混进来），直接 `Int(value)`
+    /// 会触发 Swift runtime trap（整个 App 闪退）。所有余额取整必须先过这道守卫。
+    var safeCreditsInt: Int? {
+        guard isFinite, self >= 0, self < Double(Int.max) else { return nil }
+        return Int(self)
+    }
+
+    /// 安全取整后的展示文案：合法则数字，非法回落 `--`（与「未探测到」同一降级口径）。
+    var safeCreditsText: String { safeCreditsInt.map { "\($0)" } ?? "--" }
+}
+
 // MARK: - 上游响应解码
 
 /// GET https://gateway.qoder.com.cn/api/v2/quota/usage 的原始嵌套响应（权威抓包格式）。

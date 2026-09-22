@@ -274,6 +274,30 @@ final class QoderPoolQuotaProberTests: XCTestCase {
         XCTAssertEqual(third.count, 1)
         XCTAssertEqual(t.requestCount, 2, "守卫复位后新一轮应重新发请求")
     }
+
+    // MARK: - 余额浮点安全取整（防 Int(Double) runtime trap 闪退）
+
+    func testSafeCreditsIntRejectsNonFiniteNegativeAndOutOfRange() {
+        XCTAssertNil(Double.nan.safeCreditsInt, "NaN 直接 Int() 会 trap")
+        XCTAssertNil(Double.infinity.safeCreditsInt, "+∞ 直接 Int() 会 trap")
+        XCTAssertNil((-Double.infinity).safeCreditsInt, "-∞ 直接 Int() 会 trap")
+        XCTAssertNil((-1.0).safeCreditsInt, "负余额不展示")
+        XCTAssertNil(Double(Int.max).safeCreditsInt, "恰好 Double(Int.max) 已是 2^63，超出 Int 可表示上界")
+        XCTAssertNil(1e300.safeCreditsInt, "无界极端值拦截")
+    }
+
+    func testSafeCreditsIntConvertsNormalValues() {
+        XCTAssertEqual(0.0.safeCreditsInt, 0)
+        XCTAssertEqual(250.5.safeCreditsInt, 250)
+        XCTAssertEqual(400.0.safeCreditsInt, 400)
+    }
+
+    func testSafeCreditsTextFallsBackToPlaceholderOnIllegalValues() {
+        XCTAssertEqual(400.0.safeCreditsText, "400")
+        XCTAssertEqual(Double.nan.safeCreditsText, "--")
+        XCTAssertEqual(Double.infinity.safeCreditsText, "--")
+        XCTAssertEqual((-5.0).safeCreditsText, "--")
+    }
 }
 
 /// 可控闸门 transport：gateMode 下只挡整场测试的第一次 request，用于确定性地制造"两轮探测真实重叠"
