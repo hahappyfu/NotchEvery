@@ -338,6 +338,8 @@ struct QoderPoolRingView: View {
         s += "\n状态: \(m.cooled ? "冷却中" : "活跃") · 探针\(m.lastProbeOK ? "通过" : "未通过/未探")"
         if let q = quota(for: m.userId) { s += "\n余额 \(Int(q.totalRemaining)) credits" }
         if let t = m.lastUsedAt { s += "\n最近使用: \(t.formatted(date: .omitted, time: .shortened))" }
+        // 每日 credits 签到状态：读 claimer 当天快照，无记录即「待签到」。
+        s += "\n今日签到: \(QoderCampaignClaimer.shared.statusDescription(for: m.userId))"
         return s
     }
 }

@@ -5,6 +5,8 @@
 //  任务 4：Qoder「每天登录领 100 Credits」活动自动领取。扫描本地账号池凭证文件，
 //  逐个走 GET /sash/api/v1/me/campaigns + POST .../claim 两步协议（协议细节已在真实环境验证）。
 //  网络经 QoderCampaignTransport 注入（单测用假实现，绝不真联网）；单账号失败只记日志跳过，不影响其它账号。
+//  任务 3 增补：每轮结果按天留存（UserDefaults，Key 含日期 → 隔天自然重置），对外只读暴露当日状态，
+//  供第三页「今日签到 x/y + 一键签到」与各 Orb tooltip 展示。
 //
 
 import Foundation
@@ -59,7 +61,7 @@ struct QoderClaimResponse: Decodable {
     let replayed: Bool?
 }
 
-enum QoderClaimOutcome: Equatable {
+enum QoderClaimOutcome: Equatable, Codable {
     case claimed                      // 本次新领到
     case alreadyClaimed               // replayed==true，今天之前已领过，幂等，不算错误
     case nothingToClaim               // 列表里没有可领项
@@ -98,6 +100,19 @@ final class QoderCampaignClaimer {
     /// 复用仓库既有的 UnfairLock（SignalPipeline.swift）。
     private let stateLock = UnfairLock()
     private var isRunning = false
+
+    // MARK: 每日签到状态（供 UI 展示）
+    //
+    // 这里刻意不用 `@MainActor @Published`：本类不是 actor 隔离的（见上面 stateLock 的注释），
+    // 写入点全在 detached 后台任务的巡检循环里，从非隔离上下文同步写 @MainActor 存储属性是编译错误；
+    // 而把整类改成 @MainActor 会连带动到 8 个已有单测和 3 个 detached 调用点的隔离模型。
+    // 故用独立锁保护的只读快照对外暴露（与 stateLock 分开，两者互不嵌套，无死锁风险）。
+    // UI 侧由「一键签到」按钮自身的进行中状态 + QoderStore 的额度刷新驱动重算，最长滞后一个刷新周期。
+
+    private let outcomesLock = UnfairLock()
+    /// 当天签到结果的内存缓存，`dailyOutcomesCacheDay` 记录它属于哪一天，日期滚动即失效。
+    private var dailyOutcomesCache: [String: QoderClaimOutcome] = [:]
+    private var dailyOutcomesCacheDay: String?
 
     init(transport: QoderCampaignTransport = URLSessionQoderCampaignTransport(),
          poolDirectory: URL? = nil,
@@ -197,12 +212,18 @@ final class QoderCampaignClaimer {
         return newClaimCount > 0 ? .claimed : .alreadyClaimed
     }
 
-    // MARK: 每日一次主入口
+    // MARK: 每日签到主入口
 
-    /// 遍历账号池，跳过「今天已成功处理过」的账号，顺序领取（简单优先，避免给服务端并发压力）。
-    /// 只有真正领到（新领取或幂等命中）才算「今天处理过了」；`.nothingToClaim`（当前无可领项，
-    /// 可能只是还没到活动刷新窗口）和 `.failure` 都不写标记，留待下次触发重新查一遍。
-    func claimAllOncePerDay() async {
+    /// 遍历账号池跑一轮签到，返回**当天累计**的各账号签到结果快照（Key = userId）。
+    ///
+    /// 先按账号当天去重（跳过「今天已成功处理过」的号），顺序领取（简单优先，避免给服务端并发压力）；
+    /// 只有真正领到（新领取或幂等命中）才算「今天处理过了」。`.nothingToClaim`（当前无可领项，
+    /// 可能只是还没到活动刷新窗口）和 `.failure` 都不写去重标记，留待下次触发重新查一遍。
+    ///
+    /// 第三页「一键签到」按钮与 QoderStore/AppDelegate 的静默巡检共用这一条路径：正因为内部有
+    /// 当天去重 + in-flight 守卫，用户连点、或手点与后台巡检撞车都不会对同一批号重复发请求。
+    @discardableResult
+    func claimAll() async -> [String: QoderClaimOutcome] {
         // 并发守卫：refresh() 每 15s 触发一次，而单轮巡检（账号数 × GET/POST 超时）很容易超过 15s，
         // 不加守卫会叠加多个 detached Task 对同一批未标记账号重复发请求 —— 对逆向的活动接口这是
         // 最容易触发服务端风控的行为。命中重入时直接跳过本次触发，不做额外错误处理。
@@ -213,20 +234,32 @@ final class QoderCampaignClaimer {
         }
         guard shouldRun else {
             claimLog.info("claim sweep already in flight, skipping this trigger")
-            return
+            return dailyOutcomes
         }
         defer { stateLock.withLock { isRunning = QoderCampaignGuard.end() } }
 
         let accounts = scanAccounts()
         guard !accounts.isEmpty else {
             claimLog.info("no pool accounts found at \(self.poolDirectory.path), skip")
-            return
+            return dailyOutcomes
         }
         let today = Self.dayString(now())
+        var outcomes = dailyOutcomes
+        var outcomesDirty = false
         for credential in accounts {
             let key = "qoder.campaign.claimed.\(credential.userId)"
-            if defaults.string(forKey: key) == today { continue }   // 今天已处理过
+            if defaults.string(forKey: key) == today {
+                // 今天已成功处理过 → 不再发请求。老版本只有去重标记、没有当日状态字典，
+                // 这里补齐成「今日已领过」，否则 UI 会在明明已经领到的情况下谎报「待签到」。
+                if outcomes[credential.userId]?.countsAsClaimed != true {
+                    outcomes[credential.userId] = .alreadyClaimed
+                    outcomesDirty = true
+                }
+                continue
+            }
             let outcome = await claim(for: credential)
+            outcomes[credential.userId] = outcome
+            outcomesDirty = true
             switch outcome {
             case .claimed, .alreadyClaimed:
                 defaults.set(today, forKey: key)
@@ -238,6 +271,75 @@ final class QoderCampaignClaimer {
                 claimLog.warning("user \(credential.userId.prefix(8)):… failed: \(reason)")
             }
         }
+        if outcomesDirty { saveDailyOutcomes(outcomes, forDay: today) }
+        return outcomes
+    }
+
+    /// 兼容既有调用点（AppDelegate 冷启动、QoderStore 15s 轮询与 start()）：语义与 `claimAll()` 完全一致——
+    /// 「每天一次」从来不是靠额外标志位实现的，而是靠上面按账号当天去重，故直接转发，避免两份实现漂移。
+    func claimAllOncePerDay() async {
+        _ = await claimAll()
+    }
+
+    // MARK: 签到状态查询与持久化
+
+    /// 当天全部账号的签到结果快照（Key = userId）。跨天时自然变为空字典（读的是新一天的 Key）。
+    var dailyOutcomes: [String: QoderClaimOutcome] {
+        outcomesLock.withLock { syncedDailyOutcomesLocked() }
+    }
+
+    /// 单号签到状态文案，供 Orb tooltip 与列表共用。当天无记录 = 待签到。
+    func statusDescription(for userId: String) -> String {
+        Self.statusText(for: dailyOutcomes[userId])
+    }
+
+    /// 「今日签到: x/y」的分子口径：claimed 与 alreadyClaimed 都算今天拿到过。
+    static func claimedCount(in outcomes: [String: QoderClaimOutcome]) -> Int {
+        outcomes.values.filter(\.countsAsClaimed).count
+    }
+
+    /// outcome → 展示文案的纯映射。与实例状态解耦，是为了能脱离 UserDefaults 单测每条分支。
+    static func statusText(for outcome: QoderClaimOutcome?) -> String {
+        switch outcome {
+        case .claimed: return "已领取"
+        case .alreadyClaimed: return "今日已领过"
+        case .nothingToClaim, .none: return "待签到"
+        case .failure(let reason): return "签到失败(\(reason))"
+        }
+    }
+
+    /// 持久化 Key 带当天日期：隔天写新 Key、读不到旧 Key，自然重置，不需要任何清理逻辑。
+    private func dailyOutcomesKeyLocked() -> String {
+        "QoderCampaignClaimer_outcomes_\(Self.dayString(now()))"
+    }
+
+    /// 取内存缓存；日期滚动（或本进程首次访问）时从当天的持久化 Key 重新装载。调用方必须已持有 outcomesLock。
+    private func syncedDailyOutcomesLocked() -> [String: QoderClaimOutcome] {
+        let key = dailyOutcomesKeyLocked()
+        if dailyOutcomesCacheDay != key {
+            dailyOutcomesCacheDay = key
+            if let data = defaults.data(forKey: key),
+               let saved = try? JSONDecoder().decode([String: QoderClaimOutcome].self, from: data) {
+                dailyOutcomesCache = saved
+            } else {
+                dailyOutcomesCache = [:]
+            }
+        }
+        return dailyOutcomesCache
+    }
+
+    /// 落盘当日状态。`forDay` 必须与本轮开始时算出的日期一致：跨零点完成的一轮，其基线字典属于昨天，
+    /// 整包写进新一天的 Key 会把昨天的结果冒充成今天的进度（缓存的 cacheDay 仍是旧值，
+    /// 下次读取自然按新 Key 重载成空，无需在此处补救）。
+    private func saveDailyOutcomes(_ outcomes: [String: QoderClaimOutcome], forDay day: String) {
+        outcomesLock.withLock {
+            guard day == Self.dayString(now()) else { return }
+            guard let data = try? JSONEncoder().encode(outcomes) else { return }
+            let key = dailyOutcomesKeyLocked()
+            defaults.set(data, forKey: key)
+            dailyOutcomesCache = outcomes
+            dailyOutcomesCacheDay = key
+        }
     }
 
     private static func dayString(_ d: Date) -> String {
@@ -247,6 +349,14 @@ final class QoderCampaignClaimer {
 }
 
 private extension QoderClaimOutcome {
+    /// 「今天这个号已经拿到过 credits」——签到进度分子的统计口径，与 `claimedCount(in:)` 共用。
+    var countsAsClaimed: Bool {
+        switch self {
+        case .claimed, .alreadyClaimed: return true
+        case .nothingToClaim, .failure: return false
+        }
+    }
+
     var logDescription: String {
         switch self {
         case .claimed: return "claimed"

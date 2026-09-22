@@ -327,6 +327,112 @@ final class QoderCampaignClaimerTests: XCTestCase {
         XCTAssertNotNil(d.string(forKey: "qoder.campaign.claimed.user-2"),
                         "上一轮结束后守卫必须已复位，否则后续永远不会再领取")
     }
+
+    // MARK: - 任务 3：每日签到状态记录、按天隔离与展示文案
+
+    /// 当天日期字符串（与 claimer 内部同口径：en_US_POSIX + 默认时区），用于预置/断言按天 Key。
+    private func todayString(_ date: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f.string(from: date)
+    }
+
+    /// 单轮签到跑完，结果既进内存状态也持久化；换一个新实例（模拟 App 重启）读同一份 defaults 仍能看到状态。
+    func testClaimStatusTrackingAndPersistence() async throws {
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", "user-1")])
+        let t = FakeCampaignTransport()
+        t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        let d = uniqueDefaults()
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
+
+        let outcomes = await claimer.claimAll()
+        XCTAssertEqual(outcomes["user-1"], .claimed, "claimAll() 应把本轮各账号结果回传，供 UI 直接取用")
+        XCTAssertEqual(claimer.statusDescription(for: "user-1"), "已领取")
+        XCTAssertEqual(QoderCampaignClaimer.claimedCount(in: claimer.dailyOutcomes), 1)
+
+        // Key 必须带当天日期，隔天自然重置（而不是靠手动清理旧 Key）
+        let outcomeKeys = d.dictionaryRepresentation().keys.filter { $0.hasPrefix("QoderCampaignClaimer_outcomes_") }
+        XCTAssertEqual(outcomeKeys, ["QoderCampaignClaimer_outcomes_\(todayString())"])
+
+        // 模拟重启：新实例、同一份 UserDefaults，仍应读到今天的签到状态（且不再重复发请求）
+        let t2 = FakeCampaignTransport()
+        t2.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        let revived = QoderCampaignClaimer(transport: t2, poolDirectory: dir, defaults: d)
+        XCTAssertEqual(revived.statusDescription(for: "user-1"), "已领取", "签到状态必须跨重启保留")
+        await revived.claimAll()
+        XCTAssertEqual(t2.calls.count, 0, "今日已处理过的账号重启后不应再次发起请求")
+    }
+
+    /// 状态文案映射是纯函数，逐条钉死（含无记录 = 待签到），UI 与 tooltip 共用同一口径。
+    func testStatusTextMapsEveryOutcome() {
+        XCTAssertEqual(QoderCampaignClaimer.statusText(for: .claimed), "已领取")
+        XCTAssertEqual(QoderCampaignClaimer.statusText(for: .alreadyClaimed), "今日已领过")
+        XCTAssertEqual(QoderCampaignClaimer.statusText(for: .nothingToClaim), "待签到")
+        XCTAssertEqual(QoderCampaignClaimer.statusText(for: nil), "待签到", "当天没有任何记录也归待签到")
+        XCTAssertEqual(QoderCampaignClaimer.statusText(for: .failure("boom")), "签到失败(boom)")
+    }
+
+    /// 「已领取」统计口径：claimed 与 alreadyClaimed 都算今天拿到过，nothingToClaim / failure 不算。
+    func testClaimedCountCountsOnlyClaimedAndAlreadyClaimed() {
+        let outcomes: [String: QoderClaimOutcome] = [
+            "a": .claimed, "b": .alreadyClaimed, "c": .nothingToClaim, "d": .failure("boom"),
+        ]
+        XCTAssertEqual(QoderCampaignClaimer.claimedCount(in: outcomes), 2)
+        XCTAssertEqual(QoderCampaignClaimer.claimedCount(in: [:]), 0)
+    }
+
+    /// 按天隔离：日期翻篇后当天的状态字典自然为空，不依赖后台清理任务。
+    func testDailyOutcomesResetOnNewDay() async throws {
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", "user-1")])
+        let t = FakeCampaignTransport()
+        t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        let d = uniqueDefaults()
+        var day = Date(timeIntervalSince1970: 1_700_000_000)
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d, now: { day })
+
+        await claimer.claimAll()
+        XCTAssertEqual(claimer.statusDescription(for: "user-1"), "已领取")
+
+        day = day.addingTimeInterval(86_400)   // 恰好 24 小时后必然跨到下一个日历日
+        XCTAssertTrue(claimer.dailyOutcomes.isEmpty, "隔天读取应自然重置为空")
+        XCTAssertEqual(claimer.statusDescription(for: "user-1"), "待签到")
+    }
+
+    /// 老版本只写了「今日已处理」标记、没有当日状态字典：升级后既要继续跳过该账号（不重复领），
+    /// 又要把展示态补齐成「今日已领过」，避免 UI 谎报「待签到」。
+    func testLegacyTodayMarkerBackfillsAlreadyClaimedStatus() async throws {
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", "user-1")])
+        let t = FakeCampaignTransport()
+        t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        let d = uniqueDefaults()
+        d.set(todayString(), forKey: "qoder.campaign.claimed.user-1")
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
+
+        await claimer.claimAll()
+        XCTAssertEqual(t.calls.count, 0, "仅有标记时仍须走去重分支，不重复领取")
+        XCTAssertEqual(claimer.statusDescription(for: "user-1"), "今日已领过")
+        XCTAssertEqual(QoderCampaignClaimer.claimedCount(in: claimer.dailyOutcomes), 1)
+    }
+
+    /// 失败的账号也要留痕（tooltip 能看到原因），但绝不能被算进「今日已签到」进度分子。
+    func testFailureOutcomeIsRecordedButNotCountedAsClaimed() async throws {
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", "user-1")])
+        let t = FakeCampaignTransport()
+        t.throwingBearers = ["Bearer tok-1"]
+        t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        let d = uniqueDefaults()
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
+
+        let outcomes = await claimer.claimAll()
+        guard case .failure = outcomes["user-1"] else {
+            return XCTFail("GET 抛错应记录为 .failure，实际 \(String(describing: outcomes["user-1"]))")
+        }
+        XCTAssertTrue(claimer.statusDescription(for: "user-1").hasPrefix("签到失败"),
+                      "tooltip 需以「签到失败」开头带上原因")
+        XCTAssertEqual(QoderCampaignClaimer.claimedCount(in: claimer.dailyOutcomes), 0)
+        XCTAssertNil(d.string(forKey: "qoder.campaign.claimed.user-1"), "失败不得写今日去重标记")
+    }
 }
 
 /// 可控闸门 transport：gateMode 下第一次 request 会挂起，直到 openGate() 被调用。

@@ -14,6 +14,10 @@ struct GatewayZoneView: View {
     @StateObject var vm: NotchViewModel
     @ObservedObject var manager = QoderGatewayManager.shared
     @ObservedObject var store = QoderStore.shared
+    /// 「一键签到」进行中标志：签到要跑完整一轮网络巡检（账号数 × GET/POST），耗时不短，
+    /// 用本地状态把按钮置灰并给出文案反馈；同时它也是收尾后让这一行重算的驱动源
+    /// （QoderCampaignClaimer 不是 ObservableObject，见其类内注释）。
+    @State private var isClaimingCredits = false
 
     var body: some View {
         VStack(spacing: 10) {
@@ -147,6 +151,16 @@ struct GatewayZoneView: View {
 
     @ViewBuilder
     private var metricsFooter: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            quotaStatusRow
+            dailyClaimRow
+        }
+        .padding(.top, 2)
+    }
+
+    /// 页脚第一行：额度重置时间 / 网关状态 + 缓存命中率。
+    @ViewBuilder
+    private var quotaStatusRow: some View {
         HStack {
             if let resetDate = store.quota?.resetDate, isRunning {
                 Text("重置: \(resetDate.formatted(date: .abbreviated, time: .shortened))")
@@ -176,6 +190,32 @@ struct GatewayZoneView: View {
                     .overlay(Capsule().strokeBorder(StudioColor.emerald.opacity(0.32), lineWidth: 0.5))
             }
         }
-        .padding(.top, 2)
+    }
+
+    /// 页脚第二行：今日 credits 签到进度 + 一键签到入口。签到走本地账号池凭证文件，与网关在不在跑无关，
+    /// 故不受 isRunning 门控。分子口径（claimed + alreadyClaimed）由 claimer 的纯函数统一裁决；
+    /// 分母优先用网关回填的成员数，未回填时退回当日已有记录的账号数，避免出现「已领 2 / 共 0」的自相矛盾。
+    private var dailyClaimRow: some View {
+        let outcomes = QoderCampaignClaimer.shared.dailyOutcomes
+        let claimed = QoderCampaignClaimer.claimedCount(in: outcomes)
+        let total = max(store.poolMembers.count, outcomes.count)
+        return HStack(spacing: 8) {
+            Text("今日签到: \(claimed)/\(total)")
+                .font(.system(size: 10.5))
+                .foregroundStyle(Color.white.opacity(0.45))
+            Spacer()
+            Button(isClaimingCredits ? "签到中…" : "一键签到") {
+                isClaimingCredits = true
+                Task {
+                    _ = await QoderCampaignClaimer.shared.claimAll()
+                    await store.refreshPoolQuotas()
+                    isClaimingCredits = false
+                }
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 10.5, weight: .medium))
+            .foregroundStyle(isClaimingCredits ? Color.white.opacity(0.45) : StudioColor.emerald)
+            .disabled(isClaimingCredits)
+        }
     }
 }
