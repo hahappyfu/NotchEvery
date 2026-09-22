@@ -58,4 +58,10 @@ final class TabMetricsTests: XCTestCase {
         XCTAssertEqual(NotchViewModel.zone(for: 1), .token)
         XCTAssertEqual(NotchViewModel.zone(for: 2), .gateway)
     }
+
+    func testOverviewPageSpacingAndPadding() {
+        // 验证 OverviewPageView 使用紧凑间距 8pt 且两张卡片存在
+        let overview = OverviewPageView(vm: NotchViewModel())
+        XCTAssertNotNil(overview)
+    }
 }

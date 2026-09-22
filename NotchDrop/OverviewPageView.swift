@@ -9,7 +9,7 @@ struct OverviewPageView: View {
     @StateObject var vm: NotchViewModel
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             AntigravityAccountsCardView(vm: vm)
                 // 边距加在内容上，不撑容器（容器加边距会被 520 定宽居中溢出吃掉）
                 .padding(.horizontal, 14)

@@ -20,9 +20,10 @@ struct NotchRootView: View {
                 get: { NotchViewModel.pageIndex(for: vm.contentType) },
                 set: { vm.jumpToZone(NotchViewModel.zone(for: $0)) }
             ))
-            .padding(.top, 6)
+            .padding(.top, 4)
+            .padding(.bottom, 6)
         }
-        .padding(.bottom, 0)
+        .padding(.bottom, 4)
         // 刘海安全区垫在测量区内：测量含安全区，面板才够高（03 工单）
         .padding(.top, vm.notchSafeAreaTop)
         // 耳区贴顶叠在禁放区两侧；中央禁放区留空只画背景（ADR-0009）
