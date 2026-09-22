@@ -619,15 +619,19 @@ func (p *CredentialPool) StartProbeLoop(ctx context.Context, probe ProbeFunc) {
 // and keep background load to roughly one request per account per hour.
 const zeroQuotaTTL = time.Hour
 
-// refreshZeroQuotaOnce classifies active accounts whose quota verdict is missing
-// or stale. It runs off the request path: it snapshots the accounts needing a
-// check under the lock, releases the lock for each network call, then re-takes
-// the lock to record the verdict — so a slow /quota never blocks Current().
+// refreshZeroQuotaOnce classifies accounts whose quota verdict is missing or
+// stale — both the active ones and the retired ones. It runs off the request
+// path: it snapshots the accounts needing a check under the lock, releases the
+// lock for each network call, then re-takes the lock to record the verdict — so
+// a slow /quota never blocks Current().
 //
 // An account is retired only when total==0 AND exceeded==true together; that pair
 // is what a post-trial free-plan credential looks like (observed on the deleted
 // 01a0bd70). Any error, timeout, or nil check leaves the account optimistically
-// active — never retire on uncertainty.
+// active — never retire on uncertainty. Retired accounts are re-checked on the
+// same TTL, because a ZeroQuota verdict is a snapshot rather than a permanent
+// property: once the pair reverses (total>0 or no longer exceeded), the account
+// is restored to rotation.
 func (p *CredentialPool) refreshZeroQuotaOnce(ctx context.Context) {
 	check := p.cfg.QuotaCheck
 	if check == nil {
@@ -637,8 +641,9 @@ func (p *CredentialPool) refreshZeroQuotaOnce(ctx context.Context) {
 	p.mu.Lock()
 	now := time.Now()
 	type pending struct {
-		userID string
-		token  string
+		userID  string
+		token   string
+		retired bool
 	}
 	var due []pending
 	for uid, acc := range p.accounts {
@@ -646,6 +651,15 @@ func (p *CredentialPool) refreshZeroQuotaOnce(ctx context.Context) {
 			continue
 		}
 		due = append(due, pending{userID: uid, token: acc.Cred.AccessToken})
+	}
+	// Retired accounts get the same periodic review, so an account parked as
+	// ZeroQuota can come back on its own — quota pools reset daily and plans
+	// get rebuilt, and without this the only way back was a manual pool reload.
+	for uid, acc := range p.retired {
+		if now.Sub(acc.ZeroQuotaCheckedAt) < zeroQuotaTTL {
+			continue
+		}
+		due = append(due, pending{userID: uid, token: acc.Cred.AccessToken, retired: true})
 	}
 	p.mu.Unlock()
 
@@ -655,6 +669,25 @@ func (p *CredentialPool) refreshZeroQuotaOnce(ctx context.Context) {
 		cancel()
 
 		p.mu.Lock()
+		if item.retired {
+			acc, exists := p.retired[item.userID]
+			if !exists {
+				// Re-admitted (or dropped) by a reload while we were checking;
+				// nothing to record.
+				p.mu.Unlock()
+				continue
+			}
+			acc.ZeroQuotaCheckedAt = time.Now()
+			if err == nil && (total > 0 || !exceeded) {
+				log.Printf("[pool] restoring %s: quota total=%.0f exceeded=%v (retired verdict no longer holds)",
+					maskIdentifier(item.userID), total, exceeded)
+				acc.ZeroQuota = false
+				delete(p.retired, item.userID)
+				p.accounts[item.userID] = acc
+			}
+			p.mu.Unlock()
+			continue
+		}
 		acc, exists := p.accounts[item.userID]
 		if !exists {
 			// Removed by a reload while we were checking; nothing to record.

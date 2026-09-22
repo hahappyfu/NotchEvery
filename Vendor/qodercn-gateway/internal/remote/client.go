@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"qodercn-gateway/internal/tooltypes"
@@ -68,12 +69,34 @@ type Client struct {
 	client      *http.Client
 	autoBaseURL bool
 	pool        *CredentialPool
+	// baseURLMu guards cfg.BaseURL. The auto-fallback adopts a probed working
+	// domain at runtime while concurrent Chat / quota / probe calls read it, so
+	// the field must only be touched through baseURL() / setBaseURL().
+	baseURLMu sync.RWMutex
 }
 
 // SetPool attaches an account pool after construction. The service needs the
 // client to exist before it can build the pool (the pool's background probe and
 // quota closures call back into the client), so the pool cannot be a Config field.
 func (c *Client) SetPool(pool *CredentialPool) { c.pool = pool }
+
+// baseURL returns the chat base URL currently in effect. Every request path
+// must read it here rather than from cfg.BaseURL directly: the auto-fallback
+// swaps the value to a probed working domain, and an unsynchronised read would
+// race that write.
+func (c *Client) baseURL() string {
+	c.baseURLMu.RLock()
+	defer c.baseURLMu.RUnlock()
+	return c.cfg.BaseURL
+}
+
+// setBaseURL adopts raw as the chat base URL. Only the auto-fallback calls it,
+// and only after the candidate domain has provably served a request.
+func (c *Client) setBaseURL(raw string) {
+	c.baseURLMu.Lock()
+	c.cfg.BaseURL = raw
+	c.baseURLMu.Unlock()
+}
 
 type BaseURLHint struct {
 	URL    string
@@ -354,7 +377,7 @@ func (c *Client) CheckQuotaForToken(ctx context.Context, accessToken string) (*Q
 	if token == "" {
 		return nil, fmt.Errorf("no access token in credentials; re-login QoderCN/Lingma to enable quota lookup")
 	}
-	base, err := openAPIBaseURL(c.cfg.BaseURL)
+	base, err := openAPIBaseURL(c.baseURL())
 	if err != nil {
 		return nil, err
 	}
@@ -468,7 +491,7 @@ func (c *Client) WebSearch(ctx context.Context, query string, opts WebSearchOpti
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+oneSearchPath+"?Encode=0", strings.NewReader(string(body)))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL()+oneSearchPath+"?Encode=0", strings.NewReader(string(body)))
 	if err != nil {
 		return nil, err
 	}
@@ -516,7 +539,7 @@ func (c *Client) postEncoded(ctx context.Context, path string, body []byte) ([]b
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+path+"?Encode=0", strings.NewReader(string(body)))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL()+path+"?Encode=0", strings.NewReader(string(body)))
 	if err != nil {
 		return nil, err
 	}
@@ -705,7 +728,7 @@ func (c *Client) postSigned(ctx context.Context, path string, body []byte) ([]by
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+path, strings.NewReader(string(body)))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL()+path, strings.NewReader(string(body)))
 	if err != nil {
 		return nil, err
 	}
@@ -799,7 +822,7 @@ func (c *Client) Warmup(ctx context.Context) error {
 func (c *Client) ListModels(ctx context.Context) ([]Model, error) {
 	models, err := c.listModels(ctx)
 	if err == nil && c.autoBaseURL {
-		cacheSuccessfulBaseURL(c.cfg.BaseURL)
+		cacheSuccessfulBaseURL(c.baseURL())
 	}
 	if err == nil || !c.autoBaseURL || ctx.Err() != nil {
 		return models, err
@@ -808,6 +831,13 @@ func (c *Client) ListModels(ctx context.Context) ([]Model, error) {
 }
 
 func (c *Client) listModels(ctx context.Context) ([]Model, error) {
+	return c.listModelsAt(ctx, c.baseURL())
+}
+
+// listModelsAt lists models from an explicit base URL. The auto-fallback probes
+// candidate domains through this function, so probing never has to rewrite the
+// client-wide base URL that concurrent Chat calls read.
+func (c *Client) listModelsAt(ctx context.Context, baseURL string) ([]Model, error) {
 	cred, err := LoadCredential(c.cfg.AuthFile)
 	if err != nil {
 		return nil, err
@@ -816,7 +846,7 @@ func (c *Client) listModels(ctx context.Context) ([]Model, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.cfg.BaseURL+modelListPath, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+modelListPath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -830,7 +860,7 @@ func (c *Client) listModels(ctx context.Context) ([]Model, error) {
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 400 {
-		return nil, c.modelListStatusError(resp.StatusCode, string(body))
+		return nil, modelListStatusError(baseURL, resp.StatusCode, string(body))
 	}
 	var payload struct {
 		Chat   []json.RawMessage `json:"chat"`
@@ -861,22 +891,28 @@ func (c *Client) listModelsWithAutoBaseURLFallback(ctx context.Context, firstErr
 	candidates := ResolveBaseURLCandidates()
 	tried := 1
 	var lastErr error
-	current := strings.TrimRight(c.cfg.BaseURL, "/")
+	current := c.baseURL()
 	for _, candidate := range candidates {
 		baseURL := strings.TrimRight(strings.TrimSpace(candidate.URL), "/")
 		if baseURL == "" || baseURL == current {
 			continue
 		}
 		tried++
-		previous := c.cfg.BaseURL
-		c.cfg.BaseURL = baseURL
-		models, err := c.listModels(ctx)
+		// Probe the candidate through listModelsAt instead of temporarily
+		// rewriting c.cfg.BaseURL: Chat / quota / probe callers read the
+		// client-wide base URL concurrently, and the old in-place rewrite
+		// raced with them.
+		models, err := c.listModelsAt(ctx, baseURL)
 		if err == nil {
-			cacheSuccessfulBaseURL(c.cfg.BaseURL)
+			// Adopt the working domain so in-process Chat calls start using it
+			// right away (the on-disk cache only takes effect at the next
+			// launch). The write goes through setBaseURL so it is ordered
+			// against every concurrent reader.
+			c.setBaseURL(baseURL)
+			cacheSuccessfulBaseURL(baseURL)
 			return models, nil
 		}
 		lastErr = err
-		c.cfg.BaseURL = previous
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
@@ -887,8 +923,8 @@ func (c *Client) listModelsWithAutoBaseURLFallback(ctx context.Context, firstErr
 	return nil, firstErr
 }
 
-func (c *Client) modelListStatusError(statusCode int, body string) error {
-	message := fmt.Sprintf("remote model list status %d from %s: %s", statusCode, c.cfg.BaseURL, truncate(body, 500))
+func modelListStatusError(baseURL string, statusCode int, body string) error {
+	message := fmt.Sprintf("remote model list status %d from %s: %s", statusCode, baseURL, truncate(body, 500))
 	if statusCode == http.StatusNotFound || strings.Contains(body, "NoSuchKey") {
 		message += "。这通常表示远端 API 域名自动探测命中了错误地址，请到设置页手动填写 Lingma 官方或企业专属远端 API 域名；官方默认域名为 https://lingma.alibabacloud.com。"
 	}
@@ -931,7 +967,7 @@ func (c *Client) MinimalProbe(ctx context.Context, cred Credential, model string
 		headers["X-Model-Key"] = key
 		headers["X-Model-Source"] = "system"
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+chatPath+chatQuery, strings.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL()+chatPath+chatQuery, strings.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -1021,7 +1057,7 @@ func (c *Client) Chat(ctx context.Context, request ChatRequest, onDelta func(Str
 			headers["X-Model-Key"] = key
 			headers["X-Model-Source"] = "system"
 		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+chatPath+chatQuery, strings.NewReader(body))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL()+chatPath+chatQuery, strings.NewReader(body))
 		if err != nil {
 			return nil, err
 		}
@@ -1056,6 +1092,11 @@ func (c *Client) Chat(ctx context.Context, request ChatRequest, onDelta func(Str
 		}
 
 		res, err := c.scanChatResponse(resp, request, requestID, cred, onDelta)
+		// The scan has consumed everything it needs from resp; close
+		// deterministically on every branch below — success, account switch, and
+		// the queue retry loop, which re-issues its own request. A defer would
+		// only run when Chat returns, so queue retries would pile up live bodies.
+		resp.Body.Close()
 		if err != nil {
 			lastErr = err
 			// Global model queue: the free tier answers 403 with isQueued. Every
@@ -1144,7 +1185,7 @@ func (c *Client) chatSingle(ctx context.Context, cred Credential, request ChatRe
 		headers["X-Model-Key"] = key
 		headers["X-Model-Source"] = "system"
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.BaseURL+chatPath+chatQuery, strings.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL()+chatPath+chatQuery, strings.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
