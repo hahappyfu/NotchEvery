@@ -68,6 +68,21 @@ enum QoderClaimOutcome: Equatable, Codable {
     case failure(String)              // 带原因的失败（token 失效 / 网络异常 / 解码失败等）
 }
 
+/// 一轮 `claimAllWithSummary()` 的整体结果分类，供「一键签到」按钮展示即时反馈用。
+/// `claimAll()` 只回传 outcomes 字典、不区分「本轮什么都没做」的两种原因（撞守卫跳过 / 池为空），
+/// 也不区分「做了但没新东西可领」——对按钮来说这三种情况视觉上都是「点了没反应」。故单独分类。
+enum QoderClaimSweepSummary: Equatable {
+    case skippedInFlight              // 撞上后台静默巡检的 in-flight 守卫，本轮直接跳过
+    case emptyPool                    // 账号池目录扫不到任何凭证文件
+    case completed(newlyClaimed: Int, alreadyClaimed: Int, nothingToClaim: Int, failed: Int)
+}
+
+/// `claimAllWithSummary()` 的返回值：结果字典 + 本轮分类摘要。
+struct QoderClaimSweep: Equatable {
+    let outcomes: [String: QoderClaimOutcome]
+    let summary: QoderClaimSweepSummary
+}
+
 // MARK: - 并发守卫
 
 /// in-flight 守卫的纯状态转移：`begin` 只有在当前空闲时才占用成功并返回 true（表示"可以开始跑"），
@@ -225,6 +240,13 @@ final class QoderCampaignClaimer {
     /// 当天去重 + in-flight 守卫，用户连点、或手点与后台巡检撞车都不会对同一批号重复发请求。
     @discardableResult
     func claimAll() async -> [String: QoderClaimOutcome] {
+        await claimAllWithSummary().outcomes
+    }
+
+    /// 同 `claimAll()`，但额外回传本轮分类摘要（`QoderClaimSweepSummary`），供「一键签到」按钮
+    /// 区分「撞守卫跳过 / 池为空 / 真的跑完了一轮」三种情况给出不同反馈文案。
+    @discardableResult
+    func claimAllWithSummary() async -> QoderClaimSweep {
         // 并发守卫：refresh() 每 15s 触发一次，而单轮巡检（账号数 × GET/POST 超时）很容易超过 15s，
         // 不加守卫会叠加多个 detached Task 对同一批未标记账号重复发请求 —— 对逆向的活动接口这是
         // 最容易触发服务端风控的行为。命中重入时直接跳过本次触发，不做额外错误处理。
@@ -235,18 +257,19 @@ final class QoderCampaignClaimer {
         }
         guard shouldRun else {
             claimLog.info("claim sweep already in flight, skipping this trigger")
-            return dailyOutcomes
+            return QoderClaimSweep(outcomes: dailyOutcomes, summary: .skippedInFlight)
         }
         defer { stateLock.withLock { isRunning = QoderCampaignGuard.end() } }
 
         let accounts = scanAccounts()
         guard !accounts.isEmpty else {
             claimLog.info("no pool accounts found at \(self.poolDirectory.path), skip")
-            return dailyOutcomes
+            return QoderClaimSweep(outcomes: dailyOutcomes, summary: .emptyPool)
         }
         let today = Self.dayString(now())
         var outcomes = dailyOutcomes
         var outcomesDirty = false
+        var newlyClaimed = 0, alreadyClaimed = 0, nothingToClaim = 0, failed = 0
         for credential in accounts {
             let key = "qoder.campaign.claimed.\(credential.userId)"
             if defaults.string(forKey: key) == today {
@@ -256,24 +279,35 @@ final class QoderCampaignClaimer {
                     outcomes[credential.userId] = .alreadyClaimed
                     outcomesDirty = true
                 }
+                alreadyClaimed += 1
                 continue
             }
             let outcome = await claim(for: credential)
             outcomes[credential.userId] = outcome
             outcomesDirty = true
             switch outcome {
-            case .claimed, .alreadyClaimed:
+            case .claimed:
+                newlyClaimed += 1
+                defaults.set(today, forKey: key)
+                claimLog.info("user \(credential.userId.prefix(8)):… outcome=\(outcome.logDescription)")
+            case .alreadyClaimed:
+                alreadyClaimed += 1
                 defaults.set(today, forKey: key)
                 claimLog.info("user \(credential.userId.prefix(8)):… outcome=\(outcome.logDescription)")
             case .nothingToClaim:
+                nothingToClaim += 1
                 // 不写标记：现在没有可领项不代表今天之后也没有（比如还没到每日刷新点），下次触发再查
                 claimLog.info("user \(credential.userId.prefix(8)):… nothing-to-claim now, will retry on next trigger")
             case .failure(let reason):
+                failed += 1
                 claimLog.warning("user \(credential.userId.prefix(8)):… failed: \(reason)")
             }
         }
         if outcomesDirty { saveDailyOutcomes(outcomes, forDay: today) }
-        return outcomes
+        return QoderClaimSweep(
+            outcomes: outcomes,
+            summary: .completed(newlyClaimed: newlyClaimed, alreadyClaimed: alreadyClaimed, nothingToClaim: nothingToClaim, failed: failed)
+        )
     }
 
     // MARK: 签到状态查询与持久化

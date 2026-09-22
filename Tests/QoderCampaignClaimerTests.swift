@@ -491,6 +491,80 @@ final class QoderCampaignClaimerTests: XCTestCase {
         XCTAssertEqual(QoderCampaignClaimer.statusText(forOrbId: orb, amongAllOrbs: [orb, a], in: [a: .claimed]),
                        "待签到")
     }
+
+    // MARK: - 一键签到即时反馈：claimAllWithSummary 分类摘要
+
+    /// 全新账号、有可领活动 → 摘要必须是 newlyClaimed=1，这是「点了确实有东西领到」的基准情形。
+    func testClaimAllWithSummaryCountsNewlyClaimed() async throws {
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", "user-1")])
+        let t = FakeCampaignTransport()
+        t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: uniqueDefaults())
+
+        let sweep = await claimer.claimAllWithSummary()
+        XCTAssertEqual(sweep.summary, .completed(newlyClaimed: 1, alreadyClaimed: 0, nothingToClaim: 0, failed: 0))
+        XCTAssertEqual(sweep.outcomes["user-1"], .claimed)
+    }
+
+    /// 当天已处理过（去重标记命中）→ 不发请求、摘要必须是 alreadyClaimed=1 而不是 newlyClaimed=1，
+    /// 这是「今日已全部签到」文案的来源，也是「点了没新东西」能被区分于「压根没点」的关键。
+    func testClaimAllWithSummaryCountsAlreadyClaimedOnDedupeHit() async throws {
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", "user-1")])
+        let t = FakeCampaignTransport()
+        t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        let d = uniqueDefaults()
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
+
+        _ = await claimer.claimAllWithSummary()
+        let second = await claimer.claimAllWithSummary()
+        XCTAssertEqual(second.summary, .completed(newlyClaimed: 0, alreadyClaimed: 1, nothingToClaim: 0, failed: 0))
+        XCTAssertEqual(t.calls.count, 2, "第二轮必须命中去重标记、一个请求都不该再发")
+    }
+
+    /// 账号池目录为空 → 摘要必须是 .emptyPool，而不是 completed(0,0,0,0)——两者对用户的含义完全不同
+    /// （前者是「压根没号」，后者是「有号但都没东西可领」）。
+    func testClaimAllWithSummaryEmptyPoolIsDistinctFromZeroCompleted() async throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("pool-empty-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let claimer = QoderCampaignClaimer(transport: FakeCampaignTransport(), poolDirectory: dir, defaults: uniqueDefaults())
+
+        let sweep = await claimer.claimAllWithSummary()
+        XCTAssertEqual(sweep.summary, .emptyPool)
+    }
+
+    /// 撞上后台静默巡检的 in-flight 守卫 → 摘要必须是 .skippedInFlight，而不是 completed(0,0,0,0)。
+    /// 复用 GatedCampaignTransport 真实制造并发时序，不用 sleep 猜时间窗。
+    func testClaimAllWithSummarySkippedInFlightIsDistinct() async throws {
+        let dir = try makeTempPool(accounts: [("id1", "tok-1", "mach-1", "user-1")])
+        let t = GatedCampaignTransport()
+        t.gateMode = true
+        t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: uniqueDefaults())
+
+        let firstTask = Task.detached { await claimer.claimAllWithSummary() }
+        await t.waitUntilFirstRequestArrives()
+
+        let second = await claimer.claimAllWithSummary()
+        XCTAssertEqual(second.summary, .skippedInFlight, "被守卫挡掉时必须明确分类，不能伪装成「跑完了但什么都没领到」")
+
+        t.openGate()
+        _ = await firstTask.value
+    }
+
+    /// 单号失败也要计入 failed，供「签到完成，N 个号失败」文案使用；不影响其它号的 newlyClaimed 计数。
+    func testClaimAllWithSummaryCountsFailuresAlongsideSuccesses() async throws {
+        let dir = try makeTempPool(accounts: [
+            ("id1", "tok-1", "mach-1", "user-1"),
+            ("id2", "tok-2", "mach-2", "user-2"),
+        ])
+        let t = FakeCampaignTransport()
+        t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
+        t.throwingBearers = ["Bearer tok-2"]
+        let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: uniqueDefaults())
+
+        let sweep = await claimer.claimAllWithSummary()
+        XCTAssertEqual(sweep.summary, .completed(newlyClaimed: 1, alreadyClaimed: 0, nothingToClaim: 0, failed: 1))
+    }
 }
 
 /// 可控闸门 transport：gateMode 下第一次 request 会挂起，直到 openGate() 被调用。

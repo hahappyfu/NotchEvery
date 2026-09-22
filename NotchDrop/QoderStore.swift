@@ -131,6 +131,14 @@ struct QoderPoolStatus: Equatable {
 
 // MARK: - Store
 
+/// 「一键签到」点击后短暂展示的一次性反馈。`id` 用于让文案完全相同（如连续两次都「今日已全部签到」）
+/// 的两次点击也能被 SwiftUI 认成一次新变化、重新播放淡入动画，不至于看起来「点了没反应」。
+struct ClaimFeedback: Equatable {
+    let text: String
+    let isFailure: Bool
+    let id: UUID
+}
+
 @MainActor
 final class QoderStore: ObservableObject {
     static let shared = QoderStore()
@@ -156,6 +164,12 @@ final class QoderStore: ObservableObject {
     /// 收在 store 而不是 View 的 @State：View 的计算属性不保证 MainActor 隔离，
     /// 在按钮里 `Task {}` 中写 @State 会落到非主线程执行器上。
     @Published private(set) var isClaimingCampaignCredits: Bool = false
+    /// 点完「一键签到」后短暂展示的即时反馈（成功/失败/无新内容等），nil 表示当前无反馈可展示。
+    /// 之所以单独有这一个字段：`claimOutcomes` 走 `publishIfChanged` 去重，当天全部命中去重标记时
+    /// 本轮结果与上一轮完全相同 → 不触发发布 → 按钮「签到中…」瞬间复原、数字纹丝不动，用户看不出
+    /// 到底点没点上。反馈文案独立于 outcomes，只要点了就一定变一次，解决「没任何反馈」的问题。
+    @Published private(set) var lastClaimFeedback: ClaimFeedback?
+    private var claimFeedbackClearTask: Task<Void, Never>?
 
     /// 全池剩余额度合计；空数组表示「还没探测到任何数据」而非「真的是 0」，故返回 nil 供 UI 显示 --。
     var poolTotalRemaining: Double? {
@@ -256,9 +270,63 @@ final class QoderStore: ObservableObject {
     func triggerManualCampaignClaim() async {
         guard !isClaimingCampaignCredits else { return }
         isClaimingCampaignCredits = true
+        let startedAt = Date()
         defer { isClaimingCampaignCredits = false }
-        await runCampaignClaim()
+        // 走带摘要的变体而不是 `runCampaignClaim()`：后者的结果字典在「当天全部命中去重标记」时
+        // 与上一轮逐字节相同，`publishIfChanged` 会吞掉这次发布，UI 完全不动 —— 这正是
+        // 「点了没反应」的根因，摘要分类才能区分「真的做了但没新东西」与「压根没做」。
+        let sweep = await QoderCampaignClaimer.shared.claimAllWithSummary()
+        await Task { @MainActor in
+            publishIfChanged(\.claimOutcomes, sweep.outcomes)
+            showClaimFeedback(for: sweep.summary)
+        }.value
+        // 「签到中…」至少可见 600ms：当天全部命中去重标记时整轮可能 <50ms 就跑完（一个网络请求都不发），
+        // 不加下限按钮会闪一下立刻复原，跟「点了没反应」几乎没区别。
+        let elapsed = Date().timeIntervalSince(startedAt)
+        let minVisible: TimeInterval = 0.6
+        if elapsed < minVisible {
+            try? await Task.sleep(nanoseconds: UInt64((minVisible - elapsed) * 1_000_000_000))
+        }
         await refreshPoolQuotas()
+    }
+
+    /// 把本轮签到分类摘要翻译成一句反馈文案，展示 4s 后自动消失。`claimFeedbackClearTask` 先取消
+    /// 再重挂，保证连点时上一轮的清除定时器不会把新一轮刚设置的文案提前抹掉。
+    private func showClaimFeedback(for summary: QoderClaimSweepSummary) {
+        let text: String
+        let isFailure: Bool
+        switch summary {
+        case .skippedInFlight:
+            text = "正在签到中，请稍候…"
+            isFailure = false
+        case .emptyPool:
+            text = "账号池为空"
+            isFailure = true
+        case .completed(let newly, let already, let nothing, let failedCount):
+            if failedCount > 0 {
+                text = "签到完成，\(failedCount) 个号失败"
+                isFailure = true
+            } else if newly > 0 {
+                text = "新领到 \(newly) 个号"
+                isFailure = false
+            } else if already > 0 {
+                text = "今日已全部签到"
+                isFailure = false
+            } else if nothing > 0 {
+                text = "暂无可领奖励"
+                isFailure = false
+            } else {
+                text = "今日已全部签到"
+                isFailure = false
+            }
+        }
+        lastClaimFeedback = ClaimFeedback(text: text, isFailure: isFailure, id: UUID())
+        claimFeedbackClearTask?.cancel()
+        claimFeedbackClearTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            guard let self, !Task.isCancelled else { return }
+            self.lastClaimFeedback = nil
+        }
     }
 
     /// 驱动一轮签到并把结果回填 `claimOutcomes`，返回结果字典（按钮侧不关心，自动巡检侧便于直接取用）。

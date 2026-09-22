@@ -192,15 +192,27 @@ struct GatewayZoneView: View {
     /// 故不受 isRunning 门控。数据源是 `store.claimOutcomes`（不是直读 claimer）：这样后台静默巡检
     /// 一完成就能靠 ObservableObject 自动刷新，不必等下一个额度轮询周期。
     /// 分母优先用网关回填的成员数，未回填时退回当日已有记录的账号数，避免出现「已领 2 / 共 0」的自相矛盾。
+    /// 点击「一键签到」后短暂用 `store.lastClaimFeedback` 顶替「今日签到: x/y」这段文案，给出即时反馈
+    /// （新领到 N 个号 / 今日已全部签到 / 失败数等）——不加这层的话，当天全部命中去重标记时
+    /// outcomes 逐字节不变、publishIfChanged 吞掉发布，按钮闪一下就复原，用户看不出点没点上。
     private var dailyClaimRow: some View {
         let outcomes = store.claimOutcomes
         let claimed = QoderCampaignClaimer.claimedCount(in: outcomes)
         let total = max(store.poolMembers.count, outcomes.count)
         let claiming = store.isClaimingCampaignCredits
+        let feedback = store.lastClaimFeedback
         return HStack(spacing: 8) {
-            Text("今日签到: \(claimed)/\(total)")
-                .font(.system(size: 10.5))
-                .foregroundStyle(Color.white.opacity(0.45))
+            if let feedback, !claiming {
+                Text(feedback.text)
+                    .font(.system(size: 10.5, weight: .medium))
+                    .foregroundStyle(feedback.isFailure ? StudioColor.rose : StudioColor.emerald)
+                    .id(feedback.id)
+                    .transition(.opacity)
+            } else {
+                Text("今日签到: \(claimed)/\(total)")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(Color.white.opacity(0.45))
+            }
             Spacer()
             Button(claiming ? "签到中…" : "一键签到") {
                 // 进行中标志位与整轮签到都在 store 里（QoderStore 是 @MainActor ObservableObject）：
@@ -212,5 +224,7 @@ struct GatewayZoneView: View {
             .foregroundStyle(claiming ? Color.white.opacity(0.45) : StudioColor.emerald)
             .disabled(claiming)
         }
+        .animation(.easeInOut(duration: 0.2), value: claiming)
+        .animation(.easeInOut(duration: 0.2), value: feedback?.id)
     }
 }
