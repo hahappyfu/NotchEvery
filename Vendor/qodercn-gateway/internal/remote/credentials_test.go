@@ -3,6 +3,7 @@ package remote
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLoadCredentialFromBytes_Valid(t *testing.T) {
@@ -130,5 +131,72 @@ func TestLoadCredentialFromBytes_Invalid(t *testing.T) {
 				t.Errorf("expected error containing '%s', got '%v'", tt.errContains, err)
 			}
 		})
+	}
+}
+
+// The two login sources disagree on the epoch unit: the QoderCN CLI cache
+// hands over expireTime in SECONDS, the legacy IDE cache in MILLISECONDS.
+// TokenExpireTime is consumed as milliseconds everywhere (IsExpired, the
+// deploy/export formatter, the pool pick policy), so parsing must normalize
+// rather than store whatever the source happened to use.
+func TestParseExpire_NormalizesSecondsToMilliseconds(t *testing.T) {
+	// 2026-10-22, as handed over by the CLI login cache (seconds).
+	const seconds = int64(1792681259)
+	got := parseExpire("1792681259")
+	if want := seconds * 1000; got != want {
+		t.Errorf("parseExpire(seconds) = %d, want %d (must be milliseconds)", got, want)
+	}
+
+	// Same instant as milliseconds must pass through untouched — converting
+	// twice would push the expiry ~55,000 years out.
+	if got := parseExpire("1792681259000"); got != seconds*1000 {
+		t.Errorf("parseExpire(milliseconds) = %d, want %d (must not re-scale)", got, seconds*1000)
+	}
+
+	// Missing/unparsable values stay zero so callers can treat them as "unknown".
+	if got := parseExpire(""); got != 0 {
+		t.Errorf("parseExpire(\"\") = %d, want 0", got)
+	}
+}
+
+func TestParseExpireAny_NormalizesEverySourceType(t *testing.T) {
+	const seconds = int64(1792681259)
+	const ms = seconds * 1000
+	cases := []struct {
+		name  string
+		input any
+		want  int64
+	}{
+		{"string seconds (CLI login cache)", "1792681259", ms},
+		{"string milliseconds (legacy IDE cache)", "1792681259000", ms},
+		{"float64 seconds (json.Number path)", float64(seconds), ms},
+		{"float64 milliseconds", float64(ms), ms},
+		{"int64 seconds", seconds, ms},
+		{"int seconds", int(seconds), ms},
+		{"missing", nil, 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := parseExpireAny(tc.input); got != tc.want {
+				t.Errorf("parseExpireAny(%v) = %d, want %d", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
+// The user-visible symptom: a credential whose source reported expiry in
+// seconds was declared "already expired" by the export command, which printed
+// "token expire at: 1970-01-22" for a token actually valid until 2026-10-22.
+func TestIsExpired_SecondsSourcedTokenIsNotExpired(t *testing.T) {
+	cred := Credential{TokenExpireTime: parseExpire("1792681259")}
+	if IsExpired(cred, 0) {
+		t.Errorf("token expiring %s reported as expired (TokenExpireTime=%d)",
+			time.UnixMilli(cred.TokenExpireTime).Format(time.RFC3339), cred.TokenExpireTime)
+	}
+
+	// A genuinely past deadline must still be caught.
+	past := Credential{TokenExpireTime: time.Now().Add(-time.Hour).UnixMilli()}
+	if !IsExpired(past, 0) {
+		t.Error("a token that expired an hour ago must still report expired")
 	}
 }

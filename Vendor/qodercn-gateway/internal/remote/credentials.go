@@ -641,9 +641,33 @@ func maskIdentifier(value string) string {
 	return value[:3] + strings.Repeat("*", len(value)-6) + value[len(value)-3:]
 }
 
+// epochSecondsCutoff separates second- from millisecond-epoch timestamps.
+// Current values are ~1.8e9 (seconds) and ~1.8e12 (milliseconds); anything
+// below 1e11 can only be seconds, since 1e11 ms is 1973.
+const epochSecondsCutoff = 100_000_000_000
+
+// normalizeExpire pins TokenExpireTime to milliseconds — the unit every
+// consumer assumes (IsExpired compares against time.Now().UnixMilli(), the
+// deploy/export path formats with time.UnixMilli(), and the pool's pick policy
+// sorts with it).
+//
+// The login sources disagree: the QoderCN CLI cache hands over expireTime in
+// SECONDS, while the legacy IDE cache uses milliseconds. Storing the raw value
+// made a seconds-sourced credential look like it expired in 1970 — the export
+// command printed "token expire at: 1970-01-22" and warned "already expired"
+// on a token actually valid until 2026-10-22 (observed 2026-09-22, first seen
+// only then because every pool file up to that point carried an empty
+// token_expire_time).
+func normalizeExpire(value int64) int64 {
+	if value > 0 && value < epochSecondsCutoff {
+		return value * 1000
+	}
+	return value
+}
+
 func parseExpire(value string) int64 {
 	parsed, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
-	return parsed
+	return normalizeExpire(parsed)
 }
 
 func parseExpireAny(value any) int64 {
@@ -651,11 +675,11 @@ func parseExpireAny(value any) int64 {
 	case string:
 		return parseExpire(typed)
 	case float64:
-		return int64(typed)
+		return normalizeExpire(int64(typed))
 	case int64:
-		return typed
+		return normalizeExpire(typed)
 	case int:
-		return int64(typed)
+		return normalizeExpire(int64(typed))
 	default:
 		return 0
 	}
