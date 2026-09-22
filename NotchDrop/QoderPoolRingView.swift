@@ -220,6 +220,7 @@ struct QoderPoolRingView: View {
         let d = Self.orbDiameter
 
         return VStack(spacing: 5) {
+            // 3D 聚光灯变换只作用于圆本体，避免连带把下方余额行甩出卡片可视区
             ZStack {
                 // 1. 底层槽：极淡填充 + 细边框，构成哑光玻璃底座
                 Circle()
@@ -241,19 +242,19 @@ struct QoderPoolRingView: View {
             }
             .frame(width: d, height: d)
             .shadow(color: account.isCurrent && isRunning ? StudioColor.emerald.opacity(0.35) : .clear, radius: 6, y: 0)
+            .offset(y: distance == 0 ? -3 : (abs(distance) == 1 ? -1 : 0))
+            .scaleEffect(reduceMotion ? 1.0 : scale)
+            .rotation3DEffect(
+                .degrees(reduceMotion ? 0 : rotationAngle(for: distance)),
+                axis: (x: 0, y: 1, z: 0),
+                perspective: 0.45
+            )
+            .brightness(-0.10 * Double(abs(distance)))
 
             // 环下方余额小字：一眼可见该号剩余额度（探测不到则留空占位，保持各 Orb 等高）
             balanceLabel(for: account.id)
         }
-        .offset(y: distance == 0 ? -3 : (abs(distance) == 1 ? -1 : 0))
-        .scaleEffect(reduceMotion ? 1.0 : scale)
-        .rotation3DEffect(
-            .degrees(reduceMotion ? 0 : rotationAngle(for: distance)),
-            axis: (x: 0, y: 1, z: 0),
-            perspective: 0.45
-        )
         .zIndex(distance == 0 ? 3 : (abs(distance) == 1 ? 2 : 1))
-        .brightness(-0.10 * Double(abs(distance)))
         .help(tooltip(member))
     }
 
@@ -295,18 +296,28 @@ struct QoderPoolRingView: View {
     /// 未探测到余额时显示占位「--」并保留等高占位，避免各 Orb 高度不齐。
     @ViewBuilder
     private func balanceLabel(for userId: String) -> some View {
-        let text = store.poolQuotas.first(where: { $0.userId == userId }).map { "\(Int($0.totalRemaining))" } ?? "--"
+        let text = quota(for: userId).map { "\(Int($0.totalRemaining))" } ?? "--"
         Text(text)
             .font(.system(size: 9, weight: .medium).monospacedDigit())
             .foregroundStyle(Color.white.opacity(userId == stickyId ? 0.85 : 0.5))
             .frame(height: 11)
     }
 
+    /// 整屏 Orb id —— 关联余额必须带上它做「多对一」歧义保护：
+    /// 单看某个 Orb 命中唯一不代表安全，邻座 Orb 可能也在抢同一份余额。
+    private var orbIds: [String] { store.poolMembers.map(\.userId) }
+
+    /// Orb（脱敏 id）→ 该号额度快照。两侧 id 格式不同，相等匹配永远失败，故走 QoderPoolIdMatcher
+    /// （详见该文件头注释）；任何歧义一律返回 nil → UI 降级为 `--`，绝不张冠李戴。
+    private func quota(for userId: String) -> QoderAccountQuota? {
+        QoderPoolIdMatcher.quota(for: userId, amongAllOrbs: orbIds, in: store.poolQuotas)
+    }
+
     private func tooltip(_ m: QoderPoolMember?) -> String {
         guard let m else { return "" }
         var s = "\(m.userId)\n来源: \(m.source)"
         s += "\n状态: \(m.cooled ? "冷却中" : "活跃") · 探针\(m.lastProbeOK ? "通过" : "未通过/未探")"
-        if let q = store.poolQuotas.first(where: { $0.userId == m.userId }) { s += "\n余额 \(Int(q.totalRemaining)) credits" }
+        if let q = quota(for: m.userId) { s += "\n余额 \(Int(q.totalRemaining)) credits" }
         if let t = m.lastUsedAt { s += "\n最近使用: \(t.formatted(date: .omitted, time: .shortened))" }
         return s
     }
