@@ -37,6 +37,10 @@ struct GatewayZoneView: View {
                 store.start(logURL: manager.gatewayLogURL)
             }
         }
+        // 收起/切页兜底：面板收起走的是条件渲染（NotchView 里 `if vm.status == .opened` 直接摘子树），
+        // 视图被移除时上面的 onChange 根本收不到 .closed，停轮询只剩这一条路 —— 没它的话
+        // 15s/60s 两个定时器会在面板收起后无限期跑下去。
+        .onDisappear { store.stop() }
     }
 
     // MARK: - 第二张卡：用量看板

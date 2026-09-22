@@ -161,6 +161,9 @@ final class QoderStoreTests: XCTestCase {
         let store = QoderStore(port: 8096, transport: t)
         await store.refreshNow()
         let first = store.objectWillChangeCountForTest
+        // 前置断言：首轮刷新（quota + pool/status 三处 @Published 从 nil/空变为有值）必须真的发布过。
+        // 不加这条的话，一旦订阅句柄没被持有（计数恒 0），下面的等值断言会退化成 0 == 0 永真、形同虚设。
+        XCTAssertGreaterThan(first, 0, "首轮刷新应至少发布一次 objectWillChange，否则去重断言无意义")
         await store.refreshNow()   // 完全相同数据
         XCTAssertEqual(store.objectWillChangeCountForTest, first, "同值不应再次 objectWillChange")
     }

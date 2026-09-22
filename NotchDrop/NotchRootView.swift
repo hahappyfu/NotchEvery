@@ -53,6 +53,9 @@ struct NotchRootView: View {
                 UsageStore.shared.start()
             }
         }
+        // 收起兜底：NotchView 用 `if vm.status == .opened` 条件渲染摘掉整棵子树，
+        // 视图被移除时上面的 onChange 收不到 .closed，停轮询只能靠 onDisappear。
+        .onDisappear { UsageStore.shared.stop() }
     }
 
     private var earsRow: some View {

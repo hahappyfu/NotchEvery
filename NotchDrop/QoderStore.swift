@@ -221,6 +221,10 @@ final class QoderStore: ObservableObject {
     /// 测试可见：objectWillChange 发射计数，验证发布去重。
     private(set) var objectWillChangeCountForTest = 0
 
+    /// objectWillChange 订阅句柄。必须持有：`sink` 的返回值（AnyCancellable）一旦被丢弃就立刻 deinit，
+    /// 订阅随之断开，计数恒为 0 —— 去重发布测试会退化成 0 == 0 的永真断言，什么都没验证到。
+    private var objectWillChangeSubscription: AnyCancellable?
+
     /// 网关端口（默认读全局配置；Manager 启动时会同步为当前配置端口）
     var port: Int
     private let transport: QoderHTTPTransport
@@ -263,8 +267,8 @@ final class QoderStore: ObservableObject {
            let baseline = stored["remaining"] as? Double {
             self.dailyBaselineRemaining = baseline
         }
-        // 追踪自身发布次数用于去重断言
-        _ = objectWillChange.sink { [weak self] in self?.objectWillChangeCountForTest += 1 }
+        // 追踪自身发布次数用于去重断言（赋值给存储属性持有订阅，否则 AnyCancellable 即刻释放、计数永远为 0）
+        objectWillChangeSubscription = objectWillChange.sink { [weak self] in self?.objectWillChangeCountForTest += 1 }
     }
 
     func start(logURL: URL?) {

@@ -89,6 +89,9 @@ struct NotchView: View {
                                 .transition(.opacity)
                                 .task {
                                     try? await Task.sleep(nanoseconds: 3_000_000_000)
+                                    // 面板提前收起时本 .task 被取消，sleep 抛 CancellationError 被 try? 吞掉——
+                                    // 不查 isCancelled 的话，用户只开了半秒就收起也会被永久标记「提示已看过」。
+                                    guard !Task.isCancelled else { return }
                                     vm.markSwipeHintSeen()
                                 }
                         }

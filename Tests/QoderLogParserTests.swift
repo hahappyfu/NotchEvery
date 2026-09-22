@@ -100,6 +100,38 @@ final class QoderLogParserTests: XCTestCase {
         XCTAssertEqual(agg.yesterday?.tokensIn, 1000)
     }
 
+    /// 连续运行跨零点（面板整夜不关、进程不重启，tailer 一直追加）：同一实例上一批 apply 的 today
+    /// 还是 9/21、下一批变成 9/22 时，9/21 的累计必须整体沉为 yesterday、today 清零重来。
+    /// 旧实现只按 `ev.dateString == todayStr` 分桶、从不判断自己是否跨天，跨天后新事件会一直累加在
+    /// 装着昨天数据的 today 桶上，「今日请求/今日 credits」越滚越大甚至永远不清零。
+    func testMidnightRolloverWithinSameInstanceResetsTodayBucket() {
+        var agg = QoderAggregator()
+        agg.apply(events: [
+            QoderUsageEvent(dateString: "2026-09-21", model: "a", inTokens: 100, outTokens: 10, cached: 50, reasoning: 0, total: 110, credits: 1.0),
+            QoderUsageEvent(dateString: "2026-09-21", model: "b", inTokens: 200, outTokens: 20, cached: 0, reasoning: 5, total: 225, credits: 2.0),
+        ], today: "2026-09-21")
+        XCTAssertEqual(agg.today.calls, 2, "前置条件：9/21 当天累计 2 条")
+
+        // 同一实例、同一轮询循环继续跑：跨零点后 apply 的 today 入参变成 9/22
+        agg.apply(events: [
+            QoderUsageEvent(dateString: "2026-09-22", model: "c", inTokens: 7, outTokens: 1, cached: 0, reasoning: 0, total: 8, credits: 0.5),
+        ], today: "2026-09-22")
+        XCTAssertEqual(agg.today.calls, 1, "跨天后 today 桶必须清零重算，不能把 9/21 的 2 条继续累加")
+        XCTAssertEqual(agg.today.tokensIn, 7)
+        XCTAssertEqual(agg.today.credits, 0.5, accuracy: 1e-9)
+        XCTAssertEqual(agg.yesterday?.calls, 2, "旧 today 桶应整体翻转为 yesterday")
+        XCTAssertEqual(agg.yesterday?.tokensIn, 300)
+        XCTAssertEqual(agg.yesterday?.credits ?? 0, 3.0, accuracy: 1e-9)
+
+        // 同一天内后续批次：不得误触发翻转，应继续累加
+        agg.apply(events: [
+            QoderUsageEvent(dateString: "2026-09-22", model: "d", inTokens: 3, outTokens: 1, cached: 0, reasoning: 0, total: 4, credits: 0.25),
+        ], today: "2026-09-22")
+        XCTAssertEqual(agg.today.calls, 2, "同一天内的后续 apply 应继续累加，不得误触发日界翻转")
+        XCTAssertEqual(agg.today.credits, 0.75, accuracy: 1e-9)
+        XCTAssertEqual(agg.yesterday?.calls, 2, "同一天内 apply 不应再动 yesterday")
+    }
+
     func testCacheRateFollowsFixedFormula() {
         // cacheRate = cached / (in + cached)? 与 TokenFormatUtils 口径一致 —— 这里锁定一个明确公式：cached/total
         var agg = QoderAggregator()

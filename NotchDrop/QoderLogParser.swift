@@ -108,8 +108,18 @@ struct QoderDailyAgg: Equatable {
 struct QoderAggregator {
     var today = QoderDailyAgg()
     var yesterday: QoderDailyAgg?
+    /// 上一次 apply 用的日期串，跨零点判定用。没有它的话，连续运行时新一天的事件会继续累加进
+    /// 仍装着昨天数据的 today 桶（每个事件只跟 todayStr 比，桶自己从不知道已经跨天了）。
+    var currentDay: String?
 
     mutating func apply(events: [QoderUsageEvent], today todayStr: String) {
+        // 日界翻转：today 入参换到新的一天 → 旧 today 桶整体沉为 yesterday，today 清零重新累计。
+        // 注意参数 `today` 遮蔽了同名属性，翻转必须写 self.today。
+        if let day = currentDay, day != todayStr {
+            yesterday = self.today
+            self.today = QoderDailyAgg()
+        }
+        currentDay = todayStr
         for ev in events {
             if ev.dateString == todayStr {
                 accumulate(&today, ev)

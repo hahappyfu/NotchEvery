@@ -110,6 +110,9 @@ struct AntigravityAccountsCardView: View {
                 store.start()
             }
         }
+        // 收起兜底：面板收起时本卡片随子树被条件渲染整体摘除，onChange 收不到 .closed，
+        // 不停的话 AntigravityStore 的后台轮询会永久跑下去。
+        .onDisappear { store.stop() }
     }
 
     private var header: some View {
