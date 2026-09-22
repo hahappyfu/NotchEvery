@@ -10,18 +10,13 @@ import XCTest
 
 final class QoderLogParserTests: XCTestCase {
 
-    private func fixtureURL() -> URL {
-        // 测试宿主里通过 Bundle(for:) 或仓库相对路径定位；用源码目录回推最稳。
-        let src = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()   // Tests/
-            .appendingPathComponent("Fixtures/qoder-gateway.log")
-        return src
-    }
-
     // MARK: - 单行解析
 
+    /// 真实网关日志的时间戳是 Go 标准库 log 包 LstdFlags 的 `2006/01/02` 斜杠格式，不是横杠。
+    /// 之前正则和这份测试样例都写成横杠，两边「错得一致」，装机版实测一条真实日志都匹配不上，
+    /// 「今日请求/今日 credits」恒显示 0。这条测试用真实斜杠格式钉住解析能力，防止再次回归。
     func testParseUsageLineExtractsAllFields() throws {
-        let line = "2026-09-21 10:34:51 remote usage model=qfmodel acct=01a****4a9 in=147002 out=345 cached=146673 reasoning=0 total=147347 credits=0.3557"
+        let line = "2026/09/21 10:34:51 remote usage model=qfmodel acct=01a****4a9 in=147002 out=345 cached=146673 reasoning=0 total=147347 credits=0.3557"
         let ev = try XCTUnwrap(QoderLogParser.parse(line))
         XCTAssertEqual(ev.model, "qfmodel")
         XCTAssertEqual(ev.inTokens, 147002)
@@ -30,12 +25,13 @@ final class QoderLogParserTests: XCTestCase {
         XCTAssertEqual(ev.reasoning, 0)
         XCTAssertEqual(ev.total, 147347)
         XCTAssertEqual(ev.credits, 0.3557, accuracy: 1e-9)
+        // dateString 归一化成横杠格式，供 QoderStore.dayString() 做「是不是今天」的比较。
         XCTAssertEqual(ev.dateString, "2026-09-21")
     }
 
     func testNonMatchingLinesIgnored() {
-        XCTAssertNil(QoderLogParser.parse("2026-09-20 21:19:30 qodercn-gateway listening on http://127.0.0.1:8096"))
-        XCTAssertNil(QoderLogParser.parse("2026-09-21 09:12:44 [pool] retiring acct=x (zero quota)"))
+        XCTAssertNil(QoderLogParser.parse("2026/09/20 21:19:30 qodercn-gateway listening on http://127.0.0.1:8096"))
+        XCTAssertNil(QoderLogParser.parse("2026/09/21 09:12:44 [pool] retiring acct=x (zero quota)"))
         XCTAssertNil(QoderLogParser.parse(""))
         XCTAssertNil(QoderLogParser.parse("garbage without timestamp"))
     }
@@ -45,7 +41,7 @@ final class QoderLogParserTests: XCTestCase {
     func testIncrementalOnlyConsumesNewBytes() throws {
         let tmp = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("qgw-\(UUID().uuidString).log")
         defer { try? FileManager.default.removeItem(at: tmp) }
-        let base = "2026-09-21 10:00:00 remote usage model=a acct=x in=1 out=1 cached=0 reasoning=0 total=2 credits=0.1\n"
+        let base = "2026/09/21 10:00:00 remote usage model=a acct=x in=1 out=1 cached=0 reasoning=0 total=2 credits=0.1\n"
         try base.write(to: tmp, atomically: true, encoding: .utf8)
 
         var cursor = QoderLogTailer.Cursor()
@@ -57,7 +53,7 @@ final class QoderLogParserTests: XCTestCase {
         XCTAssertEqual(second.count, 0)
 
         // 追加一行 → 第三次只读到新的那行
-        let extra = "2026-09-21 10:00:05 remote usage model=b acct=y in=5 out=5 cached=0 reasoning=0 total=10 credits=0.2\n"
+        let extra = "2026/09/21 10:00:05 remote usage model=b acct=y in=5 out=5 cached=0 reasoning=0 total=10 credits=0.2\n"
         let fh = try FileHandle(forWritingTo: tmp); fh.seekToEndOfFile(); fh.write(Data(extra.utf8)); try fh.close()
         let third = try QoderLogTailer.readIncremental(url: tmp, cursor: &cursor)
         XCTAssertEqual(third.count, 1)
@@ -68,8 +64,8 @@ final class QoderLogParserTests: XCTestCase {
         // 尾部残行（无换行）不应被当成事件消费，且下次补齐后应能读到
         let tmp = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("qgw-\(UUID().uuidString).log")
         defer { try? FileManager.default.removeItem(at: tmp) }
-        let full = "2026-09-21 10:00:00 remote usage model=a acct=x in=1 out=1 cached=0 reasoning=0 total=2 credits=0.1\n"
-        let partial = "2026-09-21 10:00:09 remote usage model=c acct=z in=9 out=9 cached=0 reasoning=0 total=18 credi"
+        let full = "2026/09/21 10:00:00 remote usage model=a acct=x in=1 out=1 cached=0 reasoning=0 total=2 credits=0.1\n"
+        let partial = "2026/09/21 10:00:09 remote usage model=c acct=z in=9 out=9 cached=0 reasoning=0 total=18 credi"
         try (full + partial).write(to: tmp, atomically: true, encoding: .utf8)
 
         var cursor = QoderLogTailer.Cursor()
@@ -126,7 +122,7 @@ final class QoderLogParserTests: XCTestCase {
         XCTAssertGreaterThan(cursor.offset, 0)
 
         // 模拟 logrotate：文件被替换成更小内容
-        let small = "2026-09-21 11:00:00 remote usage model=z acct=k in=1 out=1 cached=0 reasoning=0 total=2 credits=0.1\n"
+        let small = "2026/09/21 11:00:00 remote usage model=z acct=k in=1 out=1 cached=0 reasoning=0 total=2 credits=0.1\n"
         try small.write(to: tmp, atomically: true, encoding: .utf8)
         let after = try QoderLogTailer.readIncremental(url: tmp, cursor: &cursor)
         XCTAssertEqual(after.count, 1, "轮转后应从零重扫并读到新行")

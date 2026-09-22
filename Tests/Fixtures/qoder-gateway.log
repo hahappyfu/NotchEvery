@@ -1,8 +1,8 @@
-2026-09-20 21:19:30 remote warmup completed
-2026-09-20 21:19:30 qodercn-gateway listening on http://127.0.0.1:8096
-2026-09-20 22:04:11 remote usage model=qwen3-coder acct=01a******************************057 in=5210 out=890 cached=4096 reasoning=0 total=6100 credits=0.0421
-2026-09-20 22:05:02 remote usage model=qfmodel acct=01a******************************057 in=120000 out=500 cached=119500 reasoning=0 total=120500 credits=0.2900
-2026-09-21 09:12:44 [pool] retiring acct=01a******************************201 (zero quota)
-2026-09-21 10:34:51 remote usage model=qfmodel acct=01a******************************4a9 in=147002 out=345 cached=146673 reasoning=0 total=147347 credits=0.3557
-2026-09-21 10:34:59 remote usage model=qfmodel acct=01a******************************4a9 in=147394 out=78 cached=146994 reasoning=0 total=147472 credits=0.3423
-2026-09-21 10:35:15 remote usage model=kimi-k2 acct=01a******************************3e7 in=8200 out=1500 cached=0 reasoning=512 total=10212 credits=0.0875
+2026/09/20 21:19:30 remote warmup completed
+2026/09/20 21:19:30 qodercn-gateway listening on http://127.0.0.1:8096
+2026/09/20 22:04:11 remote usage model=qwen3-coder acct=01a******************************057 in=5210 out=890 cached=4096 reasoning=0 total=6100 credits=0.0421
+2026/09/20 22:05:02 remote usage model=qfmodel acct=01a******************************057 in=120000 out=500 cached=119500 reasoning=0 total=120500 credits=0.2900
+2026/09/21 09:12:44 [pool] retiring acct=01a******************************201 (zero quota)
+2026/09/21 10:34:51 remote usage model=qfmodel acct=01a******************************4a9 in=147002 out=345 cached=146673 reasoning=0 total=147347 credits=0.3557
+2026/09/21 10:34:59 remote usage model=qfmodel acct=01a******************************4a9 in=147394 out=78 cached=146994 reasoning=0 total=147472 credits=0.3423
+2026/09/21 10:35:15 remote usage model=kimi-k2 acct=01a******************************3e7 in=8200 out=1500 cached=0 reasoning=512 total=10212 credits=0.0875

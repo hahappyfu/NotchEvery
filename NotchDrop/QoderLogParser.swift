@@ -4,14 +4,17 @@
 //
 //  任务 5：qodercn-gateway 日志的增量 tailer + 行解析 + 日界聚合。纯函数层，IO 经参数注入。
 //  契约行格式(真实样例)：
-//    2026-09-21 10:34:51 remote usage model=qfmodel acct=<脱敏> in=.. out=.. cached=.. reasoning=.. total=.. credits=..
+//    2026/09/21 10:34:51 remote usage model=qfmodel acct=<脱敏> in=.. out=.. cached=.. reasoning=.. total=.. credits=..
+//  日期分隔符是 `/` 不是 `-`：这是 Go 标准库 log 包 LstdFlags 的固定格式（`2009/01/23 01:23:23`），
+//  不是我们自己拼的时间戳，改不了；之前正则按 `-` 写、测试样例也照抄成 `-`，两边「错得一致」，
+//  真实日志一条都匹配不上，导致「今日请求/今日 credits」恒显示 0（2026-09-22 装机版实测复现）。
 //
 
 import Foundation
 
 /// 一条计费用量事件。
 struct QoderUsageEvent: Equatable {
-    let dateString: String   // YYYY-MM-DD
+    let dateString: String   // 归一化为 YYYY-MM-DD（原始日志是 YYYY/MM/DD，见 parse 里的替换）
     let model: String
     let inTokens: Int
     let outTokens: Int
@@ -24,7 +27,7 @@ struct QoderUsageEvent: Equatable {
 enum QoderLogParser {
     /// 行首时间戳 + remote usage + 各字段。acct 为可选段（旧版可能无）。
     private static let regex = try! NSRegularExpression(
-        pattern: #"^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}).*remote usage model=(\S+)(?: acct=\S+)? in=(\d+) out=(\d+) cached=(\d+) reasoning=(\d+) total=(\d+) credits=([\d.]+)"#,
+        pattern: #"^(\d{4}/\d{2}/\d{2}) (\d{2}:\d{2}:\d{2}).*remote usage model=(\S+)(?: acct=\S+)? in=(\d+) out=(\d+) cached=(\d+) reasoning=(\d+) total=(\d+) credits=([\d.]+)"#,
         options: []
     )
 
@@ -43,7 +46,10 @@ enum QoderLogParser {
               let cached = group(6).flatMap(Int.init), let reasoning = group(7).flatMap(Int.init),
               let total = group(8).flatMap(Int.init), let credits = group(9).flatMap(Double.init)
         else { return nil }
-        return QoderUsageEvent(dateString: date, model: model, inTokens: inT, outTokens: outT,
+        // 归一化成 `yyyy-MM-dd` 再往外传：QoderStore.dayString() 用的是这个格式做「是不是今天」的比较，
+        // 如果这里直接透传原始斜杠格式，两边永远不相等，全部事件会被误判成「昨天」，今日计数依然是 0。
+        let normalizedDate = date.replacingOccurrences(of: "/", with: "-")
+        return QoderUsageEvent(dateString: normalizedDate, model: model, inTokens: inT, outTokens: outT,
                                cached: cached, reasoning: reasoning, total: total, credits: credits)
     }
 }

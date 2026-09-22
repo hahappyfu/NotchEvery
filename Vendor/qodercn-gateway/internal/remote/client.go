@@ -50,6 +50,11 @@ const (
 
 var remoteBaseURLPattern = regexp.MustCompile(`https?://[^\s"'<>),\]}]+`)
 
+// sseStatusRe extracts the real HTTP status code from the "remote sse status
+// %d: ..." error string that scanChatResponse builds (see fmt.Errorf there).
+// Used to hand Inspect() the actual status instead of a hardcoded guess.
+var sseStatusRe = regexp.MustCompile(`remote sse status (\d{3})`)
+
 type Config struct {
 	BaseURL     string
 	AuthFile    string
@@ -1082,7 +1087,20 @@ func (c *Client) Chat(ctx context.Context, request ChatRequest, onDelta func(Str
 				continue
 			}
 			if strings.Contains(err.Error(), "remote sse status") {
-				verdict := c.pool.Inspect(cred.UserID, 403, []byte(err.Error()))
+				// Inspect() branches on status code: 401/403 gets quota/credits/auth
+				// keyword matching, 429 gets rate-limit cooling, everything else
+				// (incl. 400) is VerdictPropagate — a malformed request is the
+				// client's problem, not the account's, and must not cool anyone down.
+				// Hardcoding 403 here (as this line used to) made unrelated 400s — e.g.
+				// "insufficient tool messages following tool_calls message" — look like
+				// quota errors and trigger spurious switches (observed 2026-09-22).
+				sseStatus := 403
+				if m := sseStatusRe.FindStringSubmatch(err.Error()); m != nil {
+					if n, convErr := strconv.Atoi(m[1]); convErr == nil {
+						sseStatus = n
+					}
+				}
+				verdict := c.pool.Inspect(cred.UserID, sseStatus, []byte(err.Error()))
 				if verdict == VerdictSwitch && attempt < maxSwitches {
 					log.Printf("[client] SSE returned status error on user %s; switching account (%d/%d): %v",
 						maskIdentifier(cred.UserID), attempt+1, maxSwitches, err)

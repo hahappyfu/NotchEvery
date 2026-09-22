@@ -372,20 +372,19 @@ func (p *CredentialPool) Inspect(userID string, statusCode int, body []byte) Poo
 			return VerdictPropagate
 		}
 
-		// Paid-model credits: a model billed per credit (e.g. DeepSeek) answers
-		// 403 once the account's credit balance runs out, which is separate from
-		// the free daily-request counter that trips isQuota below. This is
-		// per-account (unlike the global queue above) and resets on the daily
-		// rollover, so cool and rotate. Checked before isQuota so a message that
-		// names both (e.g. "quota exceeded: insufficient credits") reports the
-		// more specific cause and gets its own reason for the UI.
-		isCredits := bytes.Contains(bodyLower, []byte("credit")) ||
-			bytes.Contains(bodyLower, []byte("point")) ||
-			bytes.Contains(bodyLower, []byte("点数不足")) ||
-			bytes.Contains(bodyLower, []byte("余额不足")) ||
-			bytes.Contains(bodyLower, []byte("insufficient")) ||
-			bytes.Contains(bodyLower, []byte("exhausted"))
-
+		// isQuota is the only "this account is spent for today" signal that has
+		// ever actually been observed: the real 403 body is
+		// {"code":"110","message":"Billing daily count exceeded"} (captured live
+		// on the sibling gateway's log, 2026-09-21) — a per-account daily request
+		// counter, not a credit-balance number. An earlier revision of this
+		// function also tried to detect a distinct "credits exhausted" error
+		// (matching "credit"/"point"/"insufficient" keywords, cooling under a
+		// "credits_exhausted" reason); that branch was removed 2026-09-22 because
+		// no such error has ever been observed, and its broad keyword matching
+		// caused real false positives (see client.go's sseStatus handling). Per
+		// docs/handoff/SUMMARY-2026-09-19-night.md §7.1, /quota's credit pool is
+		// explicitly not correlated with whether an account still works — the
+		// daily-count 403 above is the reliable signal, and it's already covered.
 		isQuota := bytes.Contains(bodyLower, []byte("exceed")) ||
 			bytes.Contains(bodyLower, []byte("quota")) ||
 			bytes.Contains(bodyLower, []byte("limit")) ||
@@ -399,19 +398,6 @@ func (p *CredentialPool) Inspect(userID string, statusCode int, body []byte) Poo
 			bytes.Contains(bodyLower, []byte("未登录")) ||
 			bytes.Contains(bodyLower, []byte("expire")) ||
 			bytes.Contains(bodyLower, []byte("token is invalid"))
-
-		if isCredits {
-			if exists {
-				acc.Cooled = true
-				acc.CooledUntil = nextLocalMidnight()
-				acc.CoolReason = "credits_exhausted"
-				acc.LastFailedAt = now
-			}
-			if p.stickyUser == userID {
-				p.stickyUser = ""
-			}
-			return VerdictSwitch
-		}
 
 		if isQuota {
 			if exists {
