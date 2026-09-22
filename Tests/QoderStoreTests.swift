@@ -35,6 +35,50 @@ private final class FakeQuotaProberStub: QoderPoolQuotaProbing, @unchecked Senda
     }
 }
 
+/// 门控假 prober：`probeAll()` 会一直挂起，直到测试手动 `resumeNext()`/`resumeAll()` 放行。
+/// 用于确定性模拟「上一次探测还在飞行中」——不靠猜 sleep 时长，避免时序敏感导致的偶发失败。
+private final class GatedFakeQuotaProber: QoderPoolQuotaProbing, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _callCount = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    var result: [QoderAccountQuota]?
+
+    var callCount: Int { lock.lock(); defer { lock.unlock() }; return _callCount }
+
+    init(result: [QoderAccountQuota]?) { self.result = result }
+
+    func probeAll() async -> [QoderAccountQuota]? {
+        lock.lock(); _callCount += 1; lock.unlock()
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            lock.lock(); waiters.append(cont); lock.unlock()
+        }
+        return result
+    }
+
+    /// 放行最早的一个挂起中调用；当前没有挂起中的调用则什么都不做。
+    func resumeNext() {
+        lock.lock(); let cont = waiters.isEmpty ? nil : waiters.removeFirst(); lock.unlock()
+        cont?.resume()
+    }
+
+    /// 放行所有当前挂起中的调用。
+    func resumeAll() {
+        lock.lock(); let pending = waiters; waiters = []; lock.unlock()
+        pending.forEach { $0.resume() }
+    }
+}
+
+/// 轮询等待条件成立，超时返回 false 交给调用方断言（避免测试依赖精确 sleep 时序）。
+private func waitUntil(timeoutNanos: UInt64 = 2_000_000_000, pollNanos: UInt64 = 5_000_000, _ condition: @escaping @Sendable () -> Bool) async -> Bool {
+    var elapsed: UInt64 = 0
+    while elapsed < timeoutNanos {
+        if condition() { return true }
+        try? await Task.sleep(nanoseconds: pollNanos)
+        elapsed += pollNanos
+    }
+    return condition()
+}
+
 final class QoderStoreTests: XCTestCase {
 
     private func fixture(_ name: String, _ ext: String) -> Data {
@@ -200,5 +244,48 @@ final class QoderStoreTests: XCTestCase {
         await store.refreshPoolQuotas()
         XCTAssertTrue(store.poolQuotas.isEmpty, "探测完成但结果为空 → 应以本次结果为准清空旧数据")
         XCTAssertNil(store.poolTotalRemaining)
+    }
+
+    // MARK: - 手动刷新额度（第三页「刷新」按钮）：标志位 + 重入守卫
+
+    @MainActor
+    func testManualRefreshAndTimerControl() async {
+        let prober = FakeQuotaProberStub(result: [
+            QoderAccountQuota(userId: "user-1", planRemaining: 150, addOnRemaining: 50),
+        ])
+        let store = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober)
+        XCTAssertFalse(store.isProbingPoolQuotas, "初始未探测时，标志位应为 false")
+
+        await store.triggerManualQuotaRefresh()
+
+        XCTAssertEqual(prober.callCount, 1, "triggerManualQuotaRefresh 应恰好驱动一次探测")
+        XCTAssertEqual(store.poolQuotas.count, 1, "探测回填后 poolQuotas 应更新")
+        XCTAssertFalse(store.isProbingPoolQuotas, "探测结束后标志位必须复位，不能卡在 true")
+
+        // 定时刷新与手动刷新共用同一套 refreshPoolQuotas()；此处只验证 stop() 不会崩溃、
+        // 且未 start() 的独立实例上 stop() 也是安全的（quotaTimerTask 为 nil 时直接跳过）。
+        store.stop()
+    }
+
+    @MainActor
+    func testTriggerManualQuotaRefreshIgnoresReentrantCallWhileInFlight() async {
+        let prober = GatedFakeQuotaProber(result: [
+            QoderAccountQuota(userId: "user-1", planRemaining: 100, addOnRemaining: 0),
+        ])
+        let store = QoderStore(port: 8096, transport: FakeTransport(), quotaProber: prober)
+
+        let firstTask = Task { await store.triggerManualQuotaRefresh() }
+        let started = await waitUntil { prober.callCount == 1 }
+        XCTAssertTrue(started, "第一次触发应已驱动 probeAll 并挂起等待放行")
+        XCTAssertTrue(store.isProbingPoolQuotas, "飞行中标志位应为 true")
+
+        // 飞行中重复触发：应被重入守卫直接忽略，不再驱动第二次 probeAll。
+        await store.triggerManualQuotaRefresh()
+        XCTAssertEqual(prober.callCount, 1, "飞行中的二次触发不得驱动第二次 probeAll")
+
+        prober.resumeNext()
+        await firstTask.value
+
+        XCTAssertFalse(store.isProbingPoolQuotas, "全部触发结束后标志位应复位")
     }
 }

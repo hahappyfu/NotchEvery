@@ -144,6 +144,9 @@ final class QoderStore: ObservableObject {
     @Published private(set) var isQuotaStale = false
     /// 全池额度快照：账号池里每个号各自的真实余额（plan+addOn），由 QoderPoolQuotaProber 异步探测回填。
     @Published private(set) var poolQuotas: [QoderAccountQuota] = []
+    /// 手动刷新（第三页账号池「刷新」按钮）进行中的标志位，仅用于按钮自身置灰/转圈反馈；
+    /// 不互斥定时轮询——底层 prober 自带 in-flight 守卫，两路并发探测本身就不会打架。
+    @Published private(set) var isProbingPoolQuotas: Bool = false
 
     /// 全池剩余额度合计；空数组表示「还没探测到任何数据」而非「真的是 0」，故返回 nil 供 UI 显示 --。
     var poolTotalRemaining: Double? {
@@ -161,6 +164,9 @@ final class QoderStore: ObservableObject {
     private let quotaProber: any QoderPoolQuotaProbing
     private var consecutiveFailures = 0
     private var timer: Timer?
+    /// 60s 全池额度定时刷新循环句柄（区别于上面 15s 的 quota/pool/status `timer`，那个只打网关 HTTP；
+    /// 这个专门驱动 `refreshPoolQuotas()`，覆盖真实探测本身可能耗时较久、不该挤进 15s 节奏的情况）。
+    private var quotaTimerTask: Task<Void, Never>?
     private var logTailerCursor = QoderLogTailer.Cursor()
     private var aggregator = QoderAggregator()
 
@@ -202,9 +208,33 @@ final class QoderStore: ObservableObject {
             guard let store = self else { return }
             await store.refreshPoolQuotas()
         }
+        // 60s 循环：面板可见期间持续刷新全池额度，避免只看冷启动那一次的结果。
+        // Task.sleep 挂起不占 MainActor；store 弱引用 + 双重取消检查，stop() 调用后立即退出循环。
+        quotaTimerTask?.cancel()
+        quotaTimerTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000_000)
+                guard let self, !Task.isCancelled else { break }
+                await self.refreshPoolQuotas()
+            }
+        }
     }
 
-    func stop() { timer?.invalidate(); timer = nil }
+    func stop() {
+        timer?.invalidate(); timer = nil
+        quotaTimerTask?.cancel(); quotaTimerTask = nil
+    }
+
+    /// 第三页「刷新」按钮手动触发一次全池额度探测。
+    /// 与 60s 定时循环共用 `refreshPoolQuotas()`；这里额外加 `isProbingPoolQuotas` 标志位，
+    /// 仅用于让按钮自身置灰/转圈（避免用户连点重复触发），不追求全局互斥——底层 prober 的
+    /// in-flight 守卫才是真正防并发的机制。
+    func triggerManualQuotaRefresh() async {
+        guard !isProbingPoolQuotas else { return }
+        isProbingPoolQuotas = true
+        defer { isProbingPoolQuotas = false }
+        await refreshPoolQuotas()
+    }
 
     /// 供单测直接驱动一次刷新（gatewayUp 注入脱离全局 shared）。
     func refreshNow(gatewayUp: Bool = true) async {

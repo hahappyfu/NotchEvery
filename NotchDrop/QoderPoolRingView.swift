@@ -76,15 +76,34 @@ struct QoderPoolRingView: View {
             Text("Qoder 账号池")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.92))
-            if let sticky = stickyId, isRunning {
-                Text("粘性: …\(Self.tail(sticky))")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.white.opacity(0.45))
-                    .lineLimit(1)
-            }
+            refreshButton
             Spacer(minLength: 4)
             toggleButton
         }
+    }
+
+    // MARK: - 手动刷新额度胶囊（原「粘性: …xxxx」标签位，替换为常驻刷新入口）
+
+    private var refreshButton: some View {
+        Button {
+            Task { await store.triggerManualQuotaRefresh() }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 9, weight: .semibold))
+                    .rotationEffect(.degrees(store.isProbingPoolQuotas ? 360 : 0))
+                    .animation(store.isProbingPoolQuotas ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: store.isProbingPoolQuotas)
+                Text("刷新")
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundStyle(Color.white.opacity(store.isProbingPoolQuotas ? 0.4 : 0.85))
+            .padding(.horizontal, 7)
+            .frame(height: 20)
+            .background(Color.white.opacity(0.08), in: Capsule())
+            .overlay(Capsule().strokeBorder(StudioMaterial.strokeNormal, lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .disabled(store.isProbingPoolQuotas)
     }
 
     // MARK: - 启停微胶囊（集成在卡片顶栏右侧）
