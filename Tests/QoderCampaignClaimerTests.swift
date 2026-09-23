@@ -330,12 +330,37 @@ final class QoderCampaignClaimerTests: XCTestCase {
 
     // MARK: - 任务 3：每日签到状态记录、按天隔离与展示文案
 
-    /// 当天日期字符串（与 claimer 内部同口径：en_US_POSIX + 默认时区），用于预置/断言按天 Key。
-    private func todayString(_ date: Date = Date()) -> String {
+    /// 当前「活动日」字符串，与 claimer 内部同口径：减去 10 小时（服务端刷新点是 UTC+8 的 10:00）
+    /// 后按 UTC+8 取日历日。用于预置/断言按活动日隔离的 Key 与去重标记。
+    private func campaignDayString(_ date: Date = Date()) -> String {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
-        return f.string(from: date)
+        f.timeZone = TimeZone(secondsFromGMT: 8 * 3600)
+        return f.string(from: date.addingTimeInterval(-10 * 3600))
+    }
+
+    /// 活动日按 UTC+8 的 10:00 翻篇，不是本地零点：09:59 仍属前一个活动日，10:00 起才换新。
+    /// 这条锁住与旧版「本地日历日」口径的差异——那版在 00:00~10:00 会与未刷新的服务端错配，
+    /// 每 15 秒空转重试满 10 小时。
+    func testCampaignDayFlipsAtTenAMNotMidnight() {
+        // 构造 UTC+8 的确定时刻：同日 09:59 与 10:00 必须分属两个活动日。
+        let utc8 = TimeZone(secondsFromGMT: 8 * 3600)!
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = utc8
+
+        let beforeFlip = calendar.date(from: DateComponents(
+            timeZone: utc8, year: 2026, month: 9, day: 23, hour: 9, minute: 59))!
+        let atFlip = calendar.date(from: DateComponents(
+            timeZone: utc8, year: 2026, month: 9, day: 23, hour: 10, minute: 0))!
+        // 跨零点但未到 10:00：仍应归前一个活动日。
+        let justAfterMidnight = calendar.date(from: DateComponents(
+            timeZone: utc8, year: 2026, month: 9, day: 23, hour: 0, minute: 30))!
+
+        XCTAssertEqual(campaignDayString(beforeFlip), "2026-09-22", "09:59 仍属前一个活动日（服务端尚未刷新）")
+        XCTAssertEqual(campaignDayString(atFlip), "2026-09-23", "10:00 起翻到新活动日")
+        XCTAssertEqual(campaignDayString(justAfterMidnight), "2026-09-22",
+                       "零点不翻篇——旧口径在此处会误判成新的一天，与服务端错配 10 小时")
     }
 
     /// 单轮签到跑完，结果既进内存状态也持久化；换一个新实例（模拟 App 重启）读同一份 defaults 仍能看到状态。
@@ -351,9 +376,9 @@ final class QoderCampaignClaimerTests: XCTestCase {
         XCTAssertEqual(claimer.statusDescription(for: "user-1"), "已领取")
         XCTAssertEqual(QoderCampaignClaimer.claimedCount(in: claimer.dailyOutcomes), 1)
 
-        // Key 必须带当天日期，隔天自然重置（而不是靠手动清理旧 Key）
+        // Key 必须带当前活动日，跨过刷新点自然重置（而不是靠手动清理旧 Key）
         let outcomeKeys = d.dictionaryRepresentation().keys.filter { $0.hasPrefix("QoderCampaignClaimer_outcomes_") }
-        XCTAssertEqual(outcomeKeys, ["QoderCampaignClaimer_outcomes_\(todayString())"])
+        XCTAssertEqual(outcomeKeys, ["QoderCampaignClaimer_outcomes_\(campaignDayString())"])
 
         // 模拟重启：新实例、同一份 UserDefaults，仍应读到今天的签到状态（且不再重复发请求）
         let t2 = FakeCampaignTransport()
@@ -406,7 +431,7 @@ final class QoderCampaignClaimerTests: XCTestCase {
         let t = FakeCampaignTransport()
         t.defaultCampaigns = (200, campaignsJSON([("c-100", "CLAIM_BENEFIT", "CLAIMABLE")]))
         let d = uniqueDefaults()
-        d.set(todayString(), forKey: "qoder.campaign.claimed.user-1")
+        d.set(campaignDayString(), forKey: "qoder.campaign.claimed.user-1")
         let claimer = QoderCampaignClaimer(transport: t, poolDirectory: dir, defaults: d)
 
         await claimer.claimAll()

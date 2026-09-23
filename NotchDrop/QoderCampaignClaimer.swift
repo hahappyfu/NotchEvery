@@ -266,7 +266,7 @@ final class QoderCampaignClaimer {
             claimLog.info("no pool accounts found at \(self.poolDirectory.path), skip")
             return QoderClaimSweep(outcomes: dailyOutcomes, summary: .emptyPool)
         }
-        let today = Self.dayString(now())
+        let today = Self.campaignDayString(now())
         var outcomes = dailyOutcomes
         var outcomesDirty = false
         var newlyClaimed = 0, alreadyClaimed = 0, nothingToClaim = 0, failed = 0
@@ -369,9 +369,10 @@ final class QoderCampaignClaimer {
         }
     }
 
-    /// 持久化 Key 带当天日期：隔天写新 Key、读不到旧 Key，自然重置，不需要任何清理逻辑。
+    /// 持久化 Key 带当前「活动日」：跨过服务端刷新点（UTC+8 10:00）即写新 Key、读不到旧 Key，
+    /// 自然重置，不需要任何清理逻辑。与去重标记用同一口径，保证 UI 显示的进度与真实可领窗口一致。
     private func dailyOutcomesKeyLocked() -> String {
-        "QoderCampaignClaimer_outcomes_\(Self.dayString(now()))"
+        "QoderCampaignClaimer_outcomes_\(Self.campaignDayString(now()))"
     }
 
     /// 取内存缓存；日期滚动（或本进程首次访问）时从当天的持久化 Key 重新装载。调用方必须已持有 outcomesLock。
@@ -389,12 +390,12 @@ final class QoderCampaignClaimer {
         return dailyOutcomesCache
     }
 
-    /// 落盘当日状态。`forDay` 必须与本轮开始时算出的日期一致：跨零点完成的一轮，其基线字典属于昨天，
-    /// 整包写进新一天的 Key 会把昨天的结果冒充成今天的进度（缓存的 cacheDay 仍是旧值，
+    /// 落盘当日状态。`forDay` 必须与本轮开始时算出的活动日一致：跨过刷新点完成的一轮，其基线字典属于
+    /// 上一个活动日，整包写进新活动日的 Key 会把旧的冒充成新进度（缓存的 cacheDay 仍是旧值，
     /// 下次读取自然按新 Key 重载成空，无需在此处补救）。
     private func saveDailyOutcomes(_ outcomes: [String: QoderClaimOutcome], forDay day: String) {
         outcomesLock.withLock {
-            guard day == Self.dayString(now()) else { return }
+            guard day == Self.campaignDayString(now()) else { return }
             guard let data = try? JSONEncoder().encode(outcomes) else { return }
             let key = dailyOutcomesKeyLocked()
             defaults.set(data, forKey: key)
@@ -403,17 +404,28 @@ final class QoderCampaignClaimer {
         }
     }
 
-    /// 日期 Key 专用格式器：`yyyy-MM-dd` + en_US_POSIX（不受用户地区/日历设置影响），配置在初始化后
-    /// 不再改动，故可静态复用，免去每次访问签到状态都新建一个 DateFormatter。
-    private static let dayFormatter: DateFormatter = {
+    /// 「活动日」格式化器：固定 UTC+8。服务端的刷新点写死在 UTC+8 的 10:00，
+    /// 与设备本地时区无关，所以这里不能用默认时区。
+    private static let campaignDayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(secondsFromGMT: 8 * 3600)
         return f
     }()
 
-    private static func dayString(_ d: Date) -> String {
-        dayFormatter.string(from: d)
+    /// 活动日字符串，起点是 **UTC+8 的 10:00**，不是本地零点。
+    ///
+    /// 为什么不能用日历日：活动接口返回的 placement 文案写明「每日 10:00（UTC+8）刷新」，
+    /// 实测活动窗口也确实是从 10:00 到次日 09:59。而按天去重标记原本用本地日历日（零点翻篇），
+    /// 于是每天 00:00~10:00 这 10 小时里，标记已经算「新的一天」而服务端还没刷新 ——
+    /// 每轮都得到「无可领项」，而按设计「无可领项不写标记」，就会每 15 秒重试一次、
+    /// 白跑满 10 小时（约 2400 次/号/天），既浪费请求也踩服务端风控。
+    ///
+    /// 对齐方式：时刻先减去 10 小时，再按 UTC+8 取日历日 —— 于是 00:00~09:59 归前一个活动日、
+    /// 10:00 起翻新，与服务端刷新点一致。
+    private static func campaignDayString(_ d: Date) -> String {
+        campaignDayFormatter.string(from: d.addingTimeInterval(-10 * 3600))
     }
 }
 
