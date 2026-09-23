@@ -35,9 +35,6 @@ struct ClipboardZoneView: View {
         }
         .frame(width: Self.zoneWidth)
         .padding(.vertical, 2)
-        .onAppear {
-            checkAndRequestAXPermission()
-        }
     }
 
     // MARK: - 顶栏（去冗余大标题，只保留低调操作条）
@@ -73,15 +70,6 @@ struct ClipboardZoneView: View {
         .padding(.bottom, 2)
     }
 
-    // MARK: - 辅助功能权限原生弹窗申请
-
-    /// 检查并在缺失时直接呼出 macOS 系统的原生授权提示弹窗
-    private func checkAndRequestAXPermission() {
-        guard !AXIsProcessTrusted() else { return }
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
-    }
-
     // MARK: - 清空确认
 
     private func confirmClear() {
@@ -111,9 +99,7 @@ struct ClipboardZoneView: View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVStack(spacing: Self.rowSpacing) {
                 ForEach(store.items) { item in
-                    ClipboardRowView(item: item, onPasteAttempt: {
-                        checkAndRequestAXPermission()
-                    })
+                    ClipboardRowView(item: item)
                 }
             }
             .padding(.horizontal, 1)
@@ -170,7 +156,6 @@ struct ClipboardZoneView: View {
 
 private struct ClipboardRowView: View {
     let item: ClipboardItem
-    var onPasteAttempt: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
     @State private var flashOpacity: Double = 0
@@ -275,7 +260,6 @@ private struct ClipboardRowView: View {
     }
 
     private func paste() {
-        onPasteAttempt()
         ClipboardPaster.shared.paste(item: item)
 
         guard !reduceMotion else { return }
