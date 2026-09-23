@@ -157,6 +157,42 @@ final class ClipboardStoreTests: XCTestCase {
         XCTAssertEqual(reloaded.items.count, 50)
     }
 
+    func testUnpinRestoresNaturalTimeOrder() {
+        store.addText("Older Content")
+        // 拉开复制时间差，消除同刻时间戳对排序断言的干扰
+        Thread.sleep(forTimeInterval: 0.01)
+        store.addText("Newer Content")
+        guard let olderId = store.items.last?.id else { return XCTFail("老内容缺失") }
+        XCTAssertEqual(store.items.first?.textContent, "Newer Content")
+
+        // 置顶老内容：应移到最前
+        store.togglePin(id: olderId)
+        XCTAssertEqual(store.items.first?.id, olderId)
+        XCTAssertEqual(store.items.first?.isPinned, true)
+
+        // 取消置顶：应按 copiedAt 自然归位——更新的内容回到最前，老内容排在其后
+        store.togglePin(id: olderId)
+        XCTAssertEqual(store.items.first(where: { $0.id == olderId })?.isPinned, false)
+        XCTAssertEqual(store.items.map(\.textContent), ["Newer Content", "Older Content"], "取消置顶后应按复制时间倒序归位")
+    }
+
+    func testDeduplicationWindowIncludesAllPinnedItems() {
+        // 置顶 3 条，全部占据列表头部
+        store.addText("Pinned A")
+        store.addText("Pinned B")
+        store.addText("Pinned C")
+        for id in store.items.map(\.id) {
+            store.togglePin(id: id)
+        }
+        XCTAssertEqual(store.items.filter(\.isPinned).count, 3)
+
+        // 置顶项不得挤占普通新内容的去重窗口：连续同步同一文本应去重，而不是新增第 5 条
+        store.addText("Fresh Text")
+        store.addText("Fresh Text")
+        XCTAssertEqual(store.items.count, 4, "去重窗口应覆盖全部置顶项 + 前 3 条非置顶项")
+        XCTAssertEqual(store.items.last?.textContent, "Fresh Text")
+    }
+
     func testDecodingLegacyMetadataWithoutPinFieldDefaultsToUnpinned() {
         // 旧版本数据没有 isPinned 字段：解码时应默认非置顶，不得整体解码失败
         let legacy: [[String: Any]] = [

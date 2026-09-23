@@ -91,8 +91,10 @@ public final class ClipboardStore: ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        // 多端同步智能去重：顶部前 3 条文本（首尾空白规范化后）相同即视为云同步重复，丢弃不新增
-        let isDuplicate = items.prefix(3).contains { item in
+        // 多端同步智能去重：比对全部置顶项 + 顶部前 3 条非置顶项（首尾空白规范化后）相同即视为云同步重复，丢弃不新增；
+        // 置顶项再多也不挤占普通新内容的去重窗口
+        let candidates = items.filter(\.isPinned) + items.filter { !$0.isPinned }.prefix(3)
+        let isDuplicate = candidates.contains { item in
             item.type == .text
                 && (item.textContent ?? "").trimmingCharacters(in: .whitespacesAndNewlines) == trimmed
         }
@@ -108,8 +110,9 @@ public final class ClipboardStore: ObservableObject {
     }
 
     public func addImage(data: Data, size: CGSize) {
-        // 多端同步智能去重：顶部前 3 条图片条目中已存在字节相同的图片则忽略
-        for existing in items.prefix(3) where existing.type == .image {
+        // 多端同步智能去重：全部置顶项 + 顶部前 3 条非置顶项中已存在字节相同的图片则忽略
+        let candidates = items.filter(\.isPinned) + items.filter { !$0.isPinned }.prefix(3)
+        for existing in candidates where existing.type == .image {
             if let existingName = existing.imageFileName,
                let existingData = try? Data(contentsOf: imagesDirectory.appendingPathComponent(existingName)),
                existingData == data {
@@ -139,12 +142,15 @@ public final class ClipboardStore: ObservableObject {
     }
 
     /// 切换指定条目的置顶状态；置顶项始终前置且豁免 50 条上限淘汰。
+    /// 取消置顶后该条目按 copiedAt 自然归位（非置顶区严格按复制时间倒序）。
     /// 触发 @Published 状态发布，并在串行队列异步落盘。
     public func togglePin(id: UUID) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         var updated = items
         updated[index].isPinned.toggle()
-        items = Self.pinnedFirst(updated)
+        let pinned = updated.filter(\.isPinned)
+        let unpinned = updated.filter { !$0.isPinned }.sorted { $0.copiedAt > $1.copiedAt }
+        items = pinned + unpinned
         saveToDisk()
     }
 
