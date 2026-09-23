@@ -143,7 +143,7 @@ struct NotchRootView: View {
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             case .clipboard:
                 ClipboardZoneView()
-                    .frame(maxWidth: .infinity, alignment: .top)
+                    // 按内容自身尺寸居中：测量值按内容高度上报，消除大面积空黑
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             case .gateway:
                 GatewayZoneView(vm: vm)
