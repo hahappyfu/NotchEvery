@@ -159,6 +159,12 @@ struct ClipboardZoneView: View {
 
     // MARK: - 相对时间（规格 2.2：如「刚刚」「12秒前」「2分钟前」）
 
+    private static let monthDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd"
+        return formatter
+    }()
+
     static func relativeTime(from date: Date, now: Date = Date()) -> String {
         let seconds = max(0, now.timeIntervalSince(date))
         if seconds < 10 { return "刚刚" }
@@ -166,9 +172,7 @@ struct ClipboardZoneView: View {
         if seconds < 3600 { return "\(Int(seconds / 60))分钟前" }
         if seconds < 86400 { return "\(Int(seconds / 3600))小时前" }
         if seconds < 7 * 86400 { return "\(Int(seconds / 86400))天前" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MM-dd"
-        return formatter.string(from: date)
+        return monthDayFormatter.string(from: date)
     }
 }
 
