@@ -53,6 +53,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         rebuildApplicationWindows()
+
+        // 剪贴板专区：App 完成启动即开启系统剪贴板低频轮询，历史记录不依赖用户是否打开过该分区。
+        // 测试环境已在上方 return，此处不会在测试进程内启动轮询。
+        ClipboardMonitor.shared.start()
     }
 
     @objc func checkSingletonOnActive() {
