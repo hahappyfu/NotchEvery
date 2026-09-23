@@ -94,7 +94,7 @@ struct ClipboardZoneView: View {
 
     private var clearButton: some View {
         Button {
-            store.clearAll()
+            confirmClear()
         } label: {
             Image(systemName: "trash")
                 .font(.system(size: 10, weight: .medium))
@@ -105,6 +105,21 @@ struct ClipboardZoneView: View {
         .buttonStyle(.plain)
         .disabled(store.items.isEmpty)
         .help("清空剪贴板历史")
+    }
+
+    /// 防误触确认（规格 2.3）：清空前经系统警告框二次确认；沿用仓库既有 NSAlert 惯例
+    private func confirmClear() {
+        let alert = NSAlert()
+        alert.messageText = "清空剪贴板历史？"
+        alert.informativeText = "将删除全部 \(store.items.count) 条记录，此操作不可撤销。"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "清空")
+        alert.addButton(withTitle: "取消")
+        alert.window.title = "NotchEvery"
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn {
+            store.clearAll()
+        }
     }
 
     // MARK: - 列表
@@ -142,11 +157,12 @@ struct ClipboardZoneView: View {
         .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: store.items)
     }
 
-    // MARK: - 相对时间（如「刚刚」「2分钟前」）
+    // MARK: - 相对时间（规格 2.2：如「刚刚」「12秒前」「2分钟前」）
 
     static func relativeTime(from date: Date, now: Date = Date()) -> String {
         let seconds = max(0, now.timeIntervalSince(date))
-        if seconds < 60 { return "刚刚" }
+        if seconds < 10 { return "刚刚" }
+        if seconds < 60 { return "\(Int(seconds))秒前" }
         if seconds < 3600 { return "\(Int(seconds / 60))分钟前" }
         if seconds < 86400 { return "\(Int(seconds / 3600))小时前" }
         if seconds < 7 * 86400 { return "\(Int(seconds / 86400))天前" }
@@ -197,7 +213,7 @@ private struct ClipboardRowView: View {
     private var leadingGlyph: some View {
         switch item.type {
         case .text:
-            Image(systemName: "doc.text")
+            Image(systemName: "doc.on.clipboard")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Color.white.opacity(0.55))
                 .frame(width: 22, height: 22)
