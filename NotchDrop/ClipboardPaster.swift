@@ -11,8 +11,6 @@ public final class ClipboardPaster {
 
     /// V 键虚拟键码（ANSI 布局）
     static let vKeyCode: CGKeyCode = 0x09
-    /// 激活目标应用后等待其重新接管键盘事件再注入按键的延迟（秒）
-    static let activationDelay: TimeInterval = 0.06
 
     /// 用户最近使用的外部应用，即 `paste` 激活与注入按键的目标
     public private(set) var lastActiveApp: NSRunningApplication?
@@ -22,6 +20,7 @@ public final class ClipboardPaster {
     private let monitor: ClipboardMonitor
     private let hapticPerformer: NSHapticFeedbackPerformer
     private let selfBundleIdentifier: String?
+    private let activationDelay: TimeInterval
     private let activateApp: (NSRunningApplication) -> Void
     private let postPasteKeystroke: () -> Void
 
@@ -29,6 +28,8 @@ public final class ClipboardPaster {
     ///   - hapticPerformer: 默认触控板 Force Touch 反馈执行器（测试可注入 Spy）
     ///   - selfBundleIdentifier: 自身应用的 bundle id，用于在追踪中排除本应用
     ///   - trackWorkspace: 是否监听工作区激活通知并抓取初始前台应用（测试传 false 保持隔离）
+    ///   - activationDelay: 激活目标应用后注入按键的等待延迟（秒），默认 0.12s——给被唤醒到前台的目标应用
+    ///     留足键盘焦点接管窗口，避免首次注入过早被系统丢弃、第二次才贴上的问题（测试可注入缩短）
     ///   - activateApp: 激活目标应用的执行器，默认真实调用 `activate(options:)`
     ///   - postPasteKeystroke: 注入 Cmd+V 的执行器，默认发送真实 CGEvent（测试可注入 Spy）
     public init(
@@ -38,6 +39,7 @@ public final class ClipboardPaster {
         hapticPerformer: NSHapticFeedbackPerformer = NSHapticFeedbackManager.defaultPerformer,
         selfBundleIdentifier: String? = Bundle.main.bundleIdentifier,
         trackWorkspace: Bool = true,
+        activationDelay: TimeInterval = 0.12,
         activateApp: ((NSRunningApplication) -> Void)? = nil,
         postPasteKeystroke: (() -> Void)? = nil
     ) {
@@ -46,6 +48,7 @@ public final class ClipboardPaster {
         self.monitor = monitor
         self.hapticPerformer = hapticPerformer
         self.selfBundleIdentifier = selfBundleIdentifier
+        self.activationDelay = activationDelay
         self.activateApp = activateApp ?? Self.activateToFront
         self.postPasteKeystroke = postPasteKeystroke ?? Self.postCommandVPaste
 
@@ -97,18 +100,23 @@ public final class ClipboardPaster {
                 pasteboard.setString(text, forType: .string)
             }
         case .image:
-            if let url = store.imageURL(for: item), let image = NSImage(contentsOf: url) {
+            if let url = store.imageURL(for: item),
+               let pngData = try? Data(contentsOf: url),
+               let image = NSImage(data: pngData) {
+                // 双格式写回：原始 PNG 字节流兼容严格要求原生文件流的富文本应用（微信、飞书、Pages），
+                // NSImage 图形对象兼容仅接收图形对象的应用，确保 100% 格式双重兼容。
+                pasteboard.setData(pngData, forType: .png)
                 pasteboard.writeObjects([image])
             }
         }
 
-        // 3. 目标应用缺失（从未记录或已退出）时降级为仅写回剪贴板
-        guard let target = lastActiveApp else { return }
+        // 3. 目标应用缺失（从未记录）或已退出时降级为仅写回剪贴板
+        guard let target = lastActiveApp, !target.isTerminated else { return }
 
         // 4. 激活原前台应用，待其重新接管键盘事件后注入 Cmd+V
         activateApp(target)
         let postKeystroke = postPasteKeystroke
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.activationDelay) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + activationDelay) {
             postKeystroke()
         }
     }

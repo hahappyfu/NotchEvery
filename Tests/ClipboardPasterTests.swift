@@ -162,7 +162,8 @@ final class ClipboardPasterTests: XCTestCase {
     // MARK: - 图片写回
 
     func testPasteImageWritesStoredImageToPasteboard() {
-        store.addImage(data: makePNGData(width: 60, height: 40), size: CGSize(width: 60, height: 40))
+        let pngData = makePNGData(width: 60, height: 40)
+        store.addImage(data: pngData, size: CGSize(width: 60, height: 40))
         guard let item = store.items.first, item.type == .image else {
             return XCTFail("store 应记录图片条目")
         }
@@ -170,6 +171,14 @@ final class ClipboardPasterTests: XCTestCase {
         paster.paste(item: item)
 
         XCTAssertNotNil(NSImage(pasteboard: pasteboard), "点击应把落盘缩略图写回系统剪贴板")
+
+        // 双格式写回之一：原始 PNG 字节流，兼容严格要求原生文件流的应用（微信、飞书、Pages 等）
+        XCTAssertEqual(pasteboard.data(forType: .png), pngData, "写回时应提供原始 PNG 字节，兼容只认原生文件流的应用")
+
+        // 双格式写回之二：NSImage 图形对象，兼容仅接收图形对象的应用
+        let imageObjects = pasteboard.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage]
+        XCTAssertFalse(imageObjects?.isEmpty ?? true, "写回时应同时提供 NSImage 对象，readObjects 应能正常读出")
+
         XCTAssertTrue(monitor.isInternalCopy, "图片写回同样应标记内部复制")
         XCTAssertEqual(hapticSpy.performCount, 1, "每次点击应触发恰好一次触觉反馈")
     }
