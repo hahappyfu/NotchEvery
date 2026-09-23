@@ -13,6 +13,10 @@ import SwiftUI
 struct ClipboardZoneView: View {
     @StateObject private var store = ClipboardStore.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// 清空操作的原位二次确认状态（替代系统模态弹窗，避免被刘海窗口遮挡）
+    @State private var isConfirmingClear = false
+    /// 展开确认后 3 秒无操作自动收起；每次重新调度前取消旧任务，避免并发竞争
+    @State private var confirmResetTask: DispatchWorkItem?
 
     /// 固定宽度：与 Token 分区同宽
     static let zoneWidth: CGFloat = 410
@@ -48,41 +52,94 @@ struct ClipboardZoneView: View {
             Spacer()
 
             if !store.items.isEmpty {
-                Button {
-                    confirmClear()
-                } label: {
-                    HStack(spacing: 3) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 9))
-                        Text("清空")
-                            .font(.system(size: 10))
-                    }
-                    .foregroundStyle(Color.white.opacity(0.45))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 4))
+                if isConfirmingClear {
+                    inlineClearConfirm
+                } else {
+                    clearButton
                 }
-                .buttonStyle(.plain)
-                .help("清空全部剪贴板历史")
             }
         }
         .padding(.horizontal, 4)
         .padding(.bottom, 2)
     }
 
-    // MARK: - 清空确认
+    /// 未激活态：低调小巧的清空入口
+    private var clearButton: some View {
+        Button {
+            scheduleConfirmReset()
+            withAnimation(confirmAnimation) {
+                isConfirmingClear = true
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Image(systemName: "trash")
+                    .font(.system(size: 9))
+                Text("清空")
+                    .font(.system(size: 10))
+            }
+            .foregroundStyle(Color.white.opacity(0.45))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 4))
+        }
+        .buttonStyle(.plain)
+        .help("清空全部剪贴板历史")
+    }
 
-    private func confirmClear() {
-        let alert = NSAlert()
-        alert.messageText = "清空剪贴板历史？"
-        alert.informativeText = "将删除全部 \(store.items.count) 条记录，此操作不可撤销。"
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "清空")
-        alert.addButton(withTitle: "取消")
-        alert.window.title = "NotchEvery"
-        NSApp.activate(ignoringOtherApps: true)
-        if alert.runModal() == .alertFirstButtonReturn {
-            store.clearAll()
+    /// 激活态：原地展开 [确认清空] [取消]，不再弹系统模态窗口
+    private var inlineClearConfirm: some View {
+        HStack(spacing: 4) {
+            Button {
+                store.clearAll()
+                dismissInlineConfirm()
+            } label: {
+                Text("确认清空")
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(StudioColor.rose.opacity(0.85), in: RoundedRectangle(cornerRadius: 4))
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                dismissInlineConfirm()
+            } label: {
+                Text("取消")
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(Color.white.opacity(0.6))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 4))
+            }
+            .buttonStyle(.plain)
+        }
+        .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .trailing)))
+    }
+
+    /// 清空确认相关动画（遵循「减弱动态效果」设置）
+    private var confirmAnimation: Animation? {
+        reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.8)
+    }
+
+    /// 展开后启动 3 秒无操作自动复位；先取消旧任务，避免并发竞争
+    private func scheduleConfirmReset() {
+        confirmResetTask?.cancel()
+        let task = DispatchWorkItem {
+            withAnimation(confirmAnimation) {
+                isConfirmingClear = false
+            }
+        }
+        confirmResetTask = task
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: task)
+    }
+
+    /// 收起确认态并取消待执行的自动复位任务
+    private func dismissInlineConfirm() {
+        confirmResetTask?.cancel()
+        confirmResetTask = nil
+        withAnimation(confirmAnimation) {
+            isConfirmingClear = false
         }
     }
 
