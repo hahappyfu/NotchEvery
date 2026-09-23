@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AD758EE931D228E9116829AB /* ClipboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD8322FC835B98508D181070 /* ClipboardMonitor.swift */; };
+		AD542209974C386DCD7D8258 /* ClipboardMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD064CB36D15F183952C6BD3 /* ClipboardMonitorTests.swift */; };
 		AD16E4E2E49195D13405E8A4 /* ClipboardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADD8B28135867395AC281B16 /* ClipboardStore.swift */; };
 		ADA2F0615B3ACCE026F52629 /* ClipboardStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD86C272A2D168F3DD154820 /* ClipboardStoreTests.swift */; };
 		64C0DDDB8CA2D27D40BEE1AF /* QoderPoolRingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADE020432E7E7EE9F4611A1C /* QoderPoolRingView.swift */; };
@@ -135,6 +137,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AD8322FC835B98508D181070 /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
+		AD064CB36D15F183952C6BD3 /* ClipboardMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitorTests.swift; sourceTree = "<group>"; };
 		ADD8B28135867395AC281B16 /* ClipboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStore.swift; sourceTree = "<group>"; };
 		AD86C272A2D168F3DD154820 /* ClipboardStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStoreTests.swift; sourceTree = "<group>"; };
 		ADE020432E7E7EE9F4611A1C /* QoderPoolRingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderPoolRingView.swift; sourceTree = "<group>"; };
@@ -291,6 +295,7 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				AD8322FC835B98508D181070 /* ClipboardMonitor.swift */,
 				ADD8B28135867395AC281B16 /* ClipboardStore.swift */,
 				ADE020432E7E7EE9F4611A1C /* QoderPoolRingView.swift */,
 				AD10C5A1B2C3D4E5F6071805 /* QoderAccountNicknames.swift */,
@@ -387,6 +392,7 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				AD064CB36D15F183952C6BD3 /* ClipboardMonitorTests.swift */,
 				AD86C272A2D168F3DD154820 /* ClipboardStoreTests.swift */,
 				2A53F58C465FA56AEF12E4DC /* QoderStoreTests.swift */,
 				AD10C5A1B2C3D4E5F6071803 /* QoderCampaignClaimerTests.swift */,
@@ -571,6 +577,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD758EE931D228E9116829AB /* ClipboardMonitor.swift in Sources */,
 				AD16E4E2E49195D13405E8A4 /* ClipboardStore.swift in Sources */,
 				64C0DDDB8CA2D27D40BEE1AF /* QoderPoolRingView.swift in Sources */,
 				AD10C5A1B2C3D4E5F6071806 /* QoderAccountNicknames.swift in Sources */,
@@ -653,6 +660,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD542209974C386DCD7D8258 /* ClipboardMonitorTests.swift in Sources */,
 				ADA2F0615B3ACCE026F52629 /* ClipboardStoreTests.swift in Sources */,
 				A960E466FF0B6C2E724CB7E1 /* QoderStoreTests.swift in Sources */,
 				AD10C5A1B2C3D4E5F6071804 /* QoderCampaignClaimerTests.swift in Sources */,
