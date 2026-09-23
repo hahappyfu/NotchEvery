@@ -15,6 +15,14 @@ private let antigravityLog = Logger(subsystem: Bundle.main.bundleIdentifier ?? "
 
 // MARK: - Models
 
+/// 配额展示档位：短周期（5h）优先，耗尽后自动降级周额度。
+public enum QuotaDisplayTier: String, Codable, Equatable {
+    /// 5 小时短周期额度（claude / gpt 等高频模型）
+    case fiveHour
+    /// 周额度（gemini 等长周期模型）
+    case weekly
+}
+
 public struct AntigravityAccount: Identifiable, Equatable {
     public let id: String
     public let name: String
@@ -22,8 +30,14 @@ public struct AntigravityAccount: Identifiable, Equatable {
     public let isCurrent: Bool
     public let isDisabled: Bool
     public let isProxyDisabled: Bool
-    public let percentage: Int
-    public let resetTime: Date?
+    /// 5 小时短周期额度百分比；nil 表示账号无短周期模型数据（直接展示周额度）。
+    public let fiveHourPercentage: Int?
+    /// 5 小时短周期额度重置时间。
+    public let fiveHourResetTime: Date?
+    /// 周额度百分比。
+    public let weeklyPercentage: Int
+    /// 周额度重置时间。
+    public let weeklyResetTime: Date?
     public let lastActiveTime: Date?
     /// 单账号文件（accounts/<id>.json）里是否显式写了 `disabled` 字段；false 表示缺省，需要看索引兜底。仅 loadAccounts 内部使用。
     var rawDisabledPresent: Bool = false
@@ -31,6 +45,29 @@ public struct AntigravityAccount: Identifiable, Equatable {
     var rawDisabledValue: Bool = false
     /// 单账号文件里是否显式写了 `proxy_disabled` 字段；false 表示缺省，需要看索引兜底。
     var rawProxyDisabledPresent: Bool = false
+
+    /// 当前展示档位：5h 有剩余时用 5h；耗尽（0%）或无 5h 数据时自动降级到周额度。
+    public var currentTier: QuotaDisplayTier {
+        if let fiveHour = fiveHourPercentage, fiveHour > 0 {
+            return .fiveHour
+        }
+        return .weekly
+    }
+
+    /// 当前档位对应的展示百分比。
+    public var displayPercentage: Int {
+        currentTier == .fiveHour ? (fiveHourPercentage ?? weeklyPercentage) : weeklyPercentage
+    }
+
+    /// 当前档位对应的重置时间。
+    public var displayResetTime: Date? {
+        currentTier == .fiveHour ? (fiveHourResetTime ?? weeklyResetTime) : weeklyResetTime
+    }
+
+    /// 向后兼容：旧属性现跟随当前展示档位（等价 displayPercentage）。
+    public var percentage: Int { displayPercentage }
+    /// 向后兼容：旧属性现跟随当前展示档位（等价 displayResetTime）。
+    public var resetTime: Date? { displayResetTime }
 
     public init(
         id: String,
@@ -42,6 +79,8 @@ public struct AntigravityAccount: Identifiable, Equatable {
         percentage: Int,
         resetTime: Date?,
         lastActiveTime: Date? = nil,
+        fiveHourPercentage: Int? = nil,
+        fiveHourResetTime: Date? = nil,
         rawDisabledPresent: Bool = false,
         rawDisabledValue: Bool = false,
         rawProxyDisabledPresent: Bool = false
@@ -52,8 +91,11 @@ public struct AntigravityAccount: Identifiable, Equatable {
         self.isCurrent = isCurrent
         self.isDisabled = isDisabled
         self.isProxyDisabled = isProxyDisabled
-        self.percentage = percentage
-        self.resetTime = resetTime
+        // 向后兼容：旧的 percentage / resetTime 参数映射为周额度（旧数据源即 gemini 周模型）。
+        self.weeklyPercentage = percentage
+        self.weeklyResetTime = resetTime
+        self.fiveHourPercentage = fiveHourPercentage
+        self.fiveHourResetTime = fiveHourResetTime
         self.lastActiveTime = lastActiveTime
         self.rawDisabledPresent = rawDisabledPresent
         self.rawDisabledValue = rawDisabledValue
@@ -162,9 +204,11 @@ public final class AntigravityStore: ObservableObject {
                 isCurrent: acc.id == id,
                 isDisabled: acc.isDisabled,
                 isProxyDisabled: acc.isProxyDisabled,
-                percentage: acc.percentage,
-                resetTime: acc.resetTime,
+                percentage: acc.weeklyPercentage,
+                resetTime: acc.weeklyResetTime,
                 lastActiveTime: acc.lastActiveTime,
+                fiveHourPercentage: acc.fiveHourPercentage,
+                fiveHourResetTime: acc.fiveHourResetTime,
                 rawDisabledPresent: acc.rawDisabledPresent,
                 rawDisabledValue: acc.rawDisabledValue,
                 rawProxyDisabledPresent: acc.rawProxyDisabledPresent
@@ -299,9 +343,11 @@ public final class AntigravityStore: ObservableObject {
                 isCurrent: isCurrent,
                 isDisabled: disabledResolved || isProxyDisabled,
                 isProxyDisabled: isProxyDisabled,
-                percentage: acc.percentage,
-                resetTime: acc.resetTime,
-                lastActiveTime: actDate
+                percentage: acc.weeklyPercentage,
+                resetTime: acc.weeklyResetTime,
+                lastActiveTime: actDate,
+                fiveHourPercentage: acc.fiveHourPercentage,
+                fiveHourResetTime: acc.fiveHourResetTime
             )
         }
 
@@ -367,18 +413,47 @@ public final class AntigravityStore: ObservableObject {
         let isProxyDisabled = (raw.proxy_disabled == true)
         let isDisabled = (raw.disabled == true) || isProxyDisabled
 
-        // 提取配额模型（优先选择包含 gemini 的共享模型，否则取第一个模型）
-        var selectedModel: RawAccount.RawModel?
+        // 双轨配额提取：分别挑选短周期（5h）与长周期（周）模型
+        // - 短周期（5h）：名称含 claude / gpt，或重置时间在 5.5 小时以内的模型
+        // - 长周期（周）：优先名称含 gemini 的模型，其次重置时间在 24 小时以上，均无则取首个模型兜底
+        var fiveHourModel: RawAccount.RawModel?
+        var weeklyModel: RawAccount.RawModel?
         if let models = raw.quota?.models, !models.isEmpty {
-            selectedModel = models.first { ($0.name ?? "").lowercased().contains("gemini") } ?? models.first
+            let now = Date()
+            fiveHourModel = models.first { model in
+                let lower = (model.name ?? "").lowercased()
+                if lower.contains("claude") || lower.contains("gpt") {
+                    return true
+                }
+                guard let resetStr = model.reset_time, let reset = parseISO8601(resetStr) else {
+                    return false
+                }
+                let diff = reset.timeIntervalSince(now)
+                return diff > 0 && diff <= 5.5 * 3600
+            }
+            weeklyModel = models.first { ($0.name ?? "").lowercased().contains("gemini") }
+                ?? models.first { model in
+                    guard let resetStr = model.reset_time, let reset = parseISO8601(resetStr) else {
+                        return false
+                    }
+                    return reset.timeIntervalSince(now) > 24 * 3600
+                }
+                ?? models.first
         }
 
-        let rawPercentage = selectedModel?.percentage ?? 0
-        let percentage = min(100, max(0, rawPercentage))
+        let weeklyPercentage = min(100, max(0, weeklyModel?.percentage ?? 0))
+        var weeklyResetTime: Date?
+        if let resetStr = weeklyModel?.reset_time {
+            weeklyResetTime = parseISO8601(resetStr)
+        }
 
-        var resetDate: Date?
-        if let resetStr = selectedModel?.reset_time {
-            resetDate = parseISO8601(resetStr)
+        var fiveHourPercentage: Int?
+        var fiveHourResetTime: Date?
+        if let fiveHourModel = fiveHourModel {
+            fiveHourPercentage = min(100, max(0, fiveHourModel.percentage ?? 0))
+            if let resetStr = fiveHourModel.reset_time {
+                fiveHourResetTime = parseISO8601(resetStr)
+            }
         }
 
         return AntigravityAccount(
@@ -388,8 +463,10 @@ public final class AntigravityStore: ObservableObject {
             isCurrent: isCurrent,
             isDisabled: isDisabled,
             isProxyDisabled: isProxyDisabled,
-            percentage: percentage,
-            resetTime: resetDate,
+            percentage: weeklyPercentage,
+            resetTime: weeklyResetTime,
+            fiveHourPercentage: fiveHourPercentage,
+            fiveHourResetTime: fiveHourResetTime,
             rawDisabledPresent: raw.disabled != nil,
             rawDisabledValue: raw.disabled == true,
             rawProxyDisabledPresent: raw.proxy_disabled != nil
