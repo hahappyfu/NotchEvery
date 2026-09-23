@@ -329,6 +329,9 @@ private struct ClipboardRowView: View {
         case .text:
             return item.textContent ?? ""
         case .image:
+            if let fileName = item.sourceFileName {
+                return fileName
+            }
             guard let width = item.imageWidth, let height = item.imageHeight else { return "截图" }
             return "截图 (\(Int(width)) × \(Int(height)))"
         }

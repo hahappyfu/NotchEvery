@@ -16,6 +16,8 @@ public struct ClipboardItem: Identifiable, Codable, Equatable {
     public let imageWidth: CGFloat?
     public let imageHeight: CGFloat?
     public let copiedAt: Date
+    /// 复制的原始文件名（若为访达复制的文件）
+    public let sourceFileName: String?
     /// 是否置顶：置顶项始终排在列表最前，且绝对豁免 50 条上限淘汰
     public var isPinned: Bool = false
 
@@ -28,6 +30,7 @@ public struct ClipboardItem: Identifiable, Codable, Equatable {
         imageWidth: CGFloat? = nil,
         imageHeight: CGFloat? = nil,
         copiedAt: Date = Date(),
+        sourceFileName: String? = nil,
         isPinned: Bool = false
     ) {
         self.id = id
@@ -38,6 +41,7 @@ public struct ClipboardItem: Identifiable, Codable, Equatable {
         self.imageWidth = imageWidth
         self.imageHeight = imageHeight
         self.copiedAt = copiedAt
+        self.sourceFileName = sourceFileName
         self.isPinned = isPinned
     }
 
@@ -52,6 +56,7 @@ public struct ClipboardItem: Identifiable, Codable, Equatable {
         imageWidth = try container.decodeIfPresent(CGFloat.self, forKey: .imageWidth)
         imageHeight = try container.decodeIfPresent(CGFloat.self, forKey: .imageHeight)
         copiedAt = try container.decode(Date.self, forKey: .copiedAt)
+        sourceFileName = try container.decodeIfPresent(String.self, forKey: .sourceFileName)
         isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
     }
 }
@@ -109,7 +114,7 @@ public final class ClipboardStore: ObservableObject {
         insertItem(item)
     }
 
-    public func addImage(data: Data, size: CGSize) {
+    public func addImage(data: Data, size: CGSize, sourceFileName: String? = nil) {
         // 多端同步智能去重：全部置顶项 + 顶部前 3 条非置顶项中已存在字节相同的图片则忽略
         let candidates = items.filter(\.isPinned) + items.filter { !$0.isPinned }.prefix(3)
         for existing in candidates where existing.type == .image {
@@ -136,7 +141,8 @@ public final class ClipboardStore: ObservableObject {
             imageFileName: fileName,
             imageWidth: size.width,
             imageHeight: size.height,
-            copiedAt: Date()
+            copiedAt: Date(),
+            sourceFileName: sourceFileName
         )
         insertItem(item)
     }

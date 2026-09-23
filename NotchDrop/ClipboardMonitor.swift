@@ -55,6 +55,15 @@ public final class ClipboardMonitor {
             return
         }
 
+        // 检查是否为访达复制的文件，提取原始文件名
+        var sourceFileName: String?
+        if let url = NSURL(from: pasteboard) as URL? {
+            sourceFileName = url.lastPathComponent
+        } else if let fileURLStr = pasteboard.string(forType: .fileURL),
+                  let url = URL(string: fileURLStr) {
+            sourceFileName = url.lastPathComponent
+        }
+
         // 1. 文本优先
         if let string = pasteboard.string(forType: .string),
            !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -64,14 +73,23 @@ public final class ClipboardMonitor {
             return
         }
 
-        // 2. 图片：只保存最长边 400px 的 PNG 缩略图
-        guard let image = NSImage(pasteboard: pasteboard),
-              image.size.width > 0, image.size.height > 0 else { return }
-        let originalSize = image.size
-        guard let pngData = Self.makeThumbnailPNG(from: image, maxDimension: Self.maxThumbnailDimension) else { return }
+        // 2. 图片：只保存最长边 400px 的 PNG 缩略图（若为复制的文件，携带真实文件名）
+        if let image = NSImage(pasteboard: pasteboard),
+           image.size.width > 0, image.size.height > 0 {
+            let originalSize = image.size
+            if let pngData = Self.makeThumbnailPNG(from: image, maxDimension: Self.maxThumbnailDimension) {
+                deliver { store in
+                    store.addImage(data: pngData, size: originalSize, sourceFileName: sourceFileName)
+                }
+                return
+            }
+        }
 
-        deliver { store in
-            store.addImage(data: pngData, size: originalSize)
+        // 3. 非图片文件兜底：以文件名收录
+        if let fileName = sourceFileName, !fileName.isEmpty {
+            deliver { store in
+                store.addText("📄 \(fileName)")
+            }
         }
     }
 
