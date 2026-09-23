@@ -199,6 +199,8 @@ private struct ClipboardRowView: View {
                 .font(.system(size: 9.5).monospacedDigit())
                 .foregroundStyle(Color.white.opacity(0.4))
                 .lineLimit(1)
+
+            pinButton
         }
         .padding(.horizontal, 10)
         .frame(width: ClipboardZoneView.zoneWidth, height: ClipboardZoneView.rowHeight)
@@ -247,6 +249,22 @@ private struct ClipboardRowView: View {
                     .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
         }
+    }
+
+    /// 图钉按钮：置顶条目常驻高亮翠绿（pin.fill），未置顶条目悬停显现灰色（pin）。
+    /// 固定 16pt 占位避免悬停显隐引起右侧时间抖动；隐藏时同步关闭命中测试，防止误触置顶。
+    private var pinButton: some View {
+        Image(systemName: item.isPinned ? "pin.fill" : "pin")
+            .font(.system(size: 9.5, weight: .medium))
+            .foregroundStyle(item.isPinned ? StudioColor.emerald : Color.white.opacity(0.45))
+            .frame(width: 16, height: 16)
+            .contentShape(Rectangle())
+            .opacity(item.isPinned || hovering ? 1 : 0)
+            .allowsHitTesting(item.isPinned || hovering)
+            .help(item.isPinned ? "取消置顶" : "置顶")
+            .onTapGesture {
+                ClipboardStore.shared.togglePin(id: item.id)
+            }
     }
 
     private var primaryText: String {

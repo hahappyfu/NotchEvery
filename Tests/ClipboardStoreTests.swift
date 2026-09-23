@@ -60,6 +60,29 @@ final class ClipboardStoreTests: XCTestCase {
         XCTAssertEqual(store.items.count, 1)
     }
 
+    func testMultiDeviceSyncDeduplication() {
+        // 多端云同步基础场景：A → B → C 连续同步收录
+        store.addText("Sync A")
+        store.addText("Sync B")
+        store.addText("Sync C")
+        XCTAssertEqual(store.items.count, 3)
+
+        // 首尾空白差异（换行/空格）规范化后视为同一文本，命中前 3 项即去重
+        store.addText(" \nSync A\n ")
+        XCTAssertEqual(store.items.count, 3, "首尾空白差异应被规范化后认定为多端同步重复")
+
+        // 滑动窗口：插入 D 后 A 滑出前 3 项，此时再次同步 A 应正常收录
+        store.addText("Sync D")
+        XCTAssertEqual(store.items.count, 4)
+        store.addText("Sync A")
+        XCTAssertEqual(store.items.count, 5, "已滑出前 3 项窗口的旧文本应允许重新收录")
+        XCTAssertEqual(store.items.first?.textContent, "Sync A")
+
+        // 命中窗口内最新条目（带空白差异）同样按重复丢弃
+        store.addText("\nSync A\n")
+        XCTAssertEqual(store.items.count, 5, "窗口内文本带首尾空白再次同步时不应新增重复条目")
+    }
+
     func testFiftyItemsHardLimitEviction() {
         for i in 0..<55 {
             store.addText("Item \(i)")
@@ -96,6 +119,64 @@ final class ClipboardStoreTests: XCTestCase {
         XCTAssertEqual(store.items.count, 50)
         XCTAssertFalse(store.items.contains { $0.type == .image })
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path), "被淘汰图片的物理文件应同步删除")
+    }
+
+    // MARK: - Pin
+
+    func testTogglePinPreservesItemAcrossEviction() {
+        store.addText("Important Item")
+        guard let id = store.items.first?.id else { return XCTFail("首条未插入") }
+        store.togglePin(id: id)
+        XCTAssertTrue(store.items.first?.isPinned == true)
+        XCTAssertEqual(store.items.first?.id, id)
+
+        // 插入 55 条新条目：置顶项绝对豁免 50 条上限淘汰，且始终排在最前面
+        for i in 0..<55 {
+            store.addText("Normal Item \(i)")
+        }
+
+        XCTAssertEqual(store.items.count, 50)
+        XCTAssertTrue(store.items.contains { $0.id == id }, "置顶项必须豁免淘汰")
+        XCTAssertEqual(store.items.first?.id, id, "置顶项应始终排在最前面")
+
+        // 被淘汰的应全部是最老的非置顶项（Item 0 ~ Item 5），非置顶区保持复制时间倒序
+        let unpinned = store.items.filter { !$0.isPinned }
+        XCTAssertEqual(unpinned.count, 49)
+        XCTAssertEqual(unpinned.first?.textContent, "Normal Item 54")
+        XCTAssertEqual(unpinned.last?.textContent, "Normal Item 6")
+        XCTAssertFalse(store.items.contains { $0.textContent == "Normal Item 0" }, "最老的非置顶项应被淘汰")
+
+        // 置顶状态随元数据持久化：重载后仍保持置顶与置顶排序
+        let persisted = waitForPersistedItemCount(50)
+        XCTAssertEqual(persisted?.first?.id, id)
+        XCTAssertEqual(persisted?.first?.isPinned, true, "isPinned 应序列化落盘")
+
+        let reloaded = ClipboardStore(storageDirectory: tempDir)
+        XCTAssertEqual(reloaded.items.first?.id, id, "重载后置顶项应仍在最前")
+        XCTAssertTrue(reloaded.items.first?.isPinned == true)
+        XCTAssertEqual(reloaded.items.count, 50)
+    }
+
+    func testDecodingLegacyMetadataWithoutPinFieldDefaultsToUnpinned() {
+        // 旧版本数据没有 isPinned 字段：解码时应默认非置顶，不得整体解码失败
+        let legacy: [[String: Any]] = [
+            [
+                "id": UUID().uuidString,
+                "type": "text",
+                "textContent": "Legacy Item",
+                "charCount": 11,
+                "copiedAt": "2026-09-23T00:00:00Z",
+            ]
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: legacy) else {
+            return XCTFail("JSON 构造失败")
+        }
+        try? data.write(to: tempDir.appendingPathComponent("clipboard_history.json"))
+
+        let reloaded = ClipboardStore(storageDirectory: tempDir)
+        XCTAssertEqual(reloaded.items.count, 1)
+        XCTAssertEqual(reloaded.items.first?.textContent, "Legacy Item")
+        XCTAssertEqual(reloaded.items.first?.isPinned, false, "缺失 isPinned 字段时应默认非置顶")
     }
 
     // MARK: - Clear
