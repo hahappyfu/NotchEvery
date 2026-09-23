@@ -270,7 +270,9 @@ struct AntigravityAccountsCardView: View {
     }
 
     private func accountColumn(_ account: AntigravityAccount) -> some View {
-        let badgeColor = account.isDisabled ? Color.white.opacity(0.35) : (account.percentage == 100 ? StudioColor.emerald : StudioColor.amber)
+        let badgeColor = account.isDisabled ? Color.white.opacity(0.35) : (account.displayPercentage == 100 ? StudioColor.emerald : StudioColor.amber)
+        // 5h 额度耗尽、自动降级到周额度且账号可用时，才点亮「周额度」微标
+        let isWeeklyTier = account.currentTier == .weekly && !account.isDisabled
 
         return VStack(spacing: 5) {
             Text(account.name)
@@ -285,16 +287,16 @@ struct AntigravityAccountsCardView: View {
                     .frame(width: 44, height: 44)
 
                 Circle()
-                    .trim(from: 0, to: CGFloat(min(100, max(0, account.percentage))) / 100.0)
+                    .trim(from: 0, to: CGFloat(min(100, max(0, account.displayPercentage))) / 100.0)
                     .stroke(
-                        Self.ringColor(account.percentage, isDisabled: account.isDisabled),
+                        Self.ringColor(account.displayPercentage, isDisabled: account.isDisabled),
                         style: StrokeStyle(lineWidth: 3.5, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
                     .frame(width: 44, height: 44)
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: account.percentage)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: account.displayPercentage)
 
-                Text("\(account.percentage)%")
+                Text("\(account.displayPercentage)%")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(account.isDisabled ? Color.white.opacity(0.35) : Color.white.opacity(0.92))
@@ -308,8 +310,13 @@ struct AntigravityAccountsCardView: View {
                     }
                 }
             )
+            .overlay(alignment: .topTrailing) {
+                if isWeeklyTier {
+                    weeklyTierBadge
+                }
+            }
 
-            Text(account.isDisabled ? "已禁用" : (account.isCurrent && account.percentage == 100 ? "在用中" : (account.percentage == 100 ? "已就绪" : account.resetCountdownText)))
+            Text(statusText(for: account))
                 .font(.system(size: 9.5, weight: .medium).monospacedDigit())
                 .minimumScaleFactor(0.75)
                 .padding(.horizontal, 5)
@@ -324,6 +331,34 @@ struct AntigravityAccountsCardView: View {
         .frame(maxWidth: .infinity)
         .studioCard(radius: 8, isSelected: account.isCurrent)
         .opacity(account.isDisabled ? 0.6 : 1.0)
+    }
+
+    /// 周额度降级微标：骑在圆环右上角的琥珀色小胶囊，仅在 5h 耗尽、周额度接管时不打扰地点亮。
+    private var weeklyTierBadge: some View {
+        Text("周额度")
+            .font(.system(size: 7.5, weight: .semibold))
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            .background(StudioColor.amber.opacity(0.16), in: Capsule())
+            .foregroundStyle(StudioColor.amber)
+            .offset(x: 7, y: -3)
+    }
+
+    /// 底部状态胶囊文案：
+    /// - 已禁用 → 「已禁用」；
+    /// - 周额度档位且未满 → 带「周重置」前缀的天级/小时级倒计时；
+    /// - 满额 → 沿用原逻辑「在用中 / 已就绪」；
+    /// - 其余（5h 正常档位未满）→ 当前档位重置倒计时。
+    private func statusText(for account: AntigravityAccount) -> String {
+        if account.isDisabled { return "已禁用" }
+        if account.currentTier == .weekly && account.displayPercentage < 100 {
+            let countdown = account.resetCountdownText
+            return countdown == "已就绪" ? "等待周重置" : "周重置 \(countdown)"
+        }
+        if account.displayPercentage == 100 {
+            return account.isCurrent ? "在用中" : "已就绪"
+        }
+        return account.resetCountdownText
     }
 }
 
