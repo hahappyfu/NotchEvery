@@ -68,12 +68,37 @@ extension AntigravityAccount {
 
 ---
 
-## 4. 验证与测试用例
+## 4. 第三页网关缓存命中率计算修正（`QoderLogParser.swift`）
+
+### 4.1 根因与口径偏差
+- **现状缺陷**：`QoderDailyAgg.cacheRateFraction` 当前公式写为：
+  ```swift
+  let denom = tokensIn + cached
+  return denom > 0 ? Double(cached) / Double(denom) : 0
+  ```
+- **真实日志事实**：`gateway.log` 中网关输出格式为：
+  `remote usage model=dfmodel in=63126 out=269 cached=62208 total=63395`
+  数值关系满足 $63126 + 269 = 63395$（$in + out = total$），证明 `in` 已经是**包含已缓存部分的完整输入 Tokens**。
+- **误差量级**：原有公式在分母上把 `cached` 又累加了一次，导致实际命中率 98.5% 被错误稀释为 49.6%，直接腰斩。
+
+### 4.2 修正公式
+将 `NotchDrop/QoderLogParser.swift` 中 `cacheRateFraction` 统一修正为业界标准口径（与第二页 Token 专区对齐）：
+```swift
+var cacheRateFraction: Double {
+    tokensIn > 0 ? min(1.0, max(0.0, Double(cached) / Double(tokensIn))) : 0
+}
+```
+
+---
+
+## 5. 验证与测试用例
 
 1. **单元测试**：
    - 5h 额度正常时：断言 `currentTier == .fiveHour`，取值来自 Claude 模型；
    - 5h 额度为 0 时：断言 `currentTier == .weekly`，取值自动切换为 Gemini 周模型；
    - 仅有周额度（无 5h 模型）时：平滑回退 `weekly`，不崩不空；
-   - 倒计时格式化函数：验证 `4d12h`、`3h45m` 等格式正确。
+   - 倒计时格式化函数：验证 `4d12h`、`3h45m` 等格式正确；
+   - `QoderLogParserTests`：更新测试用例中 `cacheRateFraction` 的预期值，验证 62208 / 63126 约为 98.5%，不再打折。
 2. **真机视觉走查**：
-   - 检查 3D 账号环上 `5h` 与 `周额度` 胶囊徽章的对齐与色彩搭配。
+   - 第一页 3D 账号环上 `5h` 与 `周额度` 胶囊徽章的对齐与色彩；
+   - 第三页网关卡片页脚上的“缓存命中”数值恢复为真实的 80%~90%+。
