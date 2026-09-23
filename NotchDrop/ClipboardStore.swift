@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftUI
 
@@ -44,6 +45,8 @@ public final class ClipboardStore: ObservableObject {
     private let storageDirectory: URL
     private let metadataURL: URL
     private let imagesDirectory: URL
+    /// 缩略图内存缓存：消除快速滚动时的磁盘读取，保证满帧顺滑
+    private let imageCache = NSCache<NSString, NSImage>()
     /// 串行写盘队列：保证多次保存按调用顺序落盘，且不在调用线程做 I/O
     private let saveQueue = DispatchQueue(label: "com.hahappyfu.NotchEvery.clipboard-store-writer", qos: .utility)
 
@@ -119,8 +122,21 @@ public final class ClipboardStore: ObservableObject {
         return imagesDirectory.appendingPathComponent(fileName)
     }
 
+    /// 高速获取缩略图：优先命中内存缓存
+    public func image(for item: ClipboardItem) -> NSImage? {
+        guard let fileName = item.imageFileName else { return nil }
+        let key = fileName as NSString
+        if let cached = imageCache.object(forKey: key) {
+            return cached
+        }
+        guard let url = imageURL(for: item), let image = NSImage(contentsOf: url) else { return nil }
+        imageCache.setObject(image, forKey: key)
+        return image
+    }
+
     public func clearAll() {
         items.removeAll()
+        imageCache.removeAllObjects()
         try? FileManager.default.removeItem(at: metadataURL)
         if let files = try? FileManager.default.contentsOfDirectory(at: imagesDirectory, includingPropertiesForKeys: nil) {
             for file in files {
@@ -135,6 +151,7 @@ public final class ClipboardStore: ObservableObject {
         // 淘汰超过 50 条的最老项
         while items.count > Self.maxItemCount {
             if let evicted = items.popLast(), let imgName = evicted.imageFileName {
+                imageCache.removeObject(forKey: imgName as NSString)
                 let imgURL = imagesDirectory.appendingPathComponent(imgName)
                 try? FileManager.default.removeItem(at: imgURL)
             }

@@ -105,12 +105,22 @@ struct NotchView: View {
                 guard vm.status == .opened else { return }
                 guard vm.notchOpenedRect.contains(NSEvent.mouseLocation) else { return }
                 guard !dropTargeting else { return }
+
+                // 垂直滚动时：若在剪贴板专区，触发精密机械齿轮棘轮触觉（每步距咔嗒一次）
+                if vm.contentType == .clipboard && abs(delta.deltaY) > abs(delta.deltaX) {
+                    GearHapticFeedback.shared.feedVertical(deltaY: delta.deltaY, now: delta.timestamp)
+                }
+
                 guard let direction = swipeResolver.feed(
                     deltaX: delta.deltaX,
                     deltaY: delta.deltaY,
                     hasMomentum: delta.hasMomentum,
                     now: delta.timestamp
                 ) else { return }
+
+                // 触发切页沉稳挡位咬合感
+                GearHapticFeedback.shared.triggerPageDetent()
+
                 if direction == .next {
                     vm.nextZone()
                 } else {

@@ -221,8 +221,8 @@ class NotchViewModel: NSObject, ObservableObject {
     let openAnimation: Animation = .spring(response: 0.36, dampingFraction: 0.82, blendDuration: 0.08)
     /// 收起弹簧：对齐 Apple 原生吸附（260ms 快收，1.0 临界阻尼绝对零反弹）
     let closeAnimation: Animation = .spring(response: 0.26, dampingFraction: 1.0, blendDuration: 0.05)
-    /// 切页专用：高抗抖横向位移弹簧（320ms，0.86 阻尼平稳推进）
-    let pageAnimation: Animation = .spring(response: 0.32, dampingFraction: 0.86)
+    /// 切页专用：利落机械感弹簧（280ms，0.82 微超调高品质推进）
+    let pageAnimation: Animation = .spring(response: 0.28, dampingFraction: 0.82)
 
     @PublishedPersist(key: "selectedLanguage", defaultValue: .system)
     var selectedLanguage: Language
@@ -230,14 +230,14 @@ class NotchViewModel: NSObject, ObservableObject {
     @PublishedPersist(key: "hapticFeedback", defaultValue: true)
     var hapticFeedback: Bool
 
-    /// 网关分区开关（设置页持久化；关闭时第 3 页从分页剔除）
+    /// 网关分区开关（设置页持久化；关闭时从分页剔除）
     @PublishedPersist(key: "showGatewayZone", defaultValue: true)
     var showGatewayZone: Bool
 
-    /// 参与分页的区序：默认包含剪贴板，网关页关时剔除。zoneOrder 计算属性与 pageIndex/pageZone 共用，防三处漂移。
-    static let baseZoneOrder: [ContentType] = [.normal, .clipboard, .token, .gateway]
+    /// 参与分页的区序：剪贴板作为第 4 页工具箱（概览 ｜ Token ｜ 网关 ｜ 剪贴板）。网关页关时剔除网关。
+    static let baseZoneOrder: [ContentType] = [.normal, .token, .gateway, .clipboard]
     static func zoneOrder(gatewayEnabled: Bool) -> [ContentType] {
-        gatewayEnabled ? baseZoneOrder : [.normal, .clipboard, .token]
+        gatewayEnabled ? baseZoneOrder : [.normal, .token, .clipboard]
     }
 
     let hapticSender = PassthroughSubject<Void, Never>()

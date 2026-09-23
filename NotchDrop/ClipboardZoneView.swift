@@ -118,6 +118,7 @@ struct ClipboardZoneView: View {
             }
             .padding(.horizontal, 1)
         }
+        .coordinateSpace(name: "clipboardScroll")
         .frame(height: listHeight)
         .mask(
             LinearGradient(
@@ -175,6 +176,26 @@ private struct ClipboardRowView: View {
     @State private var flashOpacity: Double = 0
 
     var body: some View {
+        GeometryReader { geo in
+            let frameInScroll = geo.frame(in: .named("clipboardScroll"))
+            // 计算卡片中心距离可视滚动中心 (120pt) 的距离
+            let distanceToCenter = frameInScroll.midY - 120.0
+            let normalizedOffset = max(-1.0, min(1.0, distanceToCenter / 120.0))
+            let rollAngle: Double = reduceMotion ? 0 : Double(normalizedOffset) * -7.0
+            let scaleRatio: CGFloat = reduceMotion ? 1.0 : (1.0 - abs(normalizedOffset) * 0.035)
+
+            cardContent
+                .rotation3DEffect(
+                    .degrees(rollAngle),
+                    axis: (x: 1.0, y: 0.0, z: 0.0),
+                    perspective: 0.85
+                )
+                .scaleEffect(scaleRatio)
+        }
+        .frame(width: ClipboardZoneView.zoneWidth, height: ClipboardZoneView.rowHeight)
+    }
+
+    private var cardContent: some View {
         HStack(spacing: 8) {
             leadingGlyph
 
@@ -222,8 +243,8 @@ private struct ClipboardRowView: View {
                 .frame(width: 24, height: 24)
                 .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         case .image:
-            if let url = ClipboardStore.shared.imageURL(for: item),
-               let image = NSImage(contentsOf: url) {
+            // 内存缓存直读：消除滑动读盘造成的微卡顿，达到 120Hz 满帧顺滑
+            if let image = ClipboardStore.shared.image(for: item) {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)

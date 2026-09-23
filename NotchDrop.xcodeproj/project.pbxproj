@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AD623CB6163DBEA68623E727 /* GearHapticFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */; };
 		ADD536681322E4704DCEE57C /* ClipboardZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF2F54FCD6E44AA0B1B2358 /* ClipboardZoneView.swift */; };
 		ADEE9E38C042E8F1DD29B8C5 /* ClipboardPaster.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD33598DD50C85A454E17644 /* ClipboardPaster.swift */; };
 		ADE98BBE36462682BA2B4D58 /* ClipboardPasterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD468F2BB0A461870188735C /* ClipboardPasterTests.swift */; };
@@ -140,6 +141,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GearHapticFeedback.swift; sourceTree = "<group>"; };
 		ADF2F54FCD6E44AA0B1B2358 /* ClipboardZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardZoneView.swift; sourceTree = "<group>"; };
 		AD33598DD50C85A454E17644 /* ClipboardPaster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPaster.swift; sourceTree = "<group>"; };
 		AD468F2BB0A461870188735C /* ClipboardPasterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasterTests.swift; sourceTree = "<group>"; };
@@ -301,6 +303,7 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */,
 				ADF2F54FCD6E44AA0B1B2358 /* ClipboardZoneView.swift */,
 				AD33598DD50C85A454E17644 /* ClipboardPaster.swift */,
 				AD8322FC835B98508D181070 /* ClipboardMonitor.swift */,
@@ -586,6 +589,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD623CB6163DBEA68623E727 /* GearHapticFeedback.swift in Sources */,
 				ADD536681322E4704DCEE57C /* ClipboardZoneView.swift in Sources */,
 				ADEE9E38C042E8F1DD29B8C5 /* ClipboardPaster.swift in Sources */,
 				AD758EE931D228E9116829AB /* ClipboardMonitor.swift in Sources */,
