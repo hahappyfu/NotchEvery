@@ -44,6 +44,8 @@ public final class ClipboardStore: ObservableObject {
     private let storageDirectory: URL
     private let metadataURL: URL
     private let imagesDirectory: URL
+    /// 串行写盘队列：保证多次保存按调用顺序落盘，且不在调用线程做 I/O
+    private let saveQueue = DispatchQueue(label: "com.hahappyfu.NotchEvery.clipboard-store-writer", qos: .utility)
 
     @Published public private(set) var items: [ClipboardItem] = []
 
@@ -83,6 +85,14 @@ public final class ClipboardStore: ObservableObject {
     }
 
     public func addImage(data: Data, size: CGSize) {
+        // 去重：与顶部图片条目内容完全一致（文件字节相同）则忽略
+        if let first = items.first, first.type == .image,
+           let existingName = first.imageFileName,
+           let existingData = try? Data(contentsOf: imagesDirectory.appendingPathComponent(existingName)),
+           existingData == data {
+            return
+        }
+
         let id = UUID()
         let fileName = "\(id.uuidString).png"
         let fileURL = imagesDirectory.appendingPathComponent(fileName)
@@ -133,12 +143,14 @@ public final class ClipboardStore: ObservableObject {
     }
 
     private func saveToDisk() {
-        DispatchQueue.global(qos: .utility).async { [weak self] in
-            guard let self = self else { return }
+        // 先在调用线程（主线程）取 items 快照，后台串行队列只写这份不可变副本，消除并发数据竞争
+        let snapshot = items
+        let url = metadataURL
+        saveQueue.async {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
-            if let data = try? encoder.encode(self.items) {
-                try? data.write(to: self.metadataURL, options: .atomic)
+            if let data = try? encoder.encode(snapshot) {
+                try? data.write(to: url, options: .atomic)
             }
         }
     }
@@ -149,7 +161,8 @@ public final class ClipboardStore: ObservableObject {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         if let decoded = try? decoder.decode([ClipboardItem].self, from: data) {
-            self.items = decoded
+            // 磁盘数据若超过上限（历史版本或手工修改），截断保留最新的 maxItemCount 条
+            self.items = Array(decoded.prefix(Self.maxItemCount))
         }
     }
 }
