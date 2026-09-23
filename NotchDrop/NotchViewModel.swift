@@ -153,6 +153,7 @@ class NotchViewModel: NSObject, ObservableObject {
 
     enum ContentType: Int, Codable, Hashable, Equatable {
         case normal
+        case clipboard
         case token
         case gateway
     }
@@ -233,10 +234,10 @@ class NotchViewModel: NSObject, ObservableObject {
     @PublishedPersist(key: "showGatewayZone", defaultValue: true)
     var showGatewayZone: Bool
 
-    /// 参与分页的区序：网关页关时剔除。zoneOrder 计算属性与 pageIndex/pageZone 共用，防三处漂移。
-    static let baseZoneOrder: [ContentType] = [.normal, .token, .gateway]
+    /// 参与分页的区序：默认包含剪贴板，网关页关时剔除。zoneOrder 计算属性与 pageIndex/pageZone 共用，防三处漂移。
+    static let baseZoneOrder: [ContentType] = [.normal, .clipboard, .token, .gateway]
     static func zoneOrder(gatewayEnabled: Bool) -> [ContentType] {
-        gatewayEnabled ? baseZoneOrder : [.normal, .token]
+        gatewayEnabled ? baseZoneOrder : [.normal, .clipboard, .token]
     }
 
     let hapticSender = PassthroughSubject<Void, Never>()

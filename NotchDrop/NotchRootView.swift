@@ -120,6 +120,9 @@ struct NotchRootView: View {
                     // 横向填充（余宽由列间距均分）；纵向自然高
                     .frame(maxWidth: .infinity, alignment: .top)
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
+            case .clipboard:
+                // TODO(任务5)：替换为 ClipboardZoneView；此处仅占位保穷尽性编译
+                Color.clear
             case .gateway:
                 GatewayZoneView(vm: vm)
                     .frame(maxWidth: .infinity, alignment: .top)
