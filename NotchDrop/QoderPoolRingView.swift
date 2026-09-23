@@ -189,9 +189,12 @@ struct QoderPoolRingView: View {
     private var membersRow: some View {
         let arranged = AntigravityAccountsCardView.symmetricRearrange(
             accounts: store.poolMembers.map { member in
-                AntigravityAccount(
+                let tail = Self.tail(member.userId)
+                return AntigravityAccount(
                     id: member.userId,
-                    name: Self.tail(member.userId),
+                    // 用三国人物昵称替代难记的脱敏尾号（首次见到即分配并落盘，终生不变）。
+                    // 完整脱敏 ID 仍在 tooltip 里，排查问题时不受影响。
+                    name: QoderAccountNicknames.shared.name(for: member.userId, fallback: tail),
                     email: "",
                     isCurrent: member.userId == stickyId,
                     isDisabled: false,
