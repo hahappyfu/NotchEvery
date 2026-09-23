@@ -132,14 +132,14 @@ final class QoderLogParserTests: XCTestCase {
         XCTAssertEqual(agg.yesterday?.calls, 2, "同一天内 apply 不应再动 yesterday")
     }
 
-    func testCacheRateFollowsFixedFormula() {
-        // cacheRate = cached / (in + cached)? 与 TokenFormatUtils 口径一致 —— 这里锁定一个明确公式：cached/total
+    func testDailyAggCacheRateFormula() {
         var agg = QoderAggregator()
         agg.apply(events: [
-            QoderUsageEvent(dateString: "2026-09-21", model: "a", inTokens: 100, outTokens: 0, cached: 300, reasoning: 0, total: 400, credits: 0),
+            // inTokens 是包含 cached 的总输入：inTokens=100, cached=80 -> 缓存率 80 / 100 = 80%
+            QoderUsageEvent(dateString: "2026-09-21", model: "a", inTokens: 100, outTokens: 20, cached: 80, reasoning: 0, total: 120, credits: 0.1),
         ], today: "2026-09-21")
-        // 约定：cacheRate = cached / (in + cached) = 300/400 = 0.75
-        XCTAssertEqual(agg.today.cacheRateFraction, 0.75, accuracy: 1e-9)
+        // 标准口径：cacheRate = cached / inTokens = 80/100 = 0.8
+        XCTAssertEqual(agg.today.cacheRateFraction, 0.8, accuracy: 1e-9)
     }
 
     // MARK: - 轮转检测（size 变小 → offset 归零重扫）

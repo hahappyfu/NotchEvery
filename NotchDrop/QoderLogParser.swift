@@ -90,7 +90,7 @@ struct QoderLogTailer {
     }
 }
 
-/// 单日聚合桶。cacheRate 口径：cached / (in + cached)。
+/// 单日聚合桶。cacheRate 口径：cached / tokensIn（与 TokenFormatUtils 一致，tokensIn 包含 cached）。
 struct QoderDailyAgg: Equatable {
     var calls: Int = 0
     var tokensIn: Int = 0
@@ -99,8 +99,7 @@ struct QoderDailyAgg: Equatable {
     var credits: Double = 0
 
     var cacheRateFraction: Double {
-        let denom = tokensIn + cached
-        return denom > 0 ? Double(cached) / Double(denom) : 0
+        tokensIn > 0 ? min(1.0, max(0.0, Double(cached) / Double(tokensIn))) : 0
     }
 }
 
