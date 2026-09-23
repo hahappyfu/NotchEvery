@@ -8,6 +8,7 @@ import SwiftUI
 struct NotchRootView: View {
     @StateObject var vm: NotchViewModel
     @StateObject private var usage = UsageStore.shared
+    @StateObject private var clipboard = ClipboardStore.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// 中央禁放区两侧边距（ADR-0009）：禁放区总宽 = 挖槽宽 + 2×margin，只画背景
     private let deadZoneMargin: CGFloat = 8
@@ -90,6 +91,17 @@ struct NotchRootView: View {
             .lineLimit(1)
             .truncationMode(.tail)
             .minimumScaleFactor(0.8)
+        } else if vm.contentType == .clipboard {
+            // 剪贴板专区：小绿点 + 分区名
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(StudioColor.emerald)
+                    .frame(width: 8, height: 8)
+                Text("剪贴板")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.primary)
+            }
+            .lineLimit(1)
         }
     }
 
@@ -102,6 +114,15 @@ struct NotchRootView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
                 RollupText(text: usage.summary.calls, font: .system(size: 11, weight: .medium), color: .secondary)
+            }
+            .lineLimit(1)
+        } else if vm.contentType == .clipboard {
+            // 剪贴板专区：历史条目数
+            HStack(spacing: 4) {
+                Text("条目")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                RollupText(text: "\(clipboard.items.count)", font: .system(size: 11, weight: .medium), color: .secondary)
             }
             .lineLimit(1)
         }
@@ -121,8 +142,9 @@ struct NotchRootView: View {
                     .frame(maxWidth: .infinity, alignment: .top)
                     .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             case .clipboard:
-                // TODO(任务5)：替换为 ClipboardZoneView；此处仅占位保穷尽性编译
-                Color.clear
+                ClipboardZoneView()
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
             case .gateway:
                 GatewayZoneView(vm: vm)
                     .frame(maxWidth: .infinity, alignment: .top)
