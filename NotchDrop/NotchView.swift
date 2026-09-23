@@ -107,6 +107,7 @@ struct NotchView: View {
                 guard !dropTargeting else { return }
                 guard let direction = swipeResolver.feed(
                     deltaX: delta.deltaX,
+                    deltaY: delta.deltaY,
                     hasMomentum: delta.hasMomentum,
                     now: delta.timestamp
                 ) else { return }

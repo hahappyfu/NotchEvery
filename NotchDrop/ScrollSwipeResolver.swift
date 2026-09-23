@@ -12,9 +12,24 @@ struct ScrollSwipeResolver {
     private var accumulated: CGFloat = 0
     private var lastAccepted: TimeInterval = -.infinity
 
-    mutating func feed(deltaX: CGFloat, hasMomentum: Bool, now: TimeInterval) -> SwipeDirection? {
+    mutating func feed(deltaX: CGFloat, deltaY: CGFloat = 0, hasMomentum: Bool, now: TimeInterval) -> SwipeDirection? {
         // 惯性动量是手指已离开后的余波，不计入
         guard !hasMomentum else { return nil }
+
+        let absX = abs(deltaX)
+        let absY = abs(deltaY)
+
+        // 垂直主导滚动（用户上下划动列表）：立即重置水平累积量，绝不误触切页
+        if absY > absX {
+            accumulated = 0
+            return nil
+        }
+
+        // 仅当水平分量显著主导（至少为垂直分量的 1.2 倍）时才计入切页手势
+        guard absX >= absY * 1.2 else {
+            return nil
+        }
+
         accumulated += deltaX
         guard abs(accumulated) >= threshold else { return nil }
         // 冷却期内不接受第二次切换，累积量清零避免污染下次手势

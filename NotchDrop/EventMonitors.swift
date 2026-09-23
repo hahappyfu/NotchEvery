@@ -10,6 +10,7 @@ import Combine
 
 struct ScrollDelta {
     let deltaX: CGFloat
+    let deltaY: CGFloat
     let hasMomentum: Bool
     let timestamp: TimeInterval
 }
@@ -71,9 +72,10 @@ class EventMonitors: EventMonitorsProtocol {
 
         scrollEvent = EventMonitor(mask: .scrollWheel) { [weak self] event in
             guard let self, let event else { return }
-            // 只收精确滚轮（触控板与横滚轮）；传统滚轮一格步进也带精确增量，直接收
+            // 只收精确滚轮（触控板与横滚轮）；记录 X 与 Y 两轴增量以做主导轴识别
             self.scrollDelta.send(ScrollDelta(
                 deltaX: event.scrollingDeltaX,
+                deltaY: event.scrollingDeltaY,
                 hasMomentum: !event.momentumPhase.isEmpty,
                 timestamp: event.timestamp
             ))
