@@ -46,22 +46,19 @@ public struct AntigravityAccount: Identifiable, Equatable {
     /// 单账号文件里是否显式写了 `proxy_disabled` 字段；false 表示缺省，需要看索引兜底。
     var rawProxyDisabledPresent: Bool = false
 
-    /// 当前展示档位：5h 有剩余时用 5h；耗尽（0%）或无 5h 数据时自动降级到周额度。
+    /// 当前展示档位（方案 1：反代主力 Gemini 配额）。
     public var currentTier: QuotaDisplayTier {
-        if let fiveHour = fiveHourPercentage, fiveHour > 0 {
-            return .fiveHour
-        }
-        return .weekly
+        .weekly
     }
 
-    /// 当前档位对应的展示百分比。
+    /// 当前档位对应的展示百分比（以反代主力 Gemini 模型的配额为准，消除未使用 3p 模型的恒 100% 盲区）。
     public var displayPercentage: Int {
-        currentTier == .fiveHour ? (fiveHourPercentage ?? weeklyPercentage) : weeklyPercentage
+        weeklyPercentage
     }
 
     /// 当前档位对应的重置时间。
     public var displayResetTime: Date? {
-        currentTier == .fiveHour ? (fiveHourResetTime ?? weeklyResetTime) : weeklyResetTime
+        weeklyResetTime
     }
 
     /// 向后兼容：旧属性现跟随当前展示档位（等价 displayPercentage）。
@@ -413,18 +410,14 @@ public final class AntigravityStore: ObservableObject {
         let isProxyDisabled = (raw.proxy_disabled == true)
         let isDisabled = (raw.disabled == true) || isProxyDisabled
 
-        // 双轨配额提取：分别挑选短周期（5h）与长周期（周）模型
-        // - 短周期（5h）：名称含 claude / gpt，或重置时间在 5.5 小时以内的模型
-        // - 长周期（周）：优先名称含 gemini 的模型，其次重置时间在 24 小时以上，均无则取首个模型兜底
+        // 配额提取：
+        // - 主力模型（Gemini 系列）：反代核心在用的模型，作为圆环配额单一事实来源
+        // - 短周期模型（5h 探测）：必须严格校验重置时间在 5.5 小时内
         var fiveHourModel: RawAccount.RawModel?
         var weeklyModel: RawAccount.RawModel?
         if let models = raw.quota?.models, !models.isEmpty {
             let now = Date()
             fiveHourModel = models.first { model in
-                let lower = (model.name ?? "").lowercased()
-                if lower.contains("claude") || lower.contains("gpt") {
-                    return true
-                }
                 guard let resetStr = model.reset_time, let reset = parseISO8601(resetStr) else {
                     return false
                 }

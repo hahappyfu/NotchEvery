@@ -270,9 +270,9 @@ struct AntigravityAccountsCardView: View {
     }
 
     private func accountColumn(_ account: AntigravityAccount) -> some View {
-        let badgeColor = account.isDisabled ? Color.white.opacity(0.35) : (account.displayPercentage == 100 ? StudioColor.emerald : StudioColor.amber)
-        // 5h 额度耗尽、自动降级到周额度且账号可用时，才点亮「周额度」微标
-        let isWeeklyTier = account.currentTier == .weekly && !account.isDisabled
+        let badgeColor = account.isDisabled ? Color.white.opacity(0.35) : (account.displayPercentage == 100 ? StudioColor.emerald : (account.displayPercentage >= 30 ? StudioColor.amber : StudioColor.rose))
+        // 方案 1 恢复 Gemini 主力额度展示：底部胶囊已有明确的「周重置」倒计时，不再常态显示右上角琥珀微标
+        let isWeeklyTier = false
 
         return VStack(spacing: 5) {
             Text(account.name)

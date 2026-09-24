@@ -118,7 +118,7 @@ final class AntigravityStoreTests: XCTestCase {
             "email": "test@example.com",
             "quota": {
                 "models": [
-                    { "name": "claude-sonnet-4-6", "percentage": 85, "reset_time": "2026-09-23T18:00:00Z" },
+                    { "name": "claude-sonnet-4-6", "percentage": 100, "reset_time": "2026-09-23T18:00:00Z" },
                     { "name": "gemini-3.8-flash-tiered", "percentage": 25, "reset_time": "2026-09-30T00:00:00Z" }
                 ]
             }
@@ -126,38 +126,34 @@ final class AntigravityStoreTests: XCTestCase {
         """.data(using: .utf8)!
 
         let acc = try XCTUnwrap(AntigravityStore.parseAccountFile(data: json, currentAccountId: nil))
-        // 5h 额度正常（85%）：优先展示短周期档位
-        XCTAssertEqual(acc.currentTier, .fiveHour)
-        XCTAssertEqual(acc.displayPercentage, 85)
-        XCTAssertEqual(acc.fiveHourPercentage, 85)
+        // 方案 1：反代主力 Gemini 额度（25%）优先供给圆环展示，消灭未使用的 3p Claude 100% 盲区
+        XCTAssertEqual(acc.displayPercentage, 25)
         XCTAssertEqual(acc.weeklyPercentage, 25)
-        XCTAssertNotNil(acc.fiveHourResetTime)
-        XCTAssertNotNil(acc.weeklyResetTime)
-        // 向后兼容：旧属性跟随当前展示档位
-        XCTAssertEqual(acc.percentage, 85)
+        XCTAssertEqual(acc.percentage, 25)
+        XCTAssertEqual(acc.displayResetTime, acc.weeklyResetTime)
         XCTAssertEqual(acc.resetTime, acc.displayResetTime)
 
-        // 模拟 5h 额度耗尽（0%）
-        let jsonExhausted = """
+        // 模拟兼具 5h 短期模型与周模型时的配额解析
+        let future5h = ISO8601DateFormatter().string(from: Date().addingTimeInterval(2 * 3600))
+        let jsonWith5h = """
         {
             "id": "acc2",
             "email": "test@example.com",
             "quota": {
                 "models": [
-                    { "name": "claude-sonnet-4-6", "percentage": 0, "reset_time": "2026-09-23T18:00:00Z" },
+                    { "name": "custom-5h-model", "percentage": 10, "reset_time": "\(future5h)" },
                     { "name": "gemini-3.8-flash-tiered", "percentage": 25, "reset_time": "2026-09-30T00:00:00Z" }
                 ]
             }
         }
         """.data(using: .utf8)!
-        let acc2 = try XCTUnwrap(AntigravityStore.parseAccountFile(data: jsonExhausted, currentAccountId: nil))
-        // 5h 耗尽自动降级周额度
-        XCTAssertEqual(acc2.currentTier, .weekly)
+        let acc2 = try XCTUnwrap(AntigravityStore.parseAccountFile(data: jsonWith5h, currentAccountId: nil))
+        // 方案 1：圆环展示仍以主力反代 Gemini 为准（25%），短周期数据正常提取至 fiveHourPercentage
         XCTAssertEqual(acc2.displayPercentage, 25)
-        XCTAssertEqual(acc2.fiveHourPercentage, 0)
-        // 降级后展示的重置时间应取周额度重置时间
+        XCTAssertEqual(acc2.weeklyPercentage, 25)
+        XCTAssertEqual(acc2.fiveHourPercentage, 10)
         XCTAssertEqual(acc2.displayResetTime, acc2.weeklyResetTime)
-        XCTAssertNotEqual(acc2.displayResetTime, acc2.fiveHourResetTime)
+        XCTAssertNotNil(acc2.fiveHourResetTime)
 
         // 仅有 Gemini 模型时，平滑回退 weekly，不崩不空
         let jsonGeminiOnly = """
