@@ -112,75 +112,104 @@ final class AntigravityStoreTests: XCTestCase {
     }
 
     func testParseAccountDualTierQuotas() throws {
-        let json = """
+        // 1. quota_groups 权威源：5h 有剩余 → 5h 档（圆环 91%，倒计时挂 5h）
+        let json5hNormal = """
         {
             "id": "acc1",
             "email": "test@example.com",
             "quota": {
-                "models": [
-                    { "name": "claude-sonnet-4-6", "percentage": 100, "reset_time": "2026-09-23T18:00:00Z" },
-                    { "name": "gemini-3.8-flash-tiered", "percentage": 25, "reset_time": "2026-09-30T00:00:00Z" }
+                "quota_groups": [
+                    {
+                        "display_name": "Gemini Models",
+                        "buckets": [
+                            { "bucket_id": "gemini-weekly", "window": "weekly", "remaining_fraction": 0.23, "reset_time": "2026-09-30T00:00:00Z" },
+                            { "bucket_id": "gemini-5h", "window": "5h", "remaining_fraction": 0.91, "reset_time": "2026-09-24T12:00:00Z" }
+                        ]
+                    }
                 ]
             }
         }
         """.data(using: .utf8)!
+        let acc = try XCTUnwrap(AntigravityStore.parseAccountFile(data: json5hNormal, currentAccountId: nil))
+        XCTAssertEqual(acc.currentTier, .fiveHour)
+        XCTAssertEqual(acc.displayPercentage, 91)
+        XCTAssertEqual(acc.weeklyPercentage, 23)
+        XCTAssertEqual(acc.displayResetTime, acc.fiveHourResetTime)
+        XCTAssertNotEqual(acc.displayResetTime, acc.weeklyResetTime)
 
-        let acc = try XCTUnwrap(AntigravityStore.parseAccountFile(data: json, currentAccountId: nil))
-        // 方案 1：反代主力 Gemini 额度（25%）优先供给圆环展示，消灭未使用的 3p Claude 100% 盲区
-        XCTAssertEqual(acc.displayPercentage, 25)
-        XCTAssertEqual(acc.weeklyPercentage, 25)
-        XCTAssertEqual(acc.percentage, 25)
-        XCTAssertEqual(acc.displayResetTime, acc.weeklyResetTime)
-        XCTAssertEqual(acc.resetTime, acc.displayResetTime)
-
-        // 模拟兼具 5h 短期模型与周模型时的配额解析
-        let future5h = ISO8601DateFormatter().string(from: Date().addingTimeInterval(2 * 3600))
-        let jsonWith5h = """
+        // 2. 周额度耗尽（0%）→ 判死：圆环归零、倒计时挂周重置（5h 再满也用不了）
+        let jsonWeeklyDead = """
         {
             "id": "acc2",
             "email": "test@example.com",
             "quota": {
-                "models": [
-                    { "name": "custom-5h-model", "percentage": 10, "reset_time": "\(future5h)" },
-                    { "name": "gemini-3.8-flash-tiered", "percentage": 25, "reset_time": "2026-09-30T00:00:00Z" }
+                "quota_groups": [
+                    {
+                        "display_name": "Gemini Models",
+                        "buckets": [
+                            { "bucket_id": "gemini-weekly", "window": "weekly", "remaining_fraction": 0.0, "reset_time": "2026-09-30T00:00:00Z" },
+                            { "bucket_id": "gemini-5h", "window": "5h", "remaining_fraction": 1.0, "reset_time": "2026-09-24T12:00:00Z" }
+                        ]
+                    }
                 ]
             }
         }
         """.data(using: .utf8)!
-        let acc2 = try XCTUnwrap(AntigravityStore.parseAccountFile(data: jsonWith5h, currentAccountId: nil))
-        // 方案 1：圆环展示仍以主力反代 Gemini 为准（25%），短周期数据正常提取至 fiveHourPercentage
-        XCTAssertEqual(acc2.displayPercentage, 25)
-        XCTAssertEqual(acc2.weeklyPercentage, 25)
-        XCTAssertEqual(acc2.fiveHourPercentage, 10)
+        let acc2 = try XCTUnwrap(AntigravityStore.parseAccountFile(data: jsonWeeklyDead, currentAccountId: nil))
+        XCTAssertEqual(acc2.currentTier, .exhausted)
+        XCTAssertEqual(acc2.displayPercentage, 0)
         XCTAssertEqual(acc2.displayResetTime, acc2.weeklyResetTime)
-        XCTAssertNotNil(acc2.fiveHourResetTime)
 
-        // 仅有 Gemini 模型时，平滑回退 weekly，不崩不空
-        let jsonGeminiOnly = """
+        // 3. 5h 耗尽但周额度尚在 → 降级周档
+        let json5hExhausted = """
         {
             "id": "acc3",
-            "email": "gemini-only@example.com",
+            "email": "test@example.com",
             "quota": {
-                "models": [
-                    { "name": "gemini-3.1-pro-high", "percentage": 70, "reset_time": "2026-09-14T15:30:00Z" }
+                "quota_groups": [
+                    {
+                        "display_name": "Gemini Models",
+                        "buckets": [
+                            { "bucket_id": "gemini-weekly", "window": "weekly", "remaining_fraction": 0.5, "reset_time": "2026-09-30T00:00:00Z" },
+                            { "bucket_id": "gemini-5h", "window": "5h", "remaining_fraction": 0.0, "reset_time": "2026-09-24T12:00:00Z" }
+                        ]
+                    }
                 ]
             }
         }
         """.data(using: .utf8)!
-        let acc3 = try XCTUnwrap(AntigravityStore.parseAccountFile(data: jsonGeminiOnly, currentAccountId: nil))
-        XCTAssertNil(acc3.fiveHourPercentage)
+        let acc3 = try XCTUnwrap(AntigravityStore.parseAccountFile(data: json5hExhausted, currentAccountId: nil))
         XCTAssertEqual(acc3.currentTier, .weekly)
-        XCTAssertEqual(acc3.displayPercentage, 70)
-        XCTAssertEqual(acc3.weeklyPercentage, 70)
+        XCTAssertEqual(acc3.displayPercentage, 50)
+        XCTAssertEqual(acc3.displayResetTime, acc3.weeklyResetTime)
 
-        // 无 quota 字段：同样回退 weekly 且不崩
-        let jsonNoQuota = """
-        { "id": "acc4", "email": "noquota@example.com" }
+        // 4. 无 quota_groups（老数据）→ models 兜底：weekly = gemini 模型，5h = nil
+        let jsonModelsOnly = """
+        {
+            "id": "acc4",
+            "email": "test@example.com",
+            "quota": {
+                "models": [
+                    { "name": "gemini-3.1-pro-high", "percentage": 70, "reset_time": "2026-09-14T15:30:00Z" },
+                    { "name": "claude-sonnet-4-6", "percentage": 100, "reset_time": "2026-09-23T18:00:00Z" }
+                ]
+            }
+        }
         """.data(using: .utf8)!
-        let acc4 = try XCTUnwrap(AntigravityStore.parseAccountFile(data: jsonNoQuota, currentAccountId: nil))
+        let acc4 = try XCTUnwrap(AntigravityStore.parseAccountFile(data: jsonModelsOnly, currentAccountId: nil))
+        XCTAssertNil(acc4.fiveHourPercentage)
         XCTAssertEqual(acc4.currentTier, .weekly)
-        XCTAssertEqual(acc4.displayPercentage, 0)
-        XCTAssertNil(acc4.displayResetTime)
+        XCTAssertEqual(acc4.displayPercentage, 70)
+        XCTAssertEqual(acc4.weeklyPercentage, 70)
+
+        // 5. 无 quota 字段：不崩，判死归零
+        let jsonNoQuota = """
+        { "id": "acc5", "email": "noquota@example.com" }
+        """.data(using: .utf8)!
+        let acc5 = try XCTUnwrap(AntigravityStore.parseAccountFile(data: jsonNoQuota, currentAccountId: nil))
+        XCTAssertEqual(acc5.currentTier, .exhausted)
+        XCTAssertEqual(acc5.displayPercentage, 0)
+        XCTAssertNil(acc5.displayResetTime)
     }
 
     func testParseAccountsIndex() {

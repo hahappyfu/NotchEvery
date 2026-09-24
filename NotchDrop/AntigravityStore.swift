@@ -15,12 +15,14 @@ private let antigravityLog = Logger(subsystem: Bundle.main.bundleIdentifier ?? "
 
 // MARK: - Models
 
-/// 配额展示档位：短周期（5h）优先，耗尽后自动降级周额度。
+/// 配额展示档位：5h 短周期优先，耗尽降级周额度，周额度耗尽判死归零。
 public enum QuotaDisplayTier: String, Codable, Equatable {
-    /// 5 小时短周期额度（claude / gpt 等高频模型）
+    /// 5 小时短周期额度（Gemini 高频消耗池）
     case fiveHour
-    /// 周额度（gemini 等长周期模型）
+    /// 周额度（5h 耗尽但周额度尚在时的降级档）
     case weekly
+    /// 周额度耗尽：账号判死，5h 再满也无法使用
+    case exhausted
 }
 
 public struct AntigravityAccount: Identifiable, Equatable {
@@ -46,19 +48,28 @@ public struct AntigravityAccount: Identifiable, Equatable {
     /// 单账号文件里是否显式写了 `proxy_disabled` 字段；false 表示缺省，需要看索引兜底。
     var rawProxyDisabledPresent: Bool = false
 
-    /// 当前展示档位（方案 1：反代主力 Gemini 配额）。
+    /// 当前展示档位：周额度耗尽（0%）→ 判死；5h 有剩余 → 5h 档；5h 耗尽 → 降级周档。
     public var currentTier: QuotaDisplayTier {
-        .weekly
+        if weeklyPercentage <= 0 { return .exhausted }
+        if let fiveHour = fiveHourPercentage, fiveHour > 0 { return .fiveHour }
+        return .weekly
     }
 
-    /// 当前档位对应的展示百分比（以反代主力 Gemini 模型的配额为准，消除未使用 3p 模型的恒 100% 盲区）。
+    /// 当前档位对应的展示百分比。
     public var displayPercentage: Int {
-        weeklyPercentage
+        switch currentTier {
+        case .exhausted: return 0
+        case .fiveHour: return fiveHourPercentage ?? weeklyPercentage
+        case .weekly: return weeklyPercentage
+        }
     }
 
     /// 当前档位对应的重置时间。
     public var displayResetTime: Date? {
-        weeklyResetTime
+        switch currentTier {
+        case .exhausted, .weekly: return weeklyResetTime
+        case .fiveHour: return fiveHourResetTime ?? weeklyResetTime
+        }
     }
 
     /// 向后兼容：旧属性现跟随当前展示档位（等价 displayPercentage）。
@@ -390,11 +401,24 @@ public final class AntigravityStore: ObservableObject {
 
             struct RawQuota: Decodable {
                 let models: [RawModel]?
+                let quota_groups: [RawQuotaGroup]?
             }
 
             struct RawModel: Decodable {
                 let name: String?
                 let percentage: Int?
+                let reset_time: String?
+            }
+
+            struct RawQuotaGroup: Decodable {
+                let display_name: String?
+                let buckets: [RawBucket]?
+            }
+
+            struct RawBucket: Decodable {
+                let bucket_id: String?
+                let window: String?
+                let remaining_fraction: Double?
                 let reset_time: String?
             }
         }
@@ -410,43 +434,31 @@ public final class AntigravityStore: ObservableObject {
         let isProxyDisabled = (raw.proxy_disabled == true)
         let isDisabled = (raw.disabled == true) || isProxyDisabled
 
-        // 配额提取：
-        // - 主力模型（Gemini 系列）：反代核心在用的模型，作为圆环配额单一事实来源
-        // - 短周期模型（5h 探测）：必须严格校验重置时间在 5.5 小时内
-        var fiveHourModel: RawAccount.RawModel?
-        var weeklyModel: RawAccount.RawModel?
-        if let models = raw.quota?.models, !models.isEmpty {
-            let now = Date()
-            fiveHourModel = models.first { model in
-                guard let resetStr = model.reset_time, let reset = parseISO8601(resetStr) else {
-                    return false
-                }
-                let diff = reset.timeIntervalSince(now)
-                return diff > 0 && diff <= 5.5 * 3600
-            }
-            weeklyModel = models.first { ($0.name ?? "").lowercased().contains("gemini") }
-                ?? models.first { model in
-                    guard let resetStr = model.reset_time, let reset = parseISO8601(resetStr) else {
-                        return false
-                    }
-                    return reset.timeIntervalSince(now) > 24 * 3600
-                }
-                ?? models.first
-        }
-
-        let weeklyPercentage = min(100, max(0, weeklyModel?.percentage ?? 0))
-        var weeklyResetTime: Date?
-        if let resetStr = weeklyModel?.reset_time {
-            weeklyResetTime = parseISO8601(resetStr)
-        }
-
+        // 配额提取：权威源 = quota.quota_groups 周期桶（上游真实窗口），缺失时回落 quota.models 扫描。
+        // - 5h 短周期：window == "5h" 的桶（优先 Gemini——反代流量全走 Gemini）
+        // - 周额度：window == "weekly" 的桶；无桶时回落 gemini 模型 percentage
+        // 注意：绝不按模型名猜 5h——未使用的 Claude/GPT 周模型恒 100%，是上次「假满死锁」的根因。
         var fiveHourPercentage: Int?
         var fiveHourResetTime: Date?
-        if let fiveHourModel = fiveHourModel {
-            fiveHourPercentage = min(100, max(0, fiveHourModel.percentage ?? 0))
-            if let resetStr = fiveHourModel.reset_time {
-                fiveHourResetTime = parseISO8601(resetStr)
-            }
+        var weeklyPercentage = 0
+        var weeklyResetTime: Date?
+
+        let buckets = raw.quota?.quota_groups?.flatMap { $0.buckets ?? [] } ?? []
+        func isGemini(_ b: RawAccount.RawBucket) -> Bool { (b.bucket_id ?? "").lowercased().contains("gemini") }
+        let fiveHourBucket = buckets.first { isGemini($0) && $0.window == "5h" } ?? buckets.first { $0.window == "5h" }
+        let weeklyBucket = buckets.first { isGemini($0) && $0.window == "weekly" } ?? buckets.first { $0.window == "weekly" }
+
+        if let bucket = fiveHourBucket, let fraction = bucket.remaining_fraction {
+            fiveHourPercentage = min(100, max(0, Int((fraction * 100).rounded())))
+            fiveHourResetTime = bucket.reset_time.flatMap(parseISO8601)
+        }
+        if let bucket = weeklyBucket, let fraction = bucket.remaining_fraction {
+            weeklyPercentage = min(100, max(0, Int((fraction * 100).rounded())))
+            weeklyResetTime = bucket.reset_time.flatMap(parseISO8601)
+        } else if let models = raw.quota?.models, !models.isEmpty {
+            let weeklyModel = models.first { ($0.name ?? "").lowercased().contains("gemini") } ?? models.first
+            weeklyPercentage = min(100, max(0, weeklyModel?.percentage ?? 0))
+            weeklyResetTime = weeklyModel?.reset_time.flatMap(parseISO8601)
         }
 
         return AntigravityAccount(

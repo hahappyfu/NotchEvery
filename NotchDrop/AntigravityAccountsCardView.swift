@@ -271,8 +271,8 @@ struct AntigravityAccountsCardView: View {
 
     private func accountColumn(_ account: AntigravityAccount) -> some View {
         let badgeColor = account.isDisabled ? Color.white.opacity(0.35) : (account.displayPercentage == 100 ? StudioColor.emerald : (account.displayPercentage >= 30 ? StudioColor.amber : StudioColor.rose))
-        // 方案 1 恢复 Gemini 主力额度展示：底部胶囊已有明确的「周重置」倒计时，不再常态显示右上角琥珀微标
-        let isWeeklyTier = false
+        // 仅 5h 耗尽、降级到周额度时点亮「周额度」微标；判死态（0% 红环 + 周重置文案）已足够醒目
+        let isWeeklyTier = account.currentTier == .weekly && !account.isDisabled
 
         return VStack(spacing: 5) {
             Text(account.name)
@@ -346,19 +346,21 @@ struct AntigravityAccountsCardView: View {
 
     /// 底部状态胶囊文案：
     /// - 已禁用 → 「已禁用」；
-    /// - 周额度档位且未满 → 带「周重置」前缀的天级/小时级倒计时；
-    /// - 满额 → 沿用原逻辑「在用中 / 已就绪」；
-    /// - 其余（5h 正常档位未满）→ 当前档位重置倒计时。
+    /// - 判死 / 周档 → 「周重置」前缀倒计时；
+    /// - 5h 档满额 → 「在用中 / 已就绪」；
+    /// - 5h 档未满 → 5h 重置倒计时（小时级）。
     private func statusText(for account: AntigravityAccount) -> String {
         if account.isDisabled { return "已禁用" }
-        if account.currentTier == .weekly && account.displayPercentage < 100 {
+        switch account.currentTier {
+        case .exhausted, .weekly:
             let countdown = account.resetCountdownText
             return countdown == "已就绪" ? "等待周重置" : "周重置 \(countdown)"
+        case .fiveHour:
+            if account.displayPercentage == 100 {
+                return account.isCurrent ? "在用中" : "已就绪"
+            }
+            return account.resetCountdownText
         }
-        if account.displayPercentage == 100 {
-            return account.isCurrent ? "在用中" : "已就绪"
-        }
-        return account.resetCountdownText
     }
 }
 
