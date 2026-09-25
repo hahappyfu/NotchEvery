@@ -48,6 +48,7 @@
 - 气泡：细进度环（主角 r=40 宽 2，节点 r=24 宽 1.5）+ 玻璃球体 + 左上镜面高光 + 池面倒影（径向渐变 + blur + 向下渐隐 mask）。
 - 主角：内部流体对流（radialGradient 漂移，7s 循环）+ 呼吸（3.8s）。
 - **物理对调**（已确认的核心逻辑）：目标节点升顶、原主角沉入目标槽，双向同时位移，0.5s spring `(0.34, 1.3, 0.64, 1)` 带过冲；同节点连续调用只轻颤。
+- **节点内账号切换感知（无感切换可视化）**：网关在同一节点内无感轮换账号时（Qoder `poolStatusStickyId` 变化 / Antigravity `currentAccountId` 变化），**节点不参与槽位对调**，改为气泡内部播放：账号标签与额度数字竖滚置换（复用 `RollupText` 思路：旧值上滑出、新值滑入，0.16s/0.22s）+ 从气泡中心扩散一圈涟漪环（0.6s 淡出）。聚合总余额在胶囊中保持稳定——「谁在服务」可见地换人，池总量不动。
 - 蒸发：命中时从主角喷 1 胶囊（`-N tok · model`）+ 2 光粒，1.25s 上升 88pt 淡出。
 - 文字防溢出：orb 内文字 `lineLimit(1)` + `minimumScaleFactor(0.7)` + 定宽容器。
 - **0 功耗**：面板收起/隐藏时动画与对流全部暂停（全局 `isPaused`），仅展开时渲染循环。
@@ -57,7 +58,7 @@
 - **主角判定**：`UsageStore.recentRequests`（CC Switch 源）最新一条的 model → 上游映射（gemini*→antigravity、glm*/deepseek*→zcode、qfmodel→qoder、mimo*/nemotron*→opencode）。新请求到达即触发对调 + 蒸发。
 - **节点状态**：
   - antigravity：`AntigravityStore`（当前账号名 / 额度百分比 / 5h 重置）。
-  - qoder：`QoderStore`（池 credits 余额、签到状态；失败计数 → 胶囊琥珀色警示）。
+  - qoder：`QoderStore`——**气泡内显示当前粘性账号**（脱敏尾 4 位 + 该号 credits，`poolStatusStickyId` 匹配 `poolQuotas`），**额度胶囊显示池总余额**（`poolTotalRemaining`，各账号相加）+ 签到状态（失败计数 → 胶囊琥珀色警示）。
   - zcode / opencode：新组件 `BundleNodeMonitor`——端口探活（`isPortOpen`，已有纯函数）+ CC Switch 日志最近活跃时间派生；无余额接口，显示定性状态（如「就绪」「免密」）。
 - **统计三卡**：`UsageStore.summary`（ccSwitch 源：calls / totalTokens / cacheRateFraction）。
 - **蒸发数据**：新 `TokenRequest` 的 token 增量与模型名。
@@ -70,6 +71,7 @@
 | `BundleNodeMonitor` | zcode/opencode 探活 + 最近活跃；60s 轮询，测试可注入 |
 | `ModelUpstreamMapper` | model 名 → 上游纯函数（单测覆盖） |
 | `PoolSlotState` | 槽位分配状态机（4 槽对调逻辑，纯逻辑可单测） |
+| `OrbAccountRoll` | 节点内账号竖滚置换视图（复用 `RollupText` 思路，含涟漪环） |
 | `StickyAlertWindow` | 粘性失败气泡（见下） |
 
 ## Qoder 任务自动化与失败通知
@@ -109,7 +111,7 @@
 
 ## 测试策略
 
-- 新增：`ModelUpstreamMapperTests`、`PoolSlotStateTests`（对调状态机）、`BundleNodeMonitorTests`（注入探活）、`StickyAlertWindowTests`（粘性状态）。
+- 新增：`ModelUpstreamMapperTests`、`PoolSlotStateTests`（对调状态机）、`BundleNodeMonitorTests`（注入探活）、`StickyAlertWindowTests`（粘性状态）、节点内账号切换感知测试（stickyId 变化 → 触发滚换标记、槽位不动）。
 - 更新：`TabMetricsTests` / `ContentZoneSwitcherTests`（页序 2 页）、涉及 `ContentType` 的既有测试、`UsageStore` 默认源断言。
 - UI 验收：构建重启后**用户真机过目**（项目惯例：UI 改动须视觉验收再提交）。
 
