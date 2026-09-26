@@ -139,4 +139,62 @@ final class AntigravityProxyStoreTests: XCTestCase {
         XCTAssertEqual(data.recentRequests.first?.accountEmail, "wal@test.com")
         XCTAssertEqual(data.summary.calls, "1")
     }
+
+    func testWALUncheckpointedRowsVisibleWhileWriterAlive() throws {
+        // 真实场景：反重力 tools 写方进程持续存活，最新记录只存在于 WAL，
+        // 主库文件要等 checkpoint 才更新。读取方必须能看到 WAL 里的未合并数据。
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let dbURL = tempDir.appendingPathComponent("proxy_logs.db")
+        var writer: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(dbURL.path, &writer), SQLITE_OK)
+        // 写方连接在 fetch 期间必须保持打开：关掉最后一个连接会自动 checkpoint，
+        // 数据合并进主库后 immutable 也能读到，测试就失去意义了
+        XCTAssertEqual(sqlite3_exec(writer, "PRAGMA journal_mode=WAL;", nil, nil, nil), SQLITE_OK)
+
+        let createTable = """
+        CREATE TABLE request_logs (
+            id TEXT PRIMARY KEY,
+            timestamp INTEGER,
+            method TEXT,
+            url TEXT,
+            status INTEGER,
+            duration INTEGER,
+            model TEXT,
+            error TEXT,
+            request_body TEXT,
+            response_body TEXT,
+            input_tokens INTEGER,
+            output_tokens INTEGER,
+            account_email TEXT,
+            mapped_model TEXT,
+            protocol TEXT,
+            client_ip TEXT,
+            username TEXT,
+            cached_tokens INTEGER
+        );
+        """
+        XCTAssertEqual(sqlite3_exec(writer, createTable, nil, nil, nil), SQLITE_OK)
+
+        let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+        let insertSQL = """
+        INSERT INTO request_logs (id, timestamp, method, url, status, duration, model, input_tokens, output_tokens, cached_tokens, account_email)
+        VALUES
+        ('wal-live-1', \(nowMs), 'POST', '/v1', 200, 1000, 'gemini-3.8-flash-high', 500, 100, 200, 'wal-live@test.com');
+        """
+        XCTAssertEqual(sqlite3_exec(writer, insertSQL, nil, nil, nil), SQLITE_OK)
+
+        let store = AntigravityProxyStore(dbPath: dbURL, interval: 60)
+        let data = store.fetchSnapshot()
+
+        XCTAssertEqual(data.recentRequests.count, 1)
+        XCTAssertEqual(data.recentRequests.first?.id, "wal-live-1")
+        XCTAssertEqual(data.recentRequests.first?.accountEmail, "wal-live@test.com")
+        XCTAssertEqual(data.summary.calls, "1")
+        XCTAssertEqual(data.summary.totalTokens, "600")
+
+        sqlite3_close(writer)
+    }
 }
