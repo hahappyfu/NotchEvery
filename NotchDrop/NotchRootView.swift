@@ -28,18 +28,6 @@ struct NotchRootView: View {
         .padding(.top, vm.notchSafeAreaTop)
         // 耳区贴顶叠在禁放区两侧；中央禁放区留空只画背景（ADR-0009）
         .overlay(alignment: .top) { earsRow }
-        // 设置挂根：入口走右键菜单 Settings，右上齿轮已删（ADR-0009）
-        .popover(isPresented: $vm.showSettings, arrowEdge: .top) {
-            VStack(spacing: 8) {
-                NotchMenuView(vm: vm)
-                Text("NotchEvery \(appVersion)")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-            .padding(12)
-            .frame(minWidth: 260)
-        }
         // 整体上报：含安全区+内容（dots 已收进面板内，随内容一起量）
         // 宽度不再自钉 zone 宽：那会让外壳留白失效、内容永远贴边
         // （2026-09-11 探针坐实 box=704 / zone=640 / inner=640）；改由外壳给「面板宽−留白」的提案，内容按提案填充

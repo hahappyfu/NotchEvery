@@ -139,6 +139,18 @@ struct NotchView: View {
                 NSApp.terminate(nil)
             }
         }
+        // 设置 Popover 挂根层级常驻视图：消除因条件渲染卸载导致的 NSPopover 强关与幽灵弹窗（U-C5）
+        .popover(isPresented: $vm.showSettings, arrowEdge: .top) {
+            VStack(spacing: 8) {
+                NotchMenuView(vm: vm)
+                Text("NotchEvery \(appVersion)")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .padding(12)
+            .frame(minWidth: 260)
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // 窗口压过菜单栏，安全区会把内容顶下去导致顶部留缝，直接无视（纯自绘 chrome，无系统控件要避让）
         .ignoresSafeArea()

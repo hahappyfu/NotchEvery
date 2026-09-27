@@ -108,4 +108,29 @@ final class TabMetricsTests: XCTestCase {
         XCTAssertEqual(vm.status, .opened)
         XCTAssertEqual(vm.measuredNaturalSize, CGSize(width: 450, height: 280), "重开时应恢复完整高宽记忆")
     }
+
+    func testSettingsDismissedOnClosePreventsGhostPopover() {
+        let vm = NotchViewModel(events: MockEventMonitors())
+        vm.notchOpen(.click)
+        XCTAssertEqual(vm.status, .opened)
+
+        // 用户右键打开设置
+        vm.showSettings = true
+        XCTAssertTrue(vm.showSettings)
+
+        // 点击外部或面板收起
+        vm.notchClose()
+        XCTAssertEqual(vm.status, .closed)
+        XCTAssertFalse(vm.showSettings, "收起刘海时必须关闭设置弹窗并重置 showSettings")
+
+        // 下次再次展开刘海，不得自动弹窗（杜绝幽灵弹窗 U-C5）
+        vm.notchOpen(.click)
+        XCTAssertEqual(vm.status, .opened)
+        XCTAssertFalse(vm.showSettings, "再次展开刘海不得自动弹出设置弹窗")
+
+        // 再次打开设置后走两段收起 closeToGhost
+        vm.showSettings = true
+        vm.closeToGhost()
+        XCTAssertFalse(vm.showSettings, "两段收起进入虚影态时必须重置 showSettings")
+    }
 }
