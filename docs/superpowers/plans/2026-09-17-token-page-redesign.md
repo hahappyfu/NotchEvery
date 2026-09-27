@@ -11,7 +11,7 @@
 
 **技术栈：** Swift 6 / SwiftUI / SQLite3 / XCTest / macOS 14+
 
-**规格文档：** `docs/superpowers/prototypes/2026-09-17-token-page-redesign.html`（经用户审批的高保真原型）
+**规格文档：** `docs/archive/superpowers/prototypes/2026-09-17-token-page-redesign.html`（经用户审批的高保真原型）
 
 ## 全局约束
 

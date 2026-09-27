@@ -52,13 +52,15 @@
 - [ ] A5 TrayDrop 僵尸链决策：复活 or 删干净（待用户确认，倾向删；牵连 PreferencesWindow 托盘卡、设置保留时长、main.swift:93）
 
 ## 批次 B：行为修复（P0，每条改完需构建/真机验证）
-- [ ] B1 D-C1 PublishedPersist 解码失败备份（仿 ConfigStore .corrupt.<ts>）而非覆盖
-- [ ] B2 W-C2 cleanExpiredFiles 补 removeFiles(of:) 删磁盘文件
-- [ ] B3 U-C3/W-C1 方向键接线：onReceive(arrowKey) 按方向调 nextZone/previousZone（保留四重守卫；修复后全局 keyDown 依赖 AX 权限的 I4 需在 PermissionGuide/设置中明示——PermissionGuide 若随 A2 删则改在设置页加说明）
-- [ ] B4 U-C1 SmoothNotchShape 小高度钳制（blendH+bRadius>height 时收缩或保底）
-- [ ] B5 U-C2 虚影热区扩到 Peek 岛体（hover 判定用岛体 rect 而非物理挖槽）
-- [ ] B6 U-C4 切页高度恢复目标页 height（lastZoneSize 存 CGSize 而非仅 width）
-- [ ] B7 U-C5 notchClose 时重置 showSettings / Popover 宿主移出条件渲染
+- [x] B1 D-C1 PublishedPersist 解码失败备份（agent-b1：FileStorage.backupCorruptFile，+1 测试）
+- [x] B2 W-C2 cleanExpiredFiles 补 removeFiles(of:)（agent-b2，+1 测试；**遗留发现**：removeFiles 从不删 Config/Previews/<id>.png，delete/removeAll/容量淘汰均漏预览文件，修法一行，另开工单）
+- [x] B3 U-C3/W-C1 方向键接线（agent-b678 commit 5289392：vm.handleArrowKey 统一映射，+3 测试；守卫保留防误截全局按键）
+- [x] B4 U-C1 SmoothNotchShape 等比钳制（agent-b4：scale=height/totalH 压缩 blendH+bRadius，大高度逐点不变，+6 测试）
+- [x] B5 U-C2 虚影热区扩大（agent-b678 commit 03ca48f：NotchGeometry.peekRect/hoverActiveRect 纯函数，+3 测试；拖拽路径未影响）
+- [x] B6 U-C4 切页高度完整恢复（agent-b678 commit 5315397：lastZoneSize 存取完整 CGSize，+2 测试）
+- [x] B7 U-C5 设置 Popover 常驻宿主+收起重置（agent-b678 commit cb2feb4，+1 测试）
+- [x] 批次 B 提交：a9c83f4 后 4 个独立 commit + 093a7dc 打包 B1/B2/B4；**201 tests 0 failures**（基线 188 + 新增 13）
+- [x] 批次 B 真机验收：用户 2026-09-27 确认六场景全部正常
 
 ## 批次 C：文档回写（R-C1~C5 + 口径）
 - [ ] C1 CONTEXT.md：分区词条三页、删「拖放区」词条、指示器词条按 SmoothPageIndicator 实况、删过桥菊花词条、删顶栏词条、数据源改 antigravityTools 单源、耳区/展示卡措辞

@@ -2,7 +2,7 @@
 
 日期：2026-09-11
 状态：设计已批准（用户逐节确认；形态经交互原型验收）
-视觉基准：`docs/superpowers/prototypes/2026-09-11-island-form.html`（三态 morph + 两页内容 + 深浅壁纸切换）、`docs/superpowers/prototypes/2026-09-11-island-form-v2.html`（+ dots 指示器样式确认，用户选定胶囊座）
+视觉基准：`docs/archive/superpowers/prototypes/2026-09-11-island-form.html`（三态 morph + 两页内容 + 深浅壁纸切换）、`docs/archive/superpowers/prototypes/2026-09-11-island-form-v2.html`（+ dots 指示器样式确认，用户选定胶囊座）
 
 ## 背景
 

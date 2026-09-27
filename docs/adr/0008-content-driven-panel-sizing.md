@@ -2,6 +2,8 @@
 
 `zonePanelHeight` 查表（520 定宽 + 165/224/… 定高）导致内容被裁（圆环半切）或下方留白——窗口先定死、内容再往里塞。以 ADR-0008 起反过来：内容量出尺寸，面板跟着走。
 
+> 修订（2026-09-27 审计补注）：最小钳制实为 160×60（`IslandMetrics.minPanelHeight`/`minExternalPanelWidth`，经 `NotchViewModel.minPanelSize` 生效），非本文所写 320×120；520 定宽已随查表机制整体废除；dots「霜化玻璃胶囊」定案已被 `SmoothPageIndicator` 深色 dock 胶囊容器取代（见 CONTEXT.md 词条）。
+
 ## Decision
 
 - **驱动**：面板宽高均跟随当前分区内容（Zone Content）自然尺寸；520 宽度锁定解除（dots 已移到底部中间，原防左右跳理由消失）。

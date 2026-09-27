@@ -1,5 +1,7 @@
 # 两页高度终值：探针重测 + 头部行删除
 
+> **Status: Superseded** — `zonePanelHeight` 定值终值机制已被 ADR-0008（内容驱动自适应）取代，不再有固定高度终值；页序亦演进为概览｜Token｜网关三页（2026-09-27 审计补注）。
+
 任务 8 文件探针法三次部署实测一致：概览页自然高 105（配额卡环 68+标签+内边距），Token 页自然高 164（KPI 单行 + 表头 + 5 行），dots 行实高 13（VStack 间距 6，内容帧内固定 chrome = 19）。
 
 决定：执行方案 C——删 `NotchView.swift` 头部行挂载（TabBar 任务 5 已删，残留 gear 与任务 6 根齿轮重复、且点之进入空白 settings 页），`HeaderProbe`（tab-pin TEMP）一起删；终值 `.normal: 165, .token: 224`，推导 `H = natural + 19（dots）+ 40（上下 padding）+ 1pt 余量`；`zoneContentHeight` 改为 `zoneOpenedSize.height - spacing * 2`，注释同步。

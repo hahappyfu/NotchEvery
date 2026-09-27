@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>NotchEvery · 表儿新布局原型</title>
+<style>
+  :root {
+    --panel-w: 372px;
+    --row-h: 27px;
+    --spring: cubic-bezier(0.22, 1, 0.36, 1);
+    --spring-soft: cubic-bezier(0.33, 1, 0.68, 1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0c;
+    color: #f2f2f7;
+    font-family: -apple-system, "SF Pro Text", "PingFang SC", sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 16px; padding: 40px 20px 80px;
+  }
+  h1 { font-size: 15px; font-weight: 600; color: #aeaeb2; }
+
+  .notch-wrap { display: flex; flex-direction: column; width: var(--panel-w); }
+
+  /* ===== 耳区（贴面板顶部，刘海两侧） ===== */
+  .ears {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 26px; padding: 0 14px;
+    font-size: 11px; font-variant-numeric: tabular-nums;
+  }
+  .ear-left { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+  .ear-left .dot { width: 8px; height: 8px; }
+  .ear-right { color: #8e8e93; font-weight: 500; }
+  .ear-right .n { color: #f2f2f7; font-weight: 600; }
+
+  /* ===== 面板 ===== */
+  .panel {
+    width: var(--panel-w);
+    background: rgba(28,28,30,0.92);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 8px 14px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.6);
+  }
+
+  /* ===== summaryBar：Tokens 左 · 缓存命中率右 ===== */
+  .summary {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(84,84,88,0.5);
+    border-radius: 12px;
+    padding: 8px 12px; margin-bottom: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .kpi .label { font-size: 11px; color: #8e8e93; white-space: nowrap; }
+  .kpi .label.green { color: #30d158; font-weight: 500; }
+  .kpi .value { font-size: 14px; font-weight: 700; }
+  .kpi .value.green { color: #30d158; font-size: 12px; }
+  .cachebar { display: flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 8px;
+    background: rgba(48,209,88,0.10); border: 1px solid rgba(48,209,88,0.20); }
+  .cachebar > * { flex-shrink: 0; }
+  .cachebar .label { white-space: nowrap; font-size: 11px; color: #30d158; font-weight: 500; }
+  .barbg { width: 64px; height: 6px; border-radius: 3px; background: rgba(48,209,88,0.2); overflow: hidden; }
+  .barfill { height: 100%; border-radius: 3px; background: #30d158; width: 64.6%; transition: width .6s var(--spring); }
+
+  /* 数字 rollup */
+  .rollup { position: relative; display: inline-block; overflow: hidden; height: 18px; }
+  .rollup .v { display: block; height: 18px; line-height: 18px; }
+  .rollup .v.enter-up { animation: rollInUp .45s var(--spring) both; }
+  .rollup .v.leave-up { animation: rollOutUp .45s var(--spring) both; position: absolute; top: 0; left: 0; }
+  @keyframes rollInUp { from { transform: translateY(100%); opacity: .4; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes rollOutUp { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-100%); opacity: .4; } }
+
+  /* ===== 表格 ===== */
+  .header, .row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-variant-numeric: tabular-nums;
+  }
+  .header { color: #8e8e93; font-weight: 500; padding: 5px 0;
+    border-bottom: 0.5px solid rgba(84,84,88,0.5); margin-bottom: 4px; }
+  .w-time { width: 44px; }
+  .w-model { width: 72px; }
+  .w-inout { flex: 1; text-align: right; }
+  .w-dur { width: 56px; text-align: right; }
+  .w-status { width: 44px; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #2a9d52; }
+  .dot.err { background: #bf3430; }
+
+  .list-clip {
+    height: calc(var(--row-h) * 5);
+    overflow: hidden;
+    position: relative;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 6px, black calc(100% - 6px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, black 6px, black calc(100% - 6px), transparent 100%);
+  }
+  .row {
+    height: var(--row-h);
+    color: #f2f2f7;
+    position: relative;
+    will-change: transform, opacity;
+  }
+  .row .time { color: #8e8e93; }
+  .row .model { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .inout { color: #8e8e93; font-size: 10px; }
+  .row .dur { color: #8e8e93; }
+  .row .status { color: #8e8e93; }
+  .row .status.err { color: #bf3430; }
+
+  /* 新行高亮（B 柔闪） */
+  .row.flash::before {
+    content: ""; position: absolute; inset: 2px -6px; border-radius: 6px;
+    background: rgba(48,209,88,0.16);
+    animation: flashFade .9s var(--spring-soft) both;
+  }
+  @keyframes flashFade { from { opacity: 1; } to { opacity: 0; } }
+
+  /* ===== footer ===== */
+  .footer {
+    display: flex; align-items: center; gap: 6px;
+    border-top: 0.5px solid rgba(84,84,88,0.5);
+    margin-top: 4px; padding-top: 10px;
+    font-size: 10px; color: #8e8e93;
+    font-variant-numeric: tabular-nums;
+  }
+  .footer .dot { background: #30d158; }
+  .footer .right { margin-left: auto; }
+
+  .controls { display: flex; gap: 10px; align-items: center; }
+  .controls button {
+    background: rgba(10,132,255,0.15); color: #64b5ff; border: 1px solid rgba(10,132,255,0.35);
+    border-radius: 8px; padding: 7px 16px; font-size: 12px; cursor: pointer;
+  }
+  .controls label { font-size: 12px; color: #8e8e93; display: flex; align-items: center; gap: 6px; }
+  .tip { font-size: 11px; color: #636366; max-width: 400px; text-align: center; line-height: 1.8; }
+</style>
+</head>
+<body>
+<h1>表儿 · 新布局确认（B 柔闪）</h1>
+
+<div class="notch-wrap">
+  <div class="ears">
+    <span class="ear-left"><span class="dot"></span>DeepSeek</span>
+    <span class="ear-right"><span class="rollup" id="ear-calls"><span class="v n">2,133</span></span> 次</span>
+  </div>
+
+  <div class="panel">
+    <div class="summary">
+      <div class="kpi"><span class="label">Tokens</span><span class="rollup" id="kpi-tokens"><span class="v">148.6M</span></span></div>
+      <div class="cachebar">
+        <span class="label green">缓存命中率</span>
+        <span class="rollup" id="kpi-cache"><span class="v green">64.6%</span></span>
+        <div class="barbg"><div class="barfill" id="kpi-bar"></div></div>
+      </div>
+    </div>
+
+    <div class="header">
+      <span class="w-time">时间</span>
+      <span class="w-model">模型</span>
+      <span class="w-inout">入 / 出</span>
+      <span class="w-dur">用时</span>
+      <span class="w-status">状态</span>
+    </div>
+
+    <div class="list-clip" id="clip">
+      <div id="track"></div>
+    </div>
+
+    <div class="footer">
+      <span class="dot"></span>
+      <span>缓存命中 95.6M · 省 $4.42</span>
+      <span class="right">更新于 <span id="footer-time">23:34</span></span>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="add">来一条新请求</button>
+  <label><input type="checkbox" id="auto" checked> 自动每 2s</label>
+</div>
+
+<p class="tip">
+  相对现在的三处变化：<br>
+  ① 调用量从摘要条挪到右耳（跟着新请求计数）<br>
+  ② 摘要条只剩 Tokens 左 + 缓存命中率右，面板随之收窄<br>
+  ③ 表格列因面板收窄自然聚拢<br>
+  插入动画 = B 柔闪：老行快速就位，新行淡入 + 绿闪一下。
+</p>
+
+<script>
+const nums = n => n.toLocaleString("en-US");
+
+function makeData() {
+  const now = new Date();
+  const t = String(now.getHours()).padStart(2,"0") + ":" + String(now.getMinutes()).padStart(2,"0");
+  const err = Math.random() < 0.08;
+  return {
+    time: t,
+    model: Math.random() < 0.85 ? "deepseek-v4-flash" : "deepseek-v4-pro",
+    input: err ? 0 : Math.floor(Math.random() * 8000),
+    output: err ? 0 : Math.floor(Math.random() * 1200),
+    dur: (Math.random() * 7 + 0.5).toFixed(1),
+    status: err ? 429 : 200,
+    cacheRead: Math.floor(Math.random() * 90000),
+  };
+}
+
+function rowEl(d) {
+  const el = document.createElement("div");
+  el.className = "row";
+  el.innerHTML = `
+    <span class="w-time time">${d.time}</span>
+    <span class="w-model model">${d.model}</span>
+    <span class="w-inout inout">${nums(d.input)} / ${nums(d.output)}</span>
+    <span class="w-dur dur">${d.dur}s</span>
+    <span class="w-status status ${d.status >= 400 ? "err" : ""}">
+      <span class="dot ${d.status >= 400 ? "err" : ""}"></span>${d.status}
+    </span>`;
+  return el;
+}
+
+const track = document.getElementById("track");
+const initial = [
+  { time:"23:34", model:"deepseek-v4-flash", input:697, output:823, dur:"4.2", status:200, cacheRead:81664 },
+  { time:"23:34", model:"deepseek-v4-flash", input:1481, output:589, dur:"3.2", status:200, cacheRead:79616 },
+  { time:"23:34", model:"deepseek-v4-flash", input:1472, output:315, dur:"2.0", status:200, cacheRead:77952 },
+  { time:"23:34", model:"deepseek-v4-flash", input:4939, output:582, dur:"2.6", status:200, cacheRead:72448 },
+  { time:"23:34", model:"deepseek-v4-flash", input:71623, output:947, dur:"6.7", status:200, cacheRead:0 },
+];
+initial.forEach(d => track.appendChild(rowEl(d)));
+
+const kpi = { tokens: 148.6e6, cacheRead: 95.6e6, cacheCreate: 0, fresh: 52.4e6, calls: 2133 };
+
+function fmtTok(v) {
+  if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
+  if (v >= 1e3) return (v / 1e3).toFixed(1) + "K";
+  return String(Math.round(v));
+}
+
+function updateKpi(d) {
+  if (d.status >= 400) return;
+  kpi.fresh += d.input;
+  kpi.cacheRead += d.cacheRead;
+  kpi.tokens += d.input + d.output + d.cacheRead;
+  kpi.calls += 1;
+
+  rollup("kpi-tokens", fmtTok(kpi.tokens));
+  const rate = kpi.cacheRead / (kpi.fresh + kpi.cacheRead + kpi.cacheCreate) * 100;
+  rollup("kpi-cache", rate.toFixed(1) + "%");
+  document.getElementById("kpi-bar").style.width = rate.toFixed(1) + "%";
+  rollup("ear-calls", nums(kpi.calls));
+  document.getElementById("footer-time").textContent = d.time;
+}
+
+function rollup(id, text) {
+  const box = document.getElementById(id);
+  const cur = box.lastElementChild;
+  if (!cur || cur.textContent === text) return;
+  cur.classList.add("leave-up");
+  const neo = document.createElement("span");
+  neo.className = "v enter-up";
+  neo.textContent = text;
+  box.appendChild(neo);
+  setTimeout(() => { if (cur.isConnected) cur.remove(); }, 500);
+}
+
+// —— B 柔闪：老行快速就位（FLIP），新行淡入 + 绿闪 ——
+const H = 27;
+function insert(d) {
+  const rows = [...track.children];
+  const firstTop = rows.length ? rows[0].getBoundingClientRect().top : 0;
+
+  const neo = rowEl(d);
+  track.insertBefore(neo, track.firstChild);
+
+  rows.forEach((el, i) => {
+    const delta = el.getBoundingClientRect().top - (firstTop + (i + 1) * H);
+    el.animate(
+      [{ transform: `translateY(${-H - delta}px)` }, { transform: "translateY(0)" }],
+      { duration: 220, easing: "cubic-bezier(0.33, 1, 0.68, 1)", fill: "backwards" }
+    );
+  });
+
+  neo.style.opacity = "0";
+  neo.animate([{ opacity: 0, transform: "scale(0.985)" }, { opacity: 1, transform: "scale(1)" }],
+    { duration: 280, easing: "cubic-bezier(0.33, 1, 0.68, 1)", fill: "forwards" });
+  neo.classList.add("flash");
+
+  setTimeout(() => { while (track.children.length > 6) track.removeChild(track.lastChild); }, 300);
+  while (track.children.length > 8) track.removeChild(track.lastChild);
+
+  updateKpi(d);
+}
+
+document.getElementById("add").onclick = () => insert(makeData());
+let timer = null;
+const auto = document.getElementById("auto");
+function syncAuto() {
+  clearInterval(timer);
+  if (auto.checked) timer = setInterval(() => insert(makeData()), 2000);
+}
+auto.onchange = syncAuto;
+syncAuto();
+</script>
+</body>
+</html>

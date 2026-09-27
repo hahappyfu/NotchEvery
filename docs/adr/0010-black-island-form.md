@@ -4,6 +4,8 @@
 
 > 修订（2026-09-11 实施收尾）：设计原定「凹角（concave fillet）」与屏顶交接——排查证明 macOS 26 的 SwiftUI 对 concave 渲染（自绘路径/Canvas/挖口/mask 溢出）在本机全线不可用（连参考项目原版亦失效，实测存档于 SDD 账本）。最终形态为**凸圆角**（`RoundedRectangle`，四角同径、随状态 13/26pt）。
 
+> 修订二（2026-09-15 起）：最终落地为 `SmoothNotchShape` 正向连续贝塞尔轮廓（消灭 destinationOut 反向遮罩的边缘白边），非简单 `RoundedRectangle`；圆角数值以 IslandMetrics/NotchView 为准——顶部收起 8 / popping 10 / 展开 32，底部收起 12 / popping 10 / 展开 26（虚影态取 peek 底圆角逐屏等比，基准 20）。
+
 ## Considered Options
 
 - 深色玻璃岛：保留材质与通透感，但仍是「卡片贴在刘海下」的分层观感，否决。
@@ -15,4 +17,4 @@
 - 形状层三合一：material 刘海壳 + 0.55 实底玻璃 + destinationOut 凹角 hack 合并为单一黑色圆角岛体（实施收尾定为 `RoundedRectangle` 凸圆角，自绘 `IslandShape` 方案因 macOS 26 concave 渲染失效而废弃并删除）；CONTEXT.md「面板/虚影」词条已按黑岛口径更新。
 - 应用不再有跟随系统亮色的分支（像硬件，恒暗）。
 - ADR-0008 内容驱动尺寸机制保留，并新增「模型列宽按数据自适应（钳制 [100,180]pt）」的数据驱动层。
-- 视觉基准：`docs/superpowers/prototypes/2026-09-11-island-form.html`；完整设计见 `docs/superpowers/specs/2026-09-11-notch-island-redesign-design.md`。
+- 视觉基准：`docs/archive/superpowers/prototypes/2026-09-11-island-form.html`；完整设计见 `docs/superpowers/specs/2026-09-11-notch-island-redesign-design.md`。

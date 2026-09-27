@@ -8,7 +8,7 @@
 
 **技术栈：** SwiftUI（macOS 13+，自绘 Shape，不用 UnevenRoundedRectangle）；xcodebuild 命令行构建。
 
-**规格：** `docs/superpowers/specs/2026-09-11-notch-island-redesign-design.md`（论证依据）；视觉基准 `docs/superpowers/prototypes/2026-09-11-island-form.html` 与 `...-v2.html`（执行者两份都读）；相关 ADR：0010（黑岛形态）、0008（内容驱动尺寸，机制保留）、0009（耳区语义保留）。
+**规格：** `docs/superpowers/specs/2026-09-11-notch-island-redesign-design.md`（论证依据）；视觉基准 `docs/archive/superpowers/prototypes/2026-09-11-island-form.html` 与 `...-v2.html`（执行者两份都读）；相关 ADR：0010（黑岛形态）、0008（内容驱动尺寸，机制保留）、0009（耳区语义保留）。
 
 ## 全局约束
 

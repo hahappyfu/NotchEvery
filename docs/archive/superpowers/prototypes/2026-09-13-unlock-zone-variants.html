@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>原型 · 解锁能力进刘海的面板结构（三变体）</title>
+<!--
+  一次性 UI 原型 — 回答一个问题，不是生产代码。
+  问题：「FUnlock 的解锁能力并入 NotchEvery 后，面板长几页、每页装什么、
+        耳区放什么、诊断时间线在扁条里怎么落地？」
+  变体通过 ?variant=A|B|C|D 切换（浮动底栏左右箭头，或键盘 ← →）。
+  几何全部取自真机常量 IslandMetrics.swift，不凭感觉画：
+    挖槽 285×46 · 展开态底圆角 26 · 侧翼 32 · 内容留白 32 · 宽高比下限 1.75
+
+  ── 裁决（2026-09-13）──
+  选中 D：概览融合版式（来自 C）+ 诊断提为一级页（来自 A）。见 ADR-0013。
+  否决理由：A 的解锁页太空旷；B 多一层导航而诊断不容许；C 把诊断埋进设置。
+  D 的原型阶段缺陷已在本文件内修掉（守护卡折行、失败提示条折行），实现时勿重犯。
+
+  判定过程中最有价值的产出不是审美结论，而是几何实测：以 420px 岛体宽为基准，
+  诊断 1.40 / 设置 1.43 / 概览 1.71，三者均低于 1.75 下限 —— 合并后面板整体会更宽，
+  诊断页决定宽度下限（约 524px）。已记入 ADR-0013 作为对 ADR-0008 的输入。
+
+  用完即弃；被选中的变体融入真实代码时重写，不直接提升。
+-->
+<style>
+  :root {
+    --island-w: 420px;          /* 岛体宽 = 内容宽 356 + 2×侧翼 32 */
+    --notch-w: 285px;
+    --notch-h: 46px;
+    --aspect-floor: 1.75;       /* IslandMetrics.panelAspectFloor */
+    --body-r: 26px;             /* openBottomRadius */
+    --inset: 32px;              /* panelContentInset */
+    --spring: cubic-bezier(0.22, 1, 0.36, 1);
+    --bg: #0a0a0c;
+    --panel: #000;
+    --txt: #f2f2f7;
+    --dim: rgba(255,255,255,0.52);
+    --dim2: rgba(255,255,255,0.36);
+    --line: rgba(255,255,255,0.09);
+    --green: #30d158;
+    --amber: #ff9f0a;
+    --red: #ff453a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--txt);
+    font-family: -apple-system, "SF Pro Text", "PingFang SC", sans-serif;
+    padding: 34px 20px 150px; display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  h1 { font-size: 16px; font-weight: 600; }
+  .sub { color: var(--dim); font-size: 12.5px; max-width: 720px; text-align: center; line-height: 1.65; }
+
+  /* ===== 顶部：状态控制（看同一变体在不同守护状态下的样子） ===== */
+  .statebar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .statebar .lab { color: var(--dim2); font-size: 11.5px; margin-right: 2px; }
+  .statebar button {
+    font: inherit; font-size: 12px; padding: 6px 13px; border-radius: 8px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.05); color: var(--txt);
+  }
+  .statebar button.on { border-color: #0a84ff; background: rgba(10,132,255,0.18); color: #6cb2ff; font-weight: 600; }
+
+  /* ===== 舞台：模拟屏幕 + 菜单栏 + 物理挖槽 ===== */
+  .stage {
+    width: 100%; max-width: 880px; height: 430px; position: relative;
+    border-radius: 14px; overflow: hidden;
+    background: radial-gradient(120% 90% at 50% 0%, #3a3f52 0%, #23273a 45%, #14161f 100%);
+  }
+  .mb { position: absolute; top: 0; left: 0; right: 0; height: var(--notch-h); display: flex;
+        align-items: center; justify-content: space-between; padding: 0 22px; z-index: 2; }
+  .mb .grp { display: flex; align-items: center; gap: 14px; }
+  .mb i { width: 20px; height: 20px; border-radius: 5px; background: rgba(255,255,255,0.26); display: block; }
+  .mb i.r { border-radius: 50%; }
+  .mb i.w { width: 30px; }
+  .notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: var(--notch-w); height: var(--notch-h); background: #000; border-radius: 0 0 12px 12px; z-index: 5;
+  }
+
+  /* ===== 岛体 ===== */
+  .island {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    display: flex; z-index: 4; width: var(--island-w);
+    transition: height 0.42s var(--spring);
+  }
+  .fillet { width: 15px; flex: none;
+    background: radial-gradient(circle at 0% 100%, transparent 0 15px, #000 15px); }
+  .fillet.r { background: radial-gradient(circle at 100% 100%, transparent 0 15px, #000 15px); }
+  .body {
+    flex: 1; background: var(--panel); position: relative; overflow: hidden;
+    border-radius: 0 0 var(--body-r) var(--body-r);
+    display: flex; flex-direction: column;
+  }
+
+  /* 耳区：与挖槽等高的顶部一条，中央 285px 为禁放区 */
+  .ears { flex: none; height: var(--notch-h); display: flex; align-items: center; position: relative; }
+  .ear { flex: 1; display: flex; align-items: center; gap: 5px; padding: 0 13px; font-size: 11.5px;
+         color: var(--dim); overflow: hidden; white-space: nowrap; }
+  .ear.r { justify-content: flex-end; }
+  .deadzone { width: var(--notch-w); flex: none; }
+
+  .slot { flex: 1; padding: 11px var(--inset) 20px; display: flex; flex-direction: column; min-height: 0; }
+
+  /* ===== 通用小件 ===== */
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .dot.g { background: var(--green); } .dot.a { background: var(--amber); } .dot.r { background: var(--red); }
+  .row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+  .dim { color: var(--dim); } .dim2 { color: var(--dim2); }
+  .grow { flex: 1; }
+  .num { font-variant-numeric: tabular-nums; }
+  .card { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 11px 13px; }
+  /* 额度环（conic 环，缩略自真机 92px 大环） */
+  .ring { width: 54px; height: 54px; border-radius: 50%; flex: none;
+          background: conic-gradient(#0a84ff 0 38%, rgba(255,255,255,0.14) 38% 100%);
+          -webkit-mask: radial-gradient(circle, transparent 0 19px, #000 19px);
+          mask: radial-gradient(circle, transparent 0 19px, #000 19px); }
+  .banner { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--amber);
+            background: rgba(255,159,10,0.13); border-radius: 9px; padding: 7px 11px; margin-bottom: 9px; }
+  .dots { display: flex; justify-content: center; align-items: center; gap: 6px;
+          position: absolute; left: 0; right: 0; bottom: 9px; }
+  .dots i { width: 5px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.28); }
+  .dots i.on { width: 13px; background: rgba(255,255,255,0.95); }
+
+  /* RSSI 刻度条 */
+  .scale { position: relative; height: 20px; margin: 4px 0 15px; }
+  .scale .track { position: absolute; top: 8px; left: 0; right: 0; height: 5px; border-radius: 3px;
+                  background: linear-gradient(90deg, rgba(255,69,58,0.5) 0%, rgba(255,159,10,0.45) 46%, rgba(48,209,88,0.5) 100%); }
+  .scale .tick { position: absolute; top: 2px; width: 1px; height: 17px; background: rgba(255,255,255,0.35); }
+  .scale .tick span { position: absolute; top: 17px; font-size: 9.5px; color: var(--dim2); transform: translateX(-50%); white-space: nowrap; }
+  .scale .cursor { position: absolute; top: 4px; width: 3px; height: 13px; border-radius: 2px; background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.7); }
+
+  /* 开关 */
+  .tog { width: 32px; height: 19px; border-radius: 10px; background: rgba(255,255,255,0.18); position: relative; flex: none; }
+  .tog.on { background: var(--green); }
+  .tog::after { content: ''; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: #fff; transition: left 0.18s ease; }
+  .tog.on::after { left: 15px; }
+
+  /* 时间线 */
+  .tl { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+  .tl .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 22px;
+              background: linear-gradient(transparent, rgba(0,0,0,0.92)); pointer-events: none; }
+  .tlrow { display: flex; align-items: center; gap: 9px; padding: 6px 2px; border-bottom: 1px solid var(--line); font-size: 12px; }
+  .tlrow .t { width: 38px; color: var(--dim2); font-variant-numeric: tabular-nums; }
+  .tlrow .why { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tlrow .res { font-size: 10.5px; padding: 2px 7px; border-radius: 6px; flex: none; }
+  .tlrow .res.ok { background: rgba(48,209,88,0.16); color: #6ee787; }
+  .tlrow .res.no { background: rgba(255,69,58,0.16); color: #ff8177; }
+  .tlrow .res.de { background: rgba(255,159,10,0.16); color: #ffc061; }
+
+  .ghost { border: 1px dashed rgba(255,255,255,0.22); border-radius: 10px; padding: 9px 11px;
+           font-size: 11.5px; color: var(--dim2); text-align: center; }
+  .seg { display: flex; gap: 3px; background: rgba(255,255,255,0.07); border-radius: 8px; padding: 3px; margin-bottom: 10px; }
+  .seg span { flex: 1; text-align: center; font-size: 11px; padding: 4px 0; border-radius: 6px; color: var(--dim); }
+  .seg span.on { background: rgba(255,255,255,0.15); color: #fff; font-weight: 600; }
+  .back { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: #6cb2ff; margin-bottom: 7px; }
+  /* B 的守护条：走一整行（耳区只有 67px，装不下「状态+设备+RSSI」） */
+  .guardrow { display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+              padding: 7px 0; border-bottom: 1px solid var(--line); margin-bottom: 9px; }
+  .guardrow .chev { color: #6cb2ff; font-size: 11.5px; }
+  .guardrow .hair { color: var(--dim2); }
+
+  /* ===== 变体说明卡（原型自身，不是被评估的 UI） ===== */
+  .annot { width: 100%; max-width: 880px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .annot div { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+               border-radius: 10px; padding: 11px 13px; font-size: 11.5px; line-height: 1.6; color: var(--dim); }
+  .annot b { color: var(--txt); display: block; margin-bottom: 4px; font-size: 12px; }
+  .annot code { color: #6cb2ff; font-size: 11px; }
+
+  /* ===== 浮动切换器（原型自身） ===== */
+  .switcher {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 4px; z-index: 999;
+    background: #1c1c22; border: 1px solid rgba(255,255,255,0.2); border-radius: 999px;
+    padding: 6px 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+  }
+  .switcher button { font: inherit; font-size: 15px; line-height: 1; width: 30px; height: 30px; cursor: pointer;
+                     border: 0; border-radius: 50%; background: transparent; color: #fff; }
+  .switcher button:hover { background: rgba(255,255,255,0.12); }
+  .switcher .lbl { min-width: 178px; text-align: center; font-size: 12.5px; font-weight: 600; }
+  .switcher .lbl small { display: block; font-weight: 400; color: var(--dim2); font-size: 10.5px; }
+</style>
+</head>
+<body>
+
+<h1>解锁能力并入刘海 · 面板结构四变体</h1>
+<p class="sub">
+  岛体宽固定 <b>420px</b>（内容宽 356 + 两侧翼 32），真机常量取自 <code>IslandMetrics.swift</code>。<br>
+  按宽高比下限 <b>1.75</b>，高度上限 = 420 ÷ 1.75 = <b>240px</b>；扣掉挖槽 46 与底部留白，
+  <b>留给内容的只有约 150px</b>——每个变体在下面都标了它实际用掉多少、以及要达标得加宽到多少。<br>
+  箭头切换变体，上面的按钮切换守护状态；<b>诊断页要在第二排「视图」里点进去看</b>，那是几何超限最严重的地方。
+</p>
+
+<div class="statebar" id="statebar">
+  <span class="lab">守护状态：</span>
+  <button data-st="dry" class="on">空跑观察（只看不动手）</button>
+  <button data-st="on">守护中</button>
+  <button data-st="fail">上次未解锁</button>
+</div>
+
+<div class="statebar" id="subbar"></div>
+
+<div class="stage">
+  <div class="mb">
+    <div class="grp"><i class="r"></i><i class="w"></i><i></i></div>
+    <div class="grp"><i></i><i class="r"></i><i class="w"></i></div>
+  </div>
+  <div class="notch"></div>
+  <div class="island" id="island">
+    <div class="fillet"></div>
+    <div class="body" id="body"></div>
+    <div class="fillet r"></div>
+  </div>
+</div>
+
+<div class="annot" id="annot"></div>
+
+<div class="switcher">
+  <button id="prev" title="上一个变体（←）">◀</button>
+  <div class="lbl" id="lbl"></div>
+  <button id="next" title="下一个变体（→）">▶</button>
+</div>
+
+<script>
+/* ===================== 唯一状态（内存，不持久化） ===================== */
+const VARIANTS = ['A', 'B', 'C', 'D'];
+const NAMES = {
+  A: ['A · 独立分区', '扁平 4 页：概览 / Token / 解锁 / 诊断'],
+  B: ['B · 守护条 + 二级推入', '顶层仍 2 页；顶部常驻守护条，点它推入详情'],
+  C: ['C · 概览融合 + 设置内嵌套', '解锁融进概览；诊断藏进设置子区'],
+  D: ['D · C 的概览 + A 的诊断', '概览用 C 的融合版式；诊断提为一级页，横扫一格到']
+};
+
+const params = new URLSearchParams(location.search);
+const S = {
+  variant: VARIANTS.includes(params.get('variant')) ? params.get('variant') : 'A',
+  state: params.get('state') || 'dry',   // dry | on | fail
+  sub: Math.max(0, Math.min(3, parseInt(params.get('sub'), 10) || 0))
+};
+
+/* ===================== 真实数据（照抄本机 FUnlock 配置） ===================== */
+const DEV = 'Apple Watch Series 7';
+const RSSI = -58;
+const TH = { unlock: -60, lock: -70 };
+
+const TIMELINE = [
+  ['09:12', '靠近 · 信号 −58 渐强过解锁线', 'ok', '已注入密码 · 1.4s'],
+  ['09:12', '信号通道：非对称卡尔曼 · 丢包惩罚 0', 'de', '判定中'],
+  ['08:55', '离开 · 信号 −74 渐弱过锁定线', 'ok', '已锁屏'],
+  ['08:47', '靠近 · 信号 −61 渐强过解锁线', 'no', '前台非登录窗口 · 未注入'],
+  ['08:40', '检测到键盘活动 3 次', 'de', '暂缓锁定'],
+  ['08:31', '手动锁屏', 'ok', '抑制自动解锁'],
+];
+
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function stateBits() {
+  if (S.state === 'dry')  return { cls: 'a', text: '空跑观察', note: '只看不动手 · 已观察 2 天' };
+  if (S.state === 'fail') return { cls: 'r', text: '守护中',   note: '上次未解锁：前台非登录窗口' };
+  return { cls: 'g', text: '守护中', note: '距上次判定 12s' };
+}
+
+function rssiScale() {
+  // −95..−45 映射到 0..100
+  const px = v => Math.max(0, Math.min(100, (v + 95) / 50 * 100));
+  return `<div class="scale">
+    <div class="track"></div>
+    <div class="tick" style="left:${px(TH.lock)}%"><span>锁定 ${TH.lock}</span></div>
+    <div class="tick" style="left:${px(TH.unlock)}%"><span>解锁 ${TH.unlock}</span></div>
+    <div class="cursor" style="left:calc(${px(RSSI)}% - 1.5px)"></div>
+  </div>`;
+}
+
+function switchRow(label, on, hint) {
+  return `<div class="row" style="padding:5px 0">
+    <span>${label}</span><span class="dim2" style="font-size:10.5px">${hint || ''}</span>
+    <span class="grow"></span><span class="tog ${on ? 'on' : ''}"></span></div>`;
+}
+
+function timeline(rows, limit) {
+  const list = TIMELINE.slice(0, limit);
+  return `<div class="tl">${list.map(([t, why, k, res]) => `
+    <div class="tlrow"><span class="t">${t}</span><span class="why">${esc(why)}</span>
+    <span class="res ${k}">${esc(res)}</span></div>`).join('')}
+    <div class="fade"></div></div>`;
+}
+
+function banner() {
+  return S.state === 'fail'
+    ? `<div class="banner"><span style="flex:none">⚠︎</span>
+         <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">上次未解锁：前台不是登录窗口</span>
+         <span style="color:#6cb2ff;flex:none">查看诊断</span></div>`
+    : '';
+}
+
+/* ===================== 变体 A：扁平 4 页 ===================== */
+function variantA() {
+  const st = stateBits();
+  const pages = ['概览', 'Token', '解锁', '诊断'];
+  const page = S.sub || 0;
+
+  let earsL = '', earsR = '', body = '';
+
+  if (page === 2) {
+    earsL = 'Watch';
+    earsR = `<span class="num" style="color:#fff">${RSSI}</span> dBm`;
+    body = `${banner()}
+      <div class="row" style="margin-bottom:2px">
+        <span class="dot ${st.cls}"></span><span style="font-weight:600">${st.text}</span>
+        <span class="grow"></span><span class="dim" style="font-size:11px">${st.note}</span>
+      </div>
+      ${rssiScale()}
+      ${switchRow('输入活动保护', true, '打字时不误锁')}
+      ${switchRow('手动锁屏保护', true, '手动锁后不自动解')}
+      ${switchRow('iMessage 通知', true, '推送到手表')}`;
+  } else if (page === 3) {
+    earsL = '诊断';
+    earsR = '今日 14 条 · 9 解码 / 15 锁屏';
+    body = `${banner()}
+      <div class="row" style="margin-bottom:4px"><span class="dim" style="font-size:11px">按时间倒序 · 面板内滚动</span></div>
+      ${timeline(TIMELINE, 5)}`;
+  } else {
+    earsR = page === 1 ? '今日 128 次调用' : '';
+    earsL = page === 1 ? 'cc-switch · claude' : '';
+    body = `<div class="card ghost" style="flex:1;display:flex;align-items:center;justify-content:center">
+      ${page === 0 ? '概览 · 额度卡（现状不动）' : 'Token · 请求表（现状不动）'}</div>
+      <div class="ghost" style="margin-top:10px">这就是现在的样子，没动它</div>`;
+  }
+
+  return `
+    <div class="ears"><div class="ear">${earsL}</div><div class="deadzone"></div><div class="ear r">${earsR}</div></div>
+    <div class="slot">${body}</div>
+    <div class="dots">${pages.map((_, i) => `<i class="${i === page ? 'on' : ''}"></i>`).join('')}</div>`;
+}
+
+/* ===================== 变体 B：守护条 + 二级推入 ===================== */
+function variantB() {
+  const st = stateBits();
+
+  if (S.sub === 1) {
+    return `
+      <div class="ears"><div class="ear">‹ 返回</div><div class="deadzone"></div><div class="ear r">解锁</div></div>
+      <div class="slot">${banner()}
+        <div class="row" style="margin-bottom:2px">
+          <span class="dot ${st.cls}"></span><span style="font-weight:600">${st.text}</span>
+          <span class="grow"></span><span class="dim" style="font-size:11px">${st.note}</span>
+        </div>
+        ${rssiScale()}
+        <div style="display:flex;gap:16px">
+          <div style="flex:1">${switchRow('输入活动保护', true)}${switchRow('手动锁屏保护', true)}</div>
+          <div style="flex:1">${switchRow('iMessage 通知', true)}${switchRow('靠近唤醒', true)}</div>
+        </div>
+        ${timeline(TIMELINE, 3)}</div>`;
+  }
+
+  return `
+    <div class="ears">
+      <div class="ear">Watch</div><div class="deadzone"></div>
+      <div class="ear r"><span class="num" style="color:#fff">${RSSI}</span> dBm</div>
+    </div>
+    <div class="slot">${banner()}
+      <div class="guardrow">
+        <span class="dot ${st.cls}"></span><span style="font-weight:600">${st.text}</span>
+        <span class="dim hair" style="font-size:11px">${st.note}</span>
+        <span class="grow"></span><span class="chev">详情 ›</span>
+      </div>
+      <div class="card" style="flex:1;display:flex;align-items:center;justify-content:center">概览 · 额度卡（现状不动）</div>
+      <div class="ghost" style="margin-top:10px">守护条走一整行（约 30px 高度代价）——因为耳区每侧只有 67px</div>
+    </div>
+    <div class="dots"><i class="on"></i><i></i></div>`;
+}
+
+/* ===================== 变体 C：概览融合 + 设置内嵌套 ===================== */
+function variantC() {
+  const st = stateBits();
+
+  if (S.sub === 1) {
+    return `
+      <div class="ears"><div class="ear">设置</div><div class="deadzone"></div><div class="ear r">解锁</div></div>
+      <div class="slot">${banner()}
+        <div class="seg"><span>常规</span><span>解锁</span><span class="on">诊断</span><span>权限</span></div>
+        ${timeline(TIMELINE, 5)}</div>`;
+  }
+
+  return `
+    <div class="ears"><div class="ear"></div><div class="deadzone"></div><div class="ear r">今日 128 次调用</div></div>
+    <div class="slot">${banner()}
+      <div class="card" style="display:flex;align-items:center;gap:14px">
+        <div style="width:56px;height:56px;border-radius:50%;border:5px solid rgba(255,255,255,0.16);flex:none"></div>
+        <div style="flex:1">
+          <div class="row" style="margin-bottom:5px"><span style="font-weight:600">额度卡</span>
+            <span class="grow"></span><span class="dim2" style="font-size:10.5px">现状不动</span></div>
+          <div class="ghost" style="padding:5px">5h 大环 + 周/月小行</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:9px;display:flex;align-items:center;gap:10px">
+        <span class="dot ${st.cls}"></span>
+        <div style="flex:1;min-width:0">
+          <div class="row" style="font-weight:600">守护 · ${st.text}</div>
+          <div class="row dim2" style="font-size:10.5px">${DEV} · <span class="num">${RSSI}</span> dBm · 解锁 ${TH.unlock} / 锁定 ${TH.lock}</div>
+        </div>
+        <span class="tog on"></span>
+      </div>
+      <div class="ghost" style="margin-top:9px">诊断时间线藏在设置里（设置 ▸ 解锁 ▸ 诊断），不占顶层页</div>
+      <span class="grow"></span>
+    </div>
+    <div class="dots"><i class="on"></i><i></i></div>`;
+}
+
+/* ===================== 变体 D：C 的概览融合 + A 的诊断一级页 ===================== */
+function variantD() {
+  const st = stateBits();
+  const page = S.sub || 0;                 // 0 概览 · 1 Token · 2 诊断 · 3 设置 ▸ 解锁
+
+  // 设置不占分页（ADR-0007），所以只有前 3 页有 dots
+  const dots = () => page > 2 ? '' :
+    `<div class="dots">${[0, 1, 2].map(i => `<i class="${i === page ? 'on' : ''}"></i>`).join('')}</div>`;
+
+  if (page === 2) {                        // 诊断：一级页，横扫一格就到
+    return `
+      <div class="ears"><div class="ear">诊断</div><div class="deadzone"></div>
+        <div class="ear r">今日 14 条 · 9 解码 / 15 锁屏</div></div>
+      <div class="slot">${banner()}${timeline(TIMELINE, 5)}</div>${dots()}`;
+  }
+
+  if (page === 3) {                        // 设置里的解锁子区（低频开关都在这儿）
+    return `
+      <div class="ears"><div class="ear">设置</div><div class="deadzone"></div><div class="ear r">解锁</div></div>
+      <div class="slot">${banner()}
+        <div class="seg"><span>常规</span><span class="on">解锁</span><span>诊断</span><span>权限</span></div>
+        ${rssiScale()}
+        ${switchRow('输入活动保护', true, '打字时不误锁')}
+        ${switchRow('手动锁屏保护', true, '手动锁后不自动解')}
+        ${switchRow('iMessage 通知', true, '推送到手表')}
+        ${switchRow('靠近唤醒', true, '提前 20s 亮屏')}</div>${dots()}`;
+  }
+
+  if (page === 1) {                        // Token：现状不动
+    return `
+      <div class="ears"><div class="ear">cc-switch · claude</div><div class="deadzone"></div>
+        <div class="ear r">今日 128 次调用</div></div>
+      <div class="slot"><div class="card" style="flex:1;display:flex;align-items:center;justify-content:center">
+        Token · 请求表（现状不动）</div></div>${dots()}`;
+  }
+
+  // 概览：C 的融合版式（守护卡排版已修好，不折行）
+  return `
+    <div class="ears"><div class="ear"></div><div class="deadzone"></div><div class="ear r"></div></div>
+    <div class="slot">${banner()}
+      <div class="card" style="display:flex;align-items:center;gap:13px">
+        <div class="ring"></div>
+        <div style="flex:1;min-width:0">
+          <div class="row" style="font-weight:600">额度
+            <span class="grow"></span><span class="dim2" style="font-size:10.5px">5h 大环 · 30s 刷新</span></div>
+          <div class="row dim2" style="font-size:10.5px;margin-top:4px;white-space:nowrap">
+            周 62% · 月 31% · 重置 2h14m</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:9px">
+        <div class="row">
+          <span class="dot ${st.cls}"></span><span style="font-weight:600">守护 · ${st.text}</span>
+          <span class="grow"></span><span class="tog on"></span>
+        </div>
+        <div class="row dim2" style="font-size:10.5px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          Watch · <span class="num">${RSSI}</span> dBm · 解锁 <span class="num">${TH.unlock}</span> / 锁定 <span class="num">${TH.lock}</span>
+          <span class="grow"></span>${st.note}</div>
+      </div>
+    </div>${dots()}`;
+}
+
+/* ===================== 渲染 ===================== */
+const SUBLABELS = {
+  A: ['概览', 'Token', '解锁', '诊断'],
+  B: ['主视图', '推入页 · 解锁 + 诊断'],
+  C: ['概览主视图', '设置 ▸ 诊断'],
+  D: ['概览（融合）', 'Token', '诊断', '设置 ▸ 解锁']
+};
+
+function render() {
+  const body = document.getElementById('body');
+  body.innerHTML = ({ A: variantA, B: variantB, C: variantC, D: variantD })[S.variant]();
+
+  // 岛体高度 = 内容自然高度（不偷偷钳制），宽高比是否达标只在注释里如实标出
+  const W = 420;
+  const inner = body.querySelector('.ears').offsetHeight + body.querySelector('.slot').scrollHeight + 22;
+  const h = Math.max(46, inner);
+  document.getElementById('island').style.height = h + 'px';
+
+  document.getElementById('lbl').innerHTML = `${NAMES[S.variant][0]}<small>${NAMES[S.variant][1]}</small>`;
+  document.getElementById('annot').innerHTML = annotHTML(h, W);
+
+  document.querySelectorAll('#statebar button').forEach(b => b.classList.toggle('on', b.dataset.st === S.state));
+
+  const sb = document.getElementById('subbar');
+  sb.innerHTML = `<span class="lab">视图：</span>` + SUBLABELS[S.variant].map((t, i) =>
+    `<button data-i="${i}" class="${i === S.sub ? 'on' : ''}">${t}</button>`).join('');
+  sb.querySelectorAll('button').forEach(b => b.onclick = () => { S.sub = +b.dataset.i; render(); });
+
+  history.replaceState(null, '', `?variant=${S.variant}&sub=${S.sub}&state=${S.state}`);
+}
+
+function annotHTML(h, W) {
+  const ratio = (W / h).toFixed(2);
+  const ok = ratio >= 1.75;
+  const needW = Math.ceil(h * 1.75 / 2) * 2;   // 满足 1.75 所需的最小岛体宽（取偶）
+  const sub = S.sub ? '子视图' : '主视图';
+  const common = `<div><b>几何实测（当前：${sub}）</b>
+    岛体 ${W} × ${h}px，宽高比 <code>${ratio}</code>
+    ${ok
+      ? '<span style="color:#6ee787">✓ 达下限 1.75</span>'
+      : `<span style="color:#ff8177">✗ 低于下限</span>；要达标得把岛体加宽到 <code>${needW}px</code>`}
+    <br>内容可见高度 ≈ ${h - 46 - 22}px</div>`;
+  const spec = {
+    A: `<div><b>A · 扁平 4 页</b>解锁与诊断各占一个顶层分区，dots 变 4 个。<br>
+        代价：每页更空（解锁页只有 3 个开关），顶层导航变长。</div>`,
+    B: `<div><b>B · 守护条 + 二级推入</b>状态常驻顶栏、一眼可见（弥补 Q6 砍掉菜单栏图标后的可见性）。<br>
+        代价：多一层导航，返回要点左上。</div>`,
+    C: `<div><b>C · 概览融合 + 设置内嵌套</b>不新增顶层页，守护卡与额度卡并列；诊断藏进设置子区。<br>
+        代价：诊断埋得深——而「为什么没解锁」通常是急着要看的东西。</div>`,
+    D: `<div><b>D · C 的概览 + A 的诊断</b>概览用 C 那套「两件事并列」的版式（守护卡排版已修好、不折行），
+        诊断提回一级页，横扫一格就到。<br>
+        代价：顶层多一页（dots 变 3）；低频开关（4 个）挪进设置 ▸ 解锁。</div>`
+  }[S.variant];
+  return common + spec +
+    `<div><b>共同面对的死穴 · 请当成对 ADR-0008 的实测输入</b>
+      诊断时间线要「按日期分组 + 带操作建议」。实测四个变体的诊断视图<b>全部超限</b>
+      （A 1.25 / B 1.41 / C 1.40 / D 见左栏）——所以真正的结论不是「塞不下」，而是
+      <b>诊断页必须把面板撑宽</b>。面板宽度本来就是内容驱动的，加宽是合法解，
+      代价只是它在你 1512pt 宽的屏上占掉多少。</div>`;
+}
+
+/* ===================== 交互 ===================== */
+function goVariant(d) {
+  const i = VARIANTS.indexOf(S.variant);
+  S.variant = VARIANTS[(i + d + VARIANTS.length) % VARIANTS.length];
+  S.sub = 0;
+  render();
+}
+document.getElementById('prev').onclick = () => goVariant(-1);
+document.getElementById('next').onclick = () => goVariant(1);
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (e.key === 'ArrowLeft') goVariant(-1);
+  if (e.key === 'ArrowRight') goVariant(1);
+});
+document.querySelectorAll('#statebar button').forEach(b => {
+  b.onclick = () => { S.state = b.dataset.st; render(); };
+});
+render();
+</script>
+</body>
+</html>

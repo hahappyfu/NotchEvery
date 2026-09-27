@@ -2,6 +2,8 @@
 
 `ContentType.settings` 是残留死状态：点开是空白面板（`NotchRootView` 里只有 `.settings: Color.clear` 占位分支），而设置真正的入口早已是齿轮 Popover（右键菜单 "Settings" 与 Popover 齿轮）。我们决定彻底删除 `.settings` case 及其三条死路径（`tabTitleKey`/`tabIconName`/`showSettings()`、`zonePanelHeight[.settings]`、TEMP-DIAG 开机探针），右键菜单与齿轮改为直接弹设置 Popover（`showSettings = true`）。
 
+> 修订（2026-09-27 审计补注）：设置入口现为「右键菜单 → Popover 快捷菜单 → PreferencesWindow 独立窗口（单「通用」Tab）」三跳，本文所写「直接弹设置 Popover」的形态已演进。
+
 ## Considered Options
 
 - 保留分区并补内容：被否——与已定案的"设置走 Popover"冲突，两套入口并存。
