@@ -49,7 +49,8 @@
 - [x] A3 cc-switch：UsageStore 579→301 行（删 CCSwitchUsageStore 235 行/activeSource/.ccSwitch 分支/init(dbPath:)/死门面/savedUSD）；UsageStoreTests 整删（12 用例全为 cc-switch 门面测试）；AntigravityProxyStoreTests 删 1 用例保 4；ADR-0005 修订注记（agent-a3 执行）。**审计修正**：ponytail 报的「AntigravityProxyStore prod 零引用」是误报——UsageStore.refresh() 的 antigravityTools 活跃路径直接调用它，是唯一数据路径，已按任务预案保留
 - [x] A4 ponytail delete 清单（agent-a4 执行）：8 整文件删除 669 行 + ConfigStore 死 API -101 行 + islandFillet/bridgeSpinning/resetTime（有读者，改用 displayResetTime）/studioPillBadge/configDir/feedVertical + yagni（PreferencesWindow 单 tab/ShareType/withMutation）+ stdlib/shrink + MockEventMonitors 迁 Tests + README 数字修正。**TEST BUILD SUCCEEDED，188 tests 0 failures**
 - [x] 批次 A 提交：a9c83f4（80 文件，+1470/−5642，净删 4172 行）
-- [ ] A5 TrayDrop 僵尸链决策：复活 or 删干净（待用户确认，倾向删；牵连 PreferencesWindow 托盘卡、设置保留时长、main.swift:93）
+- [ ] A5 TrayDrop 僵尸链决策：复活 or 删干净（待用户确认；TrayView 零挂载、load 零调用，牵连 PreferencesWindow 托盘卡、设置保留时长、main.swift:93）
+- [ ] 遗留工单：removeFiles 补删 Config/Previews/<id>.png（B2 发现，一行修复）；testLoadPartialSuccessKeepsSucceeded 补 NSItemProvider mock
 
 ## 批次 B：行为修复（P0，每条改完需构建/真机验证）
 - [x] B1 D-C1 PublishedPersist 解码失败备份（agent-b1：FileStorage.backupCorruptFile，+1 测试）
@@ -69,10 +70,12 @@
 - [x] C4 归档旧文档：NIGHT-REPORT/HANDOFF×3/PROMPT-FOR-CLAUDE/research → docs/archive/
 
 ## 批次 D：数据/UI Important 修复（P1/P2 主体）
-- [ ] D1 数据层：I1 selectAccount 竞争、I3 轮转翻倍、I4 GatewayManager 线程收敛、I6 isInternalCopy（若剪贴板未删）、I11 JSONEncoder 隔离、I12 DebugLog（若未删）、M 批（URL 强解包、userQuota 路径等）
-- [ ] D2 UI 层：I1 peek 文本自适应、I2 耳区宽度策略、I3 边距二次叠加、I4 Token 行溢出、I5 连扫动画竞争、I7 置顶击穿（若未删）、I8 双重动画、I9 tertiary 对比度、I10 makeKey 抢焦点
-- [ ] D3 测试补齐：T-C1 补真断言（若 TrayDrop 复活）、补 I3/I7/I8 测试
+- [x] D1 数据层（agent-d1，5 commit，意向保护/轮转防翻倍/线程收敛/编解码隔离/Minor×2）：I1 selectAccount 竞争、I3 轮转翻倍、I4 GatewayManager 线程收敛、I6 isInternalCopy（若剪贴板未删）、I11 JSONEncoder 隔离、I12 DebugLog（若未删）、M 批（URL 强解包、userQuota 路径等）
+- [x] D2 UI 层（agent-d2，8 commit，Peek 自适应/耳区/避让/三列/转场快照/动画单链/对比度/焦点）：I1 peek 文本自适应、I2 耳区宽度策略、I3 边距二次叠加、I4 Token 行溢出、I5 连扫动画竞争、I7 置顶击穿（若未删）、I8 双重动画、I9 tertiary 对比度、I10 makeKey 抢焦点
+- [x] D3 测试补齐（零宽刘海几何 + Ghost 状态机代际，+3 用例；TrayDrop 部分断言已随 B2 补，NSItemProvider mock 留 TODO）
 
 ## 验收
 - 每批：grep 零引用断言 + 编译静态核对（构建受阻时）+ 用户真机过目（UI 改动）
 - 全部完成：测试全绿、净删 ~4,000+ 行、文档与代码一致、汇总报告逐条销号
+
+> 执行结果（2026-09-27）：批次 A~D 全部完成，分支 23 commit，208 tests 0 failures，批次 B 已真机验收通过。
