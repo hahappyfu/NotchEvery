@@ -99,24 +99,44 @@ struct NotchRootView: View {
 
     private var pages: some View {
         ZStack(alignment: .top) {
-            switch vm.contentType {
-            case .normal:
-                OverviewPageView(vm: vm)
-                    // 概览页按内容自身尺寸居中（不撑满）：测量值必须与提案无关，
-                    // 撑满会让高度/宽度跟随上页面板 → 来回切页卡大不缩（2026-09-11 探针实锤 inner 高度卡 334）
-                    .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
-            case .token:
-                TokenZoneView()
-                    // 横向填充（余宽由列间距均分）；纵向自然高
-                    .frame(maxWidth: .infinity, alignment: .top)
-                    .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
-            case .gateway:
-                GatewayZoneView(vm: vm)
-                    .frame(maxWidth: .infinity, alignment: .top)
-                    .transition(reduceMotion ? .opacity : (vm.lastSwipeDirection == .next ? .zoneSlideNext : .zoneSlidePrevious))
-            }
+            PageTransitionWrapper(
+                contentType: vm.contentType,
+                direction: vm.lastSwipeDirection,
+                reduceMotion: reduceMotion,
+                vm: vm
+            )
+            .equatable()
+            .id(vm.contentType)
         }
         // 切页专用快弹簧（清单 05；裁剪已撤：与窗口边双边打架是闪的根因，窗口自带裁剪 enough）
         .animation(vm.pageAnimation, value: vm.contentType)
+    }
+}
+
+/// 切页过渡包装器：将切入时的方向值固定于视图实例本身，杜绝 300ms 转场期内连扫突变重写退场动画
+private struct PageTransitionWrapper: View, Equatable {
+    let contentType: NotchViewModel.ContentType
+    let direction: SwipeDirection
+    let reduceMotion: Bool
+    @ObservedObject var vm: NotchViewModel
+
+    static func == (lhs: PageTransitionWrapper, rhs: PageTransitionWrapper) -> Bool {
+        lhs.contentType == rhs.contentType && lhs.direction == rhs.direction
+    }
+
+    var body: some View {
+        Group {
+            switch contentType {
+            case .normal:
+                OverviewPageView(vm: vm)
+            case .token:
+                TokenZoneView()
+                    .frame(maxWidth: .infinity, alignment: .top)
+            case .gateway:
+                GatewayZoneView(vm: vm)
+                    .frame(maxWidth: .infinity, alignment: .top)
+            }
+        }
+        .transition(reduceMotion ? .opacity : (direction == .next ? .zoneSlideNext : .zoneSlidePrevious))
     }
 }
