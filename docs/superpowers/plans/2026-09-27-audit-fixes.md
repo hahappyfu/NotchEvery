@@ -63,10 +63,10 @@
 - [x] 批次 B 真机验收：用户 2026-09-27 确认六场景全部正常
 
 ## 批次 C：文档回写（R-C1~C5 + 口径）
-- [ ] C1 CONTEXT.md：分区词条三页、删「拖放区」词条、指示器词条按 SmoothPageIndicator 实况、删过桥菊花词条、删顶栏词条、数据源改 antigravityTools 单源、耳区/展示卡措辞
-- [ ] C2 README 重写：特性/架构/测试三节按现状
-- [ ] C3 ADR 补状态：0001/0004/0006/0011/0012 Superseded；0005/0008/0009/0010 修订注记（钳制数值、SmoothNotchShape、耳区口径、cc-switch 移除）
-- [ ] C4 归档旧文档：NIGHT-REPORT/HANDOFF×3/PROMPT-FOR-CLAUDE/research → docs/archive/
+- [x] C1 CONTEXT.md：分区词条三页、删「拖放区」词条、指示器词条按 SmoothPageIndicator 实况、删过桥菊花词条、删顶栏词条、数据源改 antigravityTools 单源、耳区/展示卡措辞
+- [x] C2 README 重写：特性/架构/测试三节按现状
+- [x] C3 ADR 补状态：0001/0004/0006/0011/0012 Superseded；0005/0008/0009/0010 修订注记（钳制数值、SmoothNotchShape、耳区口径、cc-switch 移除）
+- [x] C4 归档旧文档：NIGHT-REPORT/HANDOFF×3/PROMPT-FOR-CLAUDE/research → docs/archive/
 
 ## 批次 D：数据/UI Important 修复（P1/P2 主体）
 - [ ] D1 数据层：I1 selectAccount 竞争、I3 轮转翻倍、I4 GatewayManager 线程收敛、I6 isInternalCopy（若剪贴板未删）、I11 JSONEncoder 隔离、I12 DebugLog（若未删）、M 批（URL 强解包、userQuota 路径等）
