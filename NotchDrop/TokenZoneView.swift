@@ -165,12 +165,12 @@ private struct TokenRowView: View {
                 }
                 Text(row.accountEmailPrefix.isEmpty ? row.time : row.accountEmailPrefix)
                     .font(.system(size: 9.5).monospacedDigit())
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             .frame(width: colIdentityW, alignment: .leading)
 
-            // 2. 中栏：Token 构成与缓存命中（定宽 160，水平居中）
+            // 2. 中栏：Token 构成与缓存命中（定宽 180，水平居中）
             VStack(spacing: 3) {
                 HStack(alignment: .firstTextBaseline) {
                     let total = row.inputTokens + row.outputTokens
@@ -187,7 +187,7 @@ private struct TokenRowView: View {
                     } else {
                         Text("无缓存")
                             .font(.system(size: 9.5).monospacedDigit())
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -210,7 +210,7 @@ private struct TokenRowView: View {
                     Text("出 \(TokenFormatUtils.formatCompactTokens(row.outputTokens))")
                 }
                 .font(.system(size: 9).monospacedDigit())
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
             }
             .frame(width: colTokensW)
 
@@ -228,7 +228,7 @@ private struct TokenRowView: View {
 
                 Text(row.time)
                     .font(.system(size: 9.5).monospacedDigit())
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
             .frame(width: colTimingW, alignment: .trailing)
         }
@@ -264,7 +264,7 @@ struct TokenZoneView: View {
             if store.recentRequests.isEmpty {
                 Text("暂无近期请求日志")
                     .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else {
                 VStack(spacing: 5) {
@@ -312,7 +312,7 @@ struct TokenZoneView: View {
             Spacer()
             Text("模型/账号 · 缓存率分级 · 耗时")
                 .font(.system(size: 9.5))
-                .foregroundStyle(Color.white.opacity(0.4))
+                .foregroundStyle(Color.white.opacity(0.65))
         }
         .padding(.horizontal, 4)
         .padding(.bottom, 6)
