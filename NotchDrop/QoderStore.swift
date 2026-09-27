@@ -457,19 +457,34 @@ final class QoderStore: ObservableObject {
         }
         let bearer = firstAuthKey()
         do {
-            let qData = try await transport.get(url: URL(string: "http://127.0.0.1:\(port)/quota")!, bearer: bearer)
-            let pData = try await transport.get(url: URL(string: "http://127.0.0.1:\(port)/v1/pool/status")!, bearer: bearer)
+            guard let quotaURL = URL(string: "http://127.0.0.1:\(port)/quota"),
+                  let poolURL = URL(string: "http://127.0.0.1:\(port)/v1/pool/status") else {
+                throw URLError(.badURL)
+            }
+            let qData = try await transport.get(url: quotaURL, bearer: bearer)
+            let pData = try await transport.get(url: poolURL, bearer: bearer)
+            // 审计 Minor：decode 失败与 HTTP 失败同语义——计入 failures 并保留 stale 旧值，
+            // 不再把 nil 灌进 quota 冲掉旧数据、也不清零失败计数。
+            guard let decodedQuota = QoderQuota.decode(qData) else {
+                noteQuotaFailure("quota decode failed")
+                return
+            }
             consecutiveFailures = 0
-            publishIfChanged(\.quota, QoderQuota.decode(qData))
+            publishIfChanged(\.quota, decodedQuota)
             let pool = QoderPoolStatus.decode(pData)
             publishIfChanged(\.poolMembers, pool?.accounts ?? [])
             publishIfChanged(\.poolStatusStickyId, pool?.stickyUserId)
             if isQuotaStale { isQuotaStale = false }
         } catch {
-            consecutiveFailures += 1
-            if consecutiveFailures >= 2 && !isQuotaStale { isQuotaStale = true }
-            storeLog.debug("fetch failed (\(self.consecutiveFailures)): \(error.localizedDescription)")
+            noteQuotaFailure(error.localizedDescription)
         }
+    }
+
+    /// 计入一次连续失败并按阈值翻 stale 标志。HTTP 失败与 decode 失败共用同一语义。
+    private func noteQuotaFailure(_ reason: String) {
+        consecutiveFailures += 1
+        if consecutiveFailures >= 2 && !isQuotaStale { isQuotaStale = true }
+        storeLog.debug("fetch failed (\(self.consecutiveFailures)): \(reason)")
     }
 
     private func updateUsageFromLog(url: URL) {

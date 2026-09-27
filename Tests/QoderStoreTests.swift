@@ -168,6 +168,29 @@ final class QoderStoreTests: XCTestCase {
         XCTAssertEqual(store.objectWillChangeCountForTest, first, "同值不应再次 objectWillChange")
     }
 
+    // MARK: - 审计 Minor：quota decode 失败计入 failures 并保留 stale 旧值
+
+    @MainActor
+    func testQuotaDecodeFailureCountsAsFailureAndKeepsStaleValue() async {
+        let t = FakeTransport()
+        t.quotaData = fixture("quota", "json")
+        let store = QoderStore(port: 8096, transport: t)
+        await store.refreshNow()
+        let good = store.quota
+        XCTAssertNotNil(good, "前置：首轮拿到有效 quota")
+
+        // 服务端返回坏 JSON：不发布 nil 冲掉旧值，且计入连续失败（单次不 stale）
+        t.quotaData = Data("not json".utf8)
+        await store.refreshNow()
+        XCTAssertEqual(store.quota, good, "decode 失败必须保留 stale 旧值，不得发布 nil")
+        XCTAssertFalse(store.isQuotaStale, "decode 失败单次不算 stale，与 HTTP 失败同语义")
+
+        // 连续第二次 decode 失败 → stale，quota 仍保留
+        await store.refreshNow()
+        XCTAssertTrue(store.isQuotaStale, "连续两次 decode 失败应 stale")
+        XCTAssertEqual(store.quota, good, "stale 翻标志也不冲掉旧值")
+    }
+
     // MARK: - poolTotalRemaining 求和口径（纯逻辑，直接喂 poolQuotas）
 
     @MainActor
