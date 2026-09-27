@@ -9,13 +9,11 @@ import SwiftUI
 
 struct NotchMenuView: View {
     @StateObject var vm: NotchViewModel
-    @StateObject var tvm = TrayDrop.shared
 
     var body: some View {
         HStack(spacing: 6) {
             close
             settings
-            clear
             ShareView(vm: vm)
         }
     }
@@ -31,18 +29,6 @@ struct NotchMenuView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                 NSApp.terminate(nil)
             }
-        }
-    }
-
-    var clear: some View {
-        GlassButton(
-            image: Image(systemName: "trash"),
-            title: "Clear",
-            tint: .red
-        )
-        .onTapGesture {
-            tvm.removeAll()
-            vm.notchClose()
         }
     }
 

@@ -25,8 +25,8 @@
 展开面板后耳区常驻信息：**左耳显示当前供应商，右耳显示今日调用次数**。
 
 ### 3. ⚙️ 右键快捷菜单 + 原生偏好设置窗口
-右键刘海弹出快捷菜单（退出 / 清理托盘存储 / 设置）；「设置」打开原生 macOS System Settings 风格独立窗口：
-- **通用 (`General`)**：开机自启、触觉反馈、多语言切换、托盘存储文件保留时长、版本信息。
+右键刘海弹出快捷菜单（退出 / 设置）；「设置」打开原生 macOS System Settings 风格独立窗口：
+- **通用 (`General`)**：开机自启、触觉反馈、多语言切换、版本信息。
 
 ---
 
@@ -122,9 +122,6 @@ NotchDrop/
 │   ├── PreferencesWindow.swift    # 原生 macOS 风格独立偏好设置窗口（单「通用」Tab）
 │   ├── PreferencesWindowController.swift
 │   └── NotchMenuView.swift        # 右键 Popover 快捷菜单
-└── TrayDrop（遗留，仅设置页「托盘存储」区块仍在引用）
-    ├── TrayDrop.swift / TrayDrop+DropItem.swift
-    └── TrayDrop+DropItemView.swift / TrayDrop+View.swift
 ```
 
 > 历史交接/调研/原型文档已归档至 [`docs/archive/`](./docs/archive/)，其内容不代表当前代码。

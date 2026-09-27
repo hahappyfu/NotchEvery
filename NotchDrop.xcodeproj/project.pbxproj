@@ -51,11 +51,9 @@
 		504381AC2C3A95BD000ED325 /* EventMonitors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504381AB2C3A95BD000ED325 /* EventMonitors.swift */; };
 		504381AF2C3ADFF2000ED325 /* NotchContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504381AE2C3ADFF2000ED325 /* NotchContentView.swift */; };
 		7AE10C0220260AB000000001 /* ZoneSizeGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000002 /* ZoneSizeGuard.swift */; };
-		5044EE992C3B069200071C5C /* TrayDrop+View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5044EE982C3B069200071C5C /* TrayDrop+View.swift */; };
 		5044EE9C2C3B082300071C5C /* Pow in Frameworks */ = {isa = PBXBuildFile; productRef = 5044EE9B2C3B082300071C5C /* Pow */; };
 		5044EE9E2C3B0F3D00071C5C /* Ext+FileProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5044EE9D2C3B0F3D00071C5C /* Ext+FileProvider.swift */; };
 		5044EEA02C3B116000071C5C /* PublishedPersist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5044EE9F2C3B116000071C5C /* PublishedPersist.swift */; };
-		5044EEA22C3B126F00071C5C /* TrayDrop+DropItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5044EEA12C3B126F00071C5C /* TrayDrop+DropItemView.swift */; };
 		5044EEA42C3B140F00071C5C /* Ext+URL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5044EEA32C3B140F00071C5C /* Ext+URL.swift */; };
 		5044EEA72C3B174100071C5C /* BitCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 5044EEA62C3B174100071C5C /* BitCollections */; };
 		5044EEA92C3B174100071C5C /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = 5044EEA82C3B174100071C5C /* Collections */; };
@@ -65,8 +63,6 @@
 		504A5D802C59EC2D004E8297 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 504A5D7F2C59EC2D004E8297 /* LaunchAtLogin */; };
 		508C4DF22C631EF700642ADC /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 508C4DF12C631EF700642ADC /* InfoPlist.xcstrings */; };
 		50CB767E2C3BC8880070D5E6 /* NotchViewModel+Events.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50CB767D2C3BC8880070D5E6 /* NotchViewModel+Events.swift */; };
-		50E26E272C3AF5E9007CF247 /* TrayDrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E26E262C3AF5E9007CF247 /* TrayDrop.swift */; };
-		50E26E292C3AF67B007CF247 /* TrayDrop+DropItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E26E282C3AF67B007CF247 /* TrayDrop+DropItem.swift */; };
 		50EFDB522C3BF7B4002D3E0F /* Ext+NSImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EFDB512C3BF7B4002D3E0F /* Ext+NSImage.swift */; };
 		B1C2D3E4F506172839404153 /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F506172839404152 /* AppPaths.swift */; };
 		C1D2E3F4A506172839404155 /* AntigravityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404154 /* AntigravityStore.swift */; };
@@ -85,7 +81,6 @@
 		7AE10C0220260AB000000D3 /* AntigravityStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C3 /* AntigravityStoreTests.swift */; };
 		7AE10C0220260AB000000D4 /* ScrollSwipeResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */; };
 		7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C5 /* TabMetricsTests.swift */; };
-		7AE10C0220260AB000000D6 /* TrayDropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C6 /* TrayDropTests.swift */; };
 		7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */; };
 		7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */; };
 		7AE10C0220260AB000000DA /* AntigravityProxyStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */; };
@@ -158,16 +153,12 @@
 		504381AB2C3A95BD000ED325 /* EventMonitors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMonitors.swift; sourceTree = "<group>"; };
 		504381AE2C3ADFF2000ED325 /* NotchContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchContentView.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000002 /* ZoneSizeGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneSizeGuard.swift; sourceTree = "<group>"; };
-		5044EE982C3B069200071C5C /* TrayDrop+View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrayDrop+View.swift"; sourceTree = "<group>"; };
 		5044EE9D2C3B0F3D00071C5C /* Ext+FileProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Ext+FileProvider.swift"; sourceTree = "<group>"; };
 		5044EE9F2C3B116000071C5C /* PublishedPersist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublishedPersist.swift; sourceTree = "<group>"; };
-		5044EEA12C3B126F00071C5C /* TrayDrop+DropItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrayDrop+DropItemView.swift"; sourceTree = "<group>"; };
 		5044EEA32C3B140F00071C5C /* Ext+URL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Ext+URL.swift"; sourceTree = "<group>"; };
 		508C4DF12C631EF700642ADC /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		50CB767D2C3BC8880070D5E6 /* NotchViewModel+Events.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NotchViewModel+Events.swift"; sourceTree = "<group>"; };
 		50D7EFF22C3E484C005AC04E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		50E26E262C3AF5E9007CF247 /* TrayDrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayDrop.swift; sourceTree = "<group>"; };
-		50E26E282C3AF67B007CF247 /* TrayDrop+DropItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrayDrop+DropItem.swift"; sourceTree = "<group>"; };
 		50EFDB512C3BF7B4002D3E0F /* Ext+NSImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Ext+NSImage.swift"; sourceTree = "<group>"; };
 		B1C2D3E4F506172839404152 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		C1D2E3F4A506172839404154 /* AntigravityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityStore.swift; sourceTree = "<group>"; };
@@ -187,7 +178,6 @@
 		7AE10C0220260AB000000C3 /* AntigravityStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityStoreTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSwipeResolverTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C5 /* TabMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabMetricsTests.swift; sourceTree = "<group>"; };
-		7AE10C0220260AB000000C6 /* TrayDropTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayDropTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneSizeGuardTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMetricsTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityProxyStoreTests.swift; sourceTree = "<group>"; };
@@ -295,10 +285,6 @@
 				50CB767D2C3BC8880070D5E6 /* NotchViewModel+Events.swift */,
 				504381A92C3A9514000ED325 /* EventMonitor.swift */,
 				504381AB2C3A95BD000ED325 /* EventMonitors.swift */,
-				50E26E262C3AF5E9007CF247 /* TrayDrop.swift */,
-				50E26E282C3AF67B007CF247 /* TrayDrop+DropItem.swift */,
-				5044EE982C3B069200071C5C /* TrayDrop+View.swift */,
-				5044EEA12C3B126F00071C5C /* TrayDrop+DropItemView.swift */,
 				5044EEA32C3B140F00071C5C /* Ext+URL.swift */,
 				50EFDB512C3BF7B4002D3E0F /* Ext+NSImage.swift */,
 				504381A12C3A8BE0000ED325 /* Ext+NSScreen.swift */,
@@ -338,7 +324,6 @@
 				7AE10C0220260AB000000C3 /* AntigravityStoreTests.swift */,
 				7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */,
 				7AE10C0220260AB000000C5 /* TabMetricsTests.swift */,
-				7AE10C0220260AB000000C6 /* TrayDropTests.swift */,
 				7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */,
 				7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */,
 				7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */,
@@ -517,7 +502,6 @@
 				B79333E9BDE586D8426F3C34 /* QoderGatewayManager.swift in Sources */,
 				9677B500F5C9D80E2A9355A1 /* QoderGatewayConfig.swift in Sources */,
 				504381992C3A8893000ED325 /* NotchWindow.swift in Sources */,
-				5044EEA22C3B126F00071C5C /* TrayDrop+DropItemView.swift in Sources */,
 				504381AF2C3ADFF2000ED325 /* NotchContentView.swift in Sources */,
 				7AE10C0220260AB000000001 /* ZoneSizeGuard.swift in Sources */,
 				F1E2D3C4B5A6071829304101 /* TokenZoneView.swift in Sources */,
@@ -529,13 +513,10 @@
 				F101CE000000000000000057 /* SmoothNotchShape.swift in Sources */,
 				503D8EBA2C3F838200E173FF /* NotchMenuView.swift in Sources */,
 				50EFDB522C3BF7B4002D3E0F /* Ext+NSImage.swift in Sources */,
-				50E26E272C3AF5E9007CF247 /* TrayDrop.swift in Sources */,
 				5044EE9E2C3B0F3D00071C5C /* Ext+FileProvider.swift in Sources */,
 				504381A42C3A8C7E000ED325 /* NotchWindowController.swift in Sources */,
-				50E26E292C3AF67B007CF247 /* TrayDrop+DropItem.swift in Sources */,
 				504381A22C3A8BE0000ED325 /* Ext+NSScreen.swift in Sources */,
 				5044EEA42C3B140F00071C5C /* Ext+URL.swift in Sources */,
-				5044EE992C3B069200071C5C /* TrayDrop+View.swift in Sources */,
 				50CB767E2C3BC8880070D5E6 /* NotchViewModel+Events.swift in Sources */,
 				504381AC2C3A95BD000ED325 /* EventMonitors.swift in Sources */,
 				502E41D62C3CEC990060660E /* Ext+NSAlert.swift in Sources */,
@@ -583,7 +564,6 @@
 				7AE10C0220260AB000000D3 /* AntigravityStoreTests.swift in Sources */,
 				7AE10C0220260AB000000D4 /* ScrollSwipeResolverTests.swift in Sources */,
 				7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */,
-				7AE10C0220260AB000000D6 /* TrayDropTests.swift in Sources */,
 				7AE10C0220260AB000000DA /* AntigravityProxyStoreTests.swift in Sources */,
 				7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */,

@@ -15,7 +15,7 @@ let bundleIdentifier = Bundle.main.bundleIdentifier!
 let appVersion = "\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"
 
 // 路径统一走 AppPaths（#26），定义见 AppPaths.swift
-// documentsDirectory 同步创建（PID/TrayDrop 依赖），temporary 清理异步（#20）
+// documentsDirectory 同步创建（PID 依赖），temporary 清理异步（#20）
 try? FileManager.default.createDirectory(
     at: AppPaths.documentsDirectory,
     withIntermediateDirectories: true,
@@ -88,12 +88,6 @@ if !isTestingEnvironment {
     // 清理：异常退出时尽力清理 pidFile
     atexit {
         try? FileManager.default.removeItem(at: pidFile)
-    }
-
-    _ = TrayDrop.shared
-    // 启动过期清理移后台：避免阻塞首屏（文件遍历 + 可能的重写）
-    DispatchQueue.global(qos: .utility).async {
-        TrayDrop.shared.cleanExpiredFiles()
     }
 
     // ——— 修复 #4: O_EVTONLY FD 泄漏 ———

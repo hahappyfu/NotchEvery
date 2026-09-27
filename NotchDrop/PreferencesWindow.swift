@@ -90,7 +90,6 @@ struct GeneralSettingsTab: View {
         }
         return true
     }()
-    @StateObject private var tvm = TrayDrop.shared
     @State private var selectedLanguage: Language = {
         if let data = FileStorage().data(forKey: "selectedLanguage"),
            let val = try? JSONDecoder().decode(Language.self, from: data) {
@@ -148,49 +147,6 @@ struct GeneralSettingsTab: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                    }
-                }
-
-                SettingsSectionGroup("托盘存储") {
-                    VStack(spacing: 0) {
-                        HStack {
-                            Text("文件保留时长")
-                                .font(.system(size: 13))
-                            Spacer()
-                            Picker("", selection: $tvm.selectedFileStorageTime) {
-                                ForEach(TrayDrop.FileStorageTime.allCases) { time in
-                                    Text(time.localized).tag(time)
-                                }
-                            }
-                            .labelsHidden()
-                            .frame(width: 140)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-
-                        if tvm.selectedFileStorageTime == .custom {
-                            Divider().padding(.leading, 16)
-                            HStack {
-                                Text("自定义时长")
-                                    .font(.system(size: 13))
-                                Spacer()
-                                HStack(spacing: 6) {
-                                    TextField("天数", value: $tvm.customStorageTime, formatter: NumberFormatter())
-                                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                                        .controlSize(.small)
-                                        .frame(width: 50)
-                                    Picker("", selection: $tvm.customStorageTimeUnit) {
-                                        ForEach(TrayDrop.CustomStorageTimeUnit.allCases) { unit in
-                                            Text(unit.localized).tag(unit)
-                                        }
-                                    }
-                                    .labelsHidden()
-                                    .frame(width: 80)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                        }
                     }
                 }
 
