@@ -16,8 +16,6 @@ protocol PersistProvider {
     func set(_ data: Data?, forKey: String)
 }
 
-private let valueEncoder = JSONEncoder()
-private let valueDecoder = JSONDecoder()
 private var configDir: URL {
     documentsDirectory.appendingPathComponent("Config")
 }
@@ -83,7 +81,9 @@ struct Persist<Value: Codable & Equatable> {
     init(key: String, defaultValue: Value, engine: PersistProvider) {
         if let data = engine.data(forKey: key) {
             do {
-                let object = try valueDecoder.decode(Value.self, from: data)
+                // 审计 I11：decoder 用完即弃。编码/解码闭包跑在 global 并发队列上，
+                // Foundation 不保证 JSONDecoder 实例线程安全，不能跨闭包共享。
+                let object = try JSONDecoder().decode(Value.self, from: data)
                 subject = CurrentValueSubject<Value, Never>(object)
             } catch {
                 storeLog.error("decode \(key) failed: \(error.localizedDescription), fallback to default")
@@ -103,7 +103,8 @@ struct Persist<Value: Codable & Equatable> {
             .receive(on: DispatchQueue.global())
             .compactMap { value -> Data? in
                 do {
-                    return try valueEncoder.encode(value)
+                    // 审计 I11：encoder 同理用完即弃，见 init 内注释。
+                    return try JSONEncoder().encode(value)
                 } catch {
                     storeLog.error("encode \(key) failed: \(error.localizedDescription)")
                     return nil
