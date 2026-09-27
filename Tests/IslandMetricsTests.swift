@@ -104,4 +104,136 @@ final class IslandMetricsTests: XCTestCase {
         XCTAssertEqual(openedRect.height, 350)
         XCTAssertTrue(openedRect.contains(CGPoint(x: notch.midX, y: 900 - 200)))
     }
+
+    // MARK: - D3 测试补齐：零宽刘海与 Ghost 收起状态机
+
+    func testZeroWidthNotchGeometryNoNegativeWidthOrOutOfBounds() {
+        let screens: [CGRect] = [
+            CGRect(x: 0, y: 0, width: 2560, height: 1440),        // 2.5K
+            CGRect(x: 0, y: 0, width: 3840, height: 2160),        // 4K
+            CGRect(x: 0, y: 0, width: 5120, height: 2880),        // 5K
+            CGRect(x: -1920, y: 0, width: 1920, height: 1080),     // 副屏负原点
+            CGRect(x: 0, y: -1080, width: 1920, height: 1080),     // 垂直副屏
+            CGRect(x: 0, y: 0, width: 800, height: 600),          // 紧凑屏幕
+        ]
+
+        let naturalSizes: [CGSize] = [
+            .zero,
+            CGSize(width: 50, height: 20),
+            CGSize(width: 300, height: 200),
+            CGSize(width: 1200, height: 900),
+        ]
+
+        for screen in screens {
+            let zeroNotch = CGRect(x: screen.midX, y: screen.maxY, width: 0, height: 0)
+
+            for natural in naturalSizes {
+                let clamped = NotchViewModel.clampPanelSize(
+                    natural,
+                    maxHeight: screen.height * 0.4,
+                    deviceNotchWidth: 0
+                )
+
+                // 宽度保底 >= 160，上限 <= 640
+                XCTAssertGreaterThanOrEqual(clamped.width, IslandMetrics.minExternalPanelWidth)
+                XCTAssertLessThanOrEqual(clamped.width, NotchViewModel.maxPanelWidth)
+
+                // 高度保底 >= 60，上限 <= screenHeight * 0.4
+                XCTAssertGreaterThanOrEqual(clamped.height, IslandMetrics.minPanelHeight)
+
+                let geo = NotchGeometry(
+                    deviceNotchRect: zeroNotch,
+                    screenRect: screen,
+                    zoneOpenedSize: clamped,
+                    inset: -4
+                )
+
+                let openedRect = geo.notchOpenedRect
+                // 无负宽、无负高
+                XCTAssertGreaterThan(openedRect.width, 0)
+                XCTAssertGreaterThan(openedRect.height, 0)
+
+                // 水平居中且严格落在 screenRect 水平跨度内（屏幕宽于面板时）
+                if screen.width >= clamped.width {
+                    XCTAssertGreaterThanOrEqual(openedRect.minX, screen.minX)
+                    XCTAssertLessThanOrEqual(openedRect.maxX, screen.maxX)
+                }
+
+                // 顶边紧贴屏幕顶
+                XCTAssertEqual(openedRect.maxY, screen.maxY, accuracy: 0.001)
+                XCTAssertEqual(openedRect.minY, screen.maxY - clamped.height, accuracy: 0.001)
+            }
+        }
+    }
+
+    func testGhostStateMachineReopenCancelsOldGenerationClose() {
+        let mocks = MockEventMonitors()
+        let vm = NotchViewModel(events: mocks)
+        vm.screenRect = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        vm.deviceNotchRect = CGRect(x: (1440 - 285) / 2, y: 900 - 46, width: 285, height: 46)
+
+        // 1. 悬停触发虚影态
+        vm.notchOpen(.hover)
+        XCTAssertTrue(vm.hoverGhosting)
+        XCTAssertEqual(vm.status, .closed)
+        XCTAssertEqual(vm.openReason, .hover)
+
+        // 2. 从虚影态点开展开
+        vm.openFromGhost()
+        XCTAssertFalse(vm.hoverGhosting)
+        XCTAssertEqual(vm.status, .opened)
+
+        // 3. 移开触发两段收起：进入 ghostFading
+        vm.closeToGhost()
+        XCTAssertEqual(vm.status, .closed)
+        XCTAssertTrue(vm.ghostFading)
+
+        // 4. 在 280ms 延时收起尚未到达时，用户迅速再次重新点开
+        vm.openFromGhost()
+        XCTAssertEqual(vm.status, .opened)
+        XCTAssertFalse(vm.ghostFading)
+
+        // 5. 等待 350ms（超过旧代际的 280ms 延时清理死线），断言旧代际延迟闭环未把新会话强关
+        let exp = expectation(description: "Wait for old generation async cleanup deadline")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 1.0)
+
+        // 验证：新打开的展开态依然稳固保持，旧代际没有覆盖清除
+        XCTAssertEqual(vm.status, .opened)
+        XCTAssertFalse(vm.hoverGhosting)
+        XCTAssertFalse(vm.ghostFading)
+    }
+
+    func testScheduleHoverCloseCancelsOnReopen() {
+        let mocks = MockEventMonitors()
+        let vm = NotchViewModel(events: mocks)
+        vm.screenRect = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        vm.deviceNotchRect = CGRect(x: (1440 - 285) / 2, y: 900 - 46, width: 285, height: 46)
+
+        vm.notchOpen(.hover)
+        XCTAssertTrue(vm.hoverGhosting)
+
+        // 调度 120ms 延时收拢
+        vm.scheduleHoverClose()
+
+        // 50ms 内用户再次进入并点开
+        let exp1 = expectation(description: "Interim wait")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            vm.openFromGhost()
+            exp1.fulfill()
+        }
+        wait(for: [exp1], timeout: 0.5)
+
+        // 再等待 150ms（总计 200ms > 120ms）
+        let exp2 = expectation(description: "Post close deadline wait")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            exp2.fulfill()
+        }
+        wait(for: [exp2], timeout: 0.5)
+
+        // 验证：scheduleHoverClose 已被 cancel，面板保持打开
+        XCTAssertEqual(vm.status, .opened)
+    }
 }
