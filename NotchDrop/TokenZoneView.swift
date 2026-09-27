@@ -120,9 +120,9 @@ private struct TokenRowView: View {
     @State private var hovering = false
     @State private var flashOpacity: Double = 0
 
-    private let colIdentityW: CGFloat = 145
-    private let colTokensW: CGFloat = 160
-    private let colTimingW: CGFloat = 75
+    private let colIdentityW: CGFloat = 140
+    private let colTokensW: CGFloat = 180
+    private let colTimingW: CGFloat = 70
 
     private var cacheFraction: Double {
         TokenFormatUtils.cacheRateFraction(cached: row.cachedTokens, input: row.inputTokens)
@@ -213,9 +213,8 @@ private struct TokenRowView: View {
                 .foregroundStyle(.tertiary)
             }
             .frame(width: colTokensW)
-            .padding(.horizontal, 10)
 
-            // 3. 右栏：耗时与时间（定宽 75，右对齐）
+            // 3. 右栏：耗时与时间（定宽 70，右对齐）
             VStack(alignment: .trailing, spacing: 2) {
                 HStack(spacing: 4) {
                     Text(String(format: "%.1fs", row.durationSeconds))
