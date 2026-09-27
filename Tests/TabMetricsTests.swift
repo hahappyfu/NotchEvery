@@ -64,4 +64,48 @@ final class TabMetricsTests: XCTestCase {
         let overview = OverviewPageView(vm: NotchViewModel())
         XCTAssertNotNil(overview)
     }
+
+    func testZoneSizeMemoryRestoresFullCGSizeIndependently() {
+        let vm = NotchViewModel(events: MockEventMonitors())
+        vm.deviceNotchRect = CGRect(x: 570, y: 866, width: 300, height: 34)
+
+        // 1. 在 A 区（.normal）测量自然尺寸 400×334
+        vm.contentType = .normal
+        vm.measuredNaturalSize = CGSize(width: 400, height: 334)
+        XCTAssertEqual(vm.measuredNaturalSize, CGSize(width: 400, height: 334))
+        XCTAssertEqual(vm.zoneOpenedSize.height, 334)
+
+        // 2. 切到 B 区（.token），尚未测量时归零，测量后上报 250×120
+        vm.contentType = .token
+        XCTAssertEqual(vm.measuredNaturalSize, .zero, "初次切入未测量的分区应归零")
+        vm.measuredNaturalSize = CGSize(width: 250, height: 120)
+        XCTAssertEqual(vm.measuredNaturalSize, CGSize(width: 250, height: 120))
+        XCTAssertEqual(vm.zoneOpenedSize.height, 120, "低页高度不得被高页污染锁定")
+
+        // 3. 切回 A 区（.normal），必须恢复 400×334，而不是保留 B 区的 120 高度
+        vm.contentType = .normal
+        XCTAssertEqual(vm.measuredNaturalSize, CGSize(width: 400, height: 334), "切回 A 区应恢复 A 区独立记忆的高宽")
+        XCTAssertEqual(vm.zoneOpenedSize.height, 334)
+
+        // 4. 再切回 B 区（.token），必须恢复 250×120，而不是被 A 区的 334 覆盖
+        vm.contentType = .token
+        XCTAssertEqual(vm.measuredNaturalSize, CGSize(width: 250, height: 120), "切回 B 区应恢复 B 区独立记忆的高宽")
+        XCTAssertEqual(vm.zoneOpenedSize.height, 120)
+    }
+
+    func testReopenRestoresCurrentZoneFullSize() {
+        let vm = NotchViewModel(events: MockEventMonitors())
+        vm.deviceNotchRect = CGRect(x: 570, y: 866, width: 300, height: 34)
+        vm.contentType = .normal
+        vm.measuredNaturalSize = CGSize(width: 450, height: 280)
+
+        // 关闭
+        vm.notchClose()
+        XCTAssertEqual(vm.status, .closed)
+
+        // 重新打开（模拟 openFromGhost 或 notchOpen）
+        vm.notchOpen(.click)
+        XCTAssertEqual(vm.status, .opened)
+        XCTAssertEqual(vm.measuredNaturalSize, CGSize(width: 450, height: 280), "重开时应恢复完整高宽记忆")
+    }
 }

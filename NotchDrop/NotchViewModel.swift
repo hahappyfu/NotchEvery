@@ -143,7 +143,7 @@ class NotchViewModel: NSObject, ObservableObject {
     @Published var measuredNaturalSize: CGSize = .zero {
         didSet {
             // 只记有效测量：切换时的归零是占位，不是内容真实尺寸
-            if measuredNaturalSize.width > 0 {
+            if measuredNaturalSize.width > 0 && measuredNaturalSize.height > 0 {
                 lastZoneSize[contentType] = measuredNaturalSize
             }
         }
@@ -199,10 +199,9 @@ class NotchViewModel: NSObject, ObservableObject {
 
     @Published private(set) var status: Status = .closed {
         didSet {
-            // 重开从本区上次宽度起跳（无记忆时回落归零，即旧行为）
+            // 重开恢复本区上次完整尺寸（无记忆时回落归零，等内容测量）
             if status == .opened, oldValue != .opened {
-                let seed = lastZoneSize[contentType]?.width ?? 0
-                measuredNaturalSize = CGSize(width: seed, height: measuredNaturalSize.height)
+                measuredNaturalSize = lastZoneSize[contentType] ?? .zero
             }
             // 过渡期标志：开/关弹簧期间岛体响应 is 变化，稳态后锁定
             if status != oldValue {
@@ -216,9 +215,8 @@ class NotchViewModel: NSObject, ObservableObject {
     @Published var openReason: OpenReason = .unknown
     @Published var contentType: ContentType = .normal {
         didSet {
-            // 切页恢复目标区自己的宽度：各区独立记忆，窄区回来不会被宽区卡住
-            let seed = lastZoneSize[contentType]?.width ?? 0
-            measuredNaturalSize = CGSize(width: seed, height: measuredNaturalSize.height)
+            // 切页恢复目标区自己的完整尺寸：各区独立记忆，宽高都不串
+            measuredNaturalSize = lastZoneSize[contentType] ?? .zero
             if contentType != oldValue {
                 transitionActive = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
