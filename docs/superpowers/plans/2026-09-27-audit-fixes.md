@@ -50,7 +50,7 @@
 - [x] A4 ponytail delete 清单（agent-a4 执行）：8 整文件删除 669 行 + ConfigStore 死 API -101 行 + islandFillet/bridgeSpinning/resetTime（有读者，改用 displayResetTime）/studioPillBadge/configDir/feedVertical + yagni（PreferencesWindow 单 tab/ShareType/withMutation）+ stdlib/shrink + MockEventMonitors 迁 Tests + README 数字修正。**TEST BUILD SUCCEEDED，188 tests 0 failures**
 - [x] 批次 A 提交：a9c83f4（80 文件，+1470/−5642，净删 4172 行）
 - [ ] A5 TrayDrop 僵尸链决策：复活 or 删干净（待用户确认；TrayView 零挂载、load 零调用，牵连 PreferencesWindow 托盘卡、设置保留时长、main.swift:93）
-- [ ] 遗留工单：removeFiles 补删 Config/Previews/<id>.png（B2 发现，一行修复）；testLoadPartialSuccessKeepsSucceeded 补 NSItemProvider mock
+- [x] 遗留工单核销（2026-09-27）：removeFiles 补删预览 PNG 一项随 A5 删除 TrayDrop 整链自动消解（代码零命中、磁盘无 Previews 目录）；testLoadPartialSuccessKeepsSucceeded 随 TrayDropTests 删除消解
 
 ## 批次 B：行为修复（P0，每条改完需构建/真机验证）
 - [x] B1 D-C1 PublishedPersist 解码失败备份（agent-b1：FileStorage.backupCorruptFile，+1 测试）
