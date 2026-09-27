@@ -1,5 +1,7 @@
 # NotchEvery 全项目基线审计汇总报告
 
+> **执行结果（2026-09-27 当日完成）**：批次 A~D + A5 全部执行并合并回 main（dcc2018..8c3d6d1，126 文件 +4,391/−6,621）。16 条 Critical 全修复或随删除消解；Important 大部分修复（数据层 6 项、UI 层 8 项），少数随删除消解；Minor 批量清理。测试 188→206 全绿。用户真机验收通过。剩余遗留工单见 docs/superpowers/plans/2026-09-27-audit-fixes.md（removeFiles 补删预览 PNG 一行修复、NSItemProvider mock 测试）。
+
 > 审计日期：2026-09-27 · 方式：superpowers requesting-code-review 适配的全项目基线审计
 > 范围：NotchDrop/ 78 文件 12,001 行 + Tests/ 30 文件 5,156 行 + docs/（13 ADR、spec、CONTEXT.md）+ 工程配置
 > 分工：5 个审查子智能体并行（数据层 sonnet / UI 层 opus / 窗口事件层 sonnet / 测试 sonnet / 文档一致性 sonnet）+ 协调者工程配置核验
