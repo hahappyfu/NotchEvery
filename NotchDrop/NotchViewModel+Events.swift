@@ -30,7 +30,7 @@ extension NotchViewModel {
                     // 顶栏点击切区已移除（两页只走滑动/分页指示器），这里不再处理
                 case .closed, .popping:
                     // touch inside, open
-                    if deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation) {
+                    if hoverActiveRect.contains(mouseLocation) {
                         notchTimingMark("clickDown")
                         // 虚影态点击 → 展开；否则直接展开
                         if hoverGhosting {
@@ -55,15 +55,15 @@ extension NotchViewModel {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] mouseLocation in
                 guard let self else { return }
-                let aboutToOpen = deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation)
-                if status == .closed, aboutToOpen, !hoverGhosting { notchOpen(.hover) }
-                // 边界防御 A：虚影态期间光标离开热区，300ms 缓冲后清虚影（防幽灵展开）
-                if hoverGhosting, !aboutToOpen {
+                let isHoveringActive = hoverActiveRect.contains(mouseLocation)
+                if status == .closed, isHoveringActive, !hoverGhosting { notchOpen(.hover) }
+                // 边界防御 A：虚影态期间光标离开热区，120ms 缓冲后清虚影（防幽灵展开）
+                if hoverGhosting, !isHoveringActive {
                     scheduleHoverClose()
-                } else if hoverGhosting, aboutToOpen {
+                } else if hoverGhosting, isHoveringActive {
                     cancelHoverClose()
                 }
-                if status == .popping, !aboutToOpen { notchClose() }
+                if status == .popping, !isHoveringActive { notchClose() }
                 // hover 展开态：离开面板区延迟收起，移回取消
                 if status == .opened, openReason == .hover {
                     if notchOpenedRect.contains(mouseLocation) {

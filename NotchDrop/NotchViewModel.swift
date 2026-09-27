@@ -46,6 +46,33 @@ struct NotchGeometry {
     func insetDeviceRect() -> CGRect {
         deviceNotchRect.insetBy(dx: inset, dy: inset)
     }
+
+    /// 悬停 Peek 岛可见矩形（顶部贴刘海顶，宽/高随物理挖槽等比，底边向外扩展覆盖 peekHint）
+    var peekRect: CGRect {
+        let notchSize = (deviceNotchRect.width > 0 && deviceNotchRect.height > 0)
+            ? deviceNotchRect.size
+            : CGSize(width: 285, height: 46)
+        let peekSize = IslandMetrics.peekSize(for: notchSize)
+        let topY = screenRect.height > 0 ? (screenRect.origin.y + screenRect.height) : deviceNotchRect.maxY
+        let centerX = screenRect.width > 0 ? (screenRect.origin.x + screenRect.width / 2) : deviceNotchRect.midX
+        return CGRect(
+            x: centerX - peekSize.width / 2,
+            y: topY - peekSize.height,
+            width: peekSize.width,
+            height: peekSize.height
+        )
+    }
+
+    /// 当前状态下的热区响应矩形（纯函数）：展开态=面板矩形，虚影态=Peek 岛矩形，关闭态=物理挖槽+inset
+    func hoverActiveRect(status: NotchViewModel.Status, hoverGhosting: Bool, ghostFading: Bool = false) -> CGRect {
+        if status == .opened {
+            return notchOpenedRect
+        } else if hoverGhosting || ghostFading {
+            return peekRect
+        } else {
+            return insetDeviceRect()
+        }
+    }
 }
 
 enum SwipeDirection {
@@ -168,6 +195,7 @@ class NotchViewModel: NSObject, ObservableObject {
     }
 
     var notchOpenedRect: CGRect { geometry.notchOpenedRect }
+    var hoverActiveRect: CGRect { geometry.hoverActiveRect(status: status, hoverGhosting: hoverGhosting, ghostFading: ghostFading) }
 
     @Published private(set) var status: Status = .closed {
         didSet {
