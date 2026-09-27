@@ -62,8 +62,7 @@ struct NotchView: View {
                     .padding(.horizontal, IslandMetrics.panelContentInset)
                     // 底部收紧 32→14：消除内层与外壳留白叠加导致的下巴大面积空黑
                     .padding(.bottom, 14)
-                    // 顶部收紧 20→12：安全区之上已垫刘海避让，内层不再 double（02 票）
-                    .padding(.top, 12)
+                    // 顶部避让已由 NotchRootView 按 notchSafeAreaTop 垫齐，外层不再 double（I3）
                     // 面板尺寸 = 内容 + 外壳留白（否则边距被当作挤压余量，内容贴边）
                     .zoneSizeReporter(active: true)
                     .onPreferenceChange(ZoneNaturalSizeKey.self) { [weak vm] size in
