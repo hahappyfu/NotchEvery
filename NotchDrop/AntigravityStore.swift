@@ -155,6 +155,20 @@ public final class AntigravityStore: ObservableObject {
     private let interval: TimeInterval
     private var timer: Timer?
     private var isRefreshing = false
+    /// 用户手动点选账号的意向快照（审计 I1）：selectAccount 成功即记录。3s 轮询的动态检测在
+    /// 意向新鲜期内不再用「最近活跃」覆盖点选，防止点选高亮被轮询弹回；过期或账号消失后回落活跃度推断。
+    public struct AccountIntent: Equatable {
+        public let id: String
+        public let date: Date
+
+        public init(id: String, date: Date) {
+            self.id = id
+            self.date = date
+        }
+    }
+    /// 意向保护窗口：点选后该时长内活跃度推断不得覆盖用户选择。
+    static let accountIntentFreshness: TimeInterval = 600
+    private var accountIntent: AccountIntent?
 
     public init(baseDir: URL = AntigravityStore.baseDirectory, interval: TimeInterval = 3) {
         self.baseDir = baseDir
@@ -181,9 +195,11 @@ public final class AntigravityStore: ObservableObject {
         guard !isRefreshing else { return }
         isRefreshing = true
         let dir = baseDir
+        // 意向只在主线程读写（timer/selectAccount 都在主线程），这里先快照再进后台，避免跨线程访问。
+        let intent = accountIntent
 
         DispatchQueue.global(qos: .utility).async { [weak self] in
-            let (newAccounts, currentId) = Self.loadAccounts(from: dir)
+            let (newAccounts, currentId) = Self.loadAccounts(from: dir, intent: intent)
 
             DispatchQueue.main.async {
                 guard let self = self else { return }
@@ -201,6 +217,7 @@ public final class AntigravityStore: ObservableObject {
     public func selectAccount(id: String) {
         guard currentAccountId != id else { return }
         currentAccountId = id
+        accountIntent = AccountIntent(id: id, date: Date())
         // 乐观更新内存中 isCurrent
         accounts = accounts.map { acc in
             AntigravityAccount(
@@ -224,13 +241,19 @@ public final class AntigravityStore: ObservableObject {
         let dir = baseDir
         DispatchQueue.global(qos: .utility).async {
             let indexFile = dir.appendingPathComponent("accounts.json")
-            guard let data = try? Data(contentsOf: indexFile),
-                  var json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                return
-            }
-            json["current_account_id"] = id
-            if let updatedData = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted]) {
-                try? updatedData.write(to: indexFile, options: .atomic)
+            // 审计 I1：与第三方工具的写入不做跨进程协调，但失败必须留痕——
+            // 静默吞掉会让「重启后回落到旧账号」这类现象完全无从排查。
+            do {
+                let data = try Data(contentsOf: indexFile)
+                guard var json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    antigravityLog.error("selectAccount: accounts.json 不是字典，跳过 current_account_id 写入")
+                    return
+                }
+                json["current_account_id"] = id
+                let updatedData = try JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted])
+                try updatedData.write(to: indexFile, options: .atomic)
+            } catch {
+                antigravityLog.error("selectAccount 写 accounts.json 失败（本次会话内仍由意向保护）: \(error.localizedDescription)")
             }
         }
     }
@@ -299,7 +322,7 @@ public final class AntigravityStore: ObservableObject {
         return results
     }
 
-    public static func loadAccounts(from directory: URL) -> ([AntigravityAccount], String?) {
+    public static func loadAccounts(from directory: URL, intent: AccountIntent? = nil, now: Date = Date()) -> ([AntigravityAccount], String?) {
         let indexFile = directory.appendingPathComponent("accounts.json")
         guard let indexData = try? Data(contentsOf: indexFile),
               let index = parseIndex(data: indexData) else {
@@ -333,10 +356,20 @@ public final class AntigravityStore: ObservableObject {
 
         let dynamicCurrentId: String? = mostRecentAccount?.id ?? index.currentAccountId
 
+        // 审计 I1：用户点选意向保护——新鲜期内且账号仍存在时不被活跃度推断冲掉；
+        // 过期或账号消失后回落动态检测。无点选时 intent 为 nil，行为与旧版完全一致。
+        let effectiveCurrentId: String?
+        if let intent = intent, now.timeIntervalSince(intent.date) < accountIntentFreshness,
+           rawAccounts.contains(where: { $0.id == intent.id }) {
+            effectiveCurrentId = intent.id
+        } else {
+            effectiveCurrentId = dynamicCurrentId
+        }
+
         let finalizedAccounts = rawAccounts.map { acc in
             let emailKey = acc.email.lowercased()
             let actDate = activeTimes[emailKey]
-            let isCurrent = (acc.id == dynamicCurrentId)
+            let isCurrent = (acc.id == effectiveCurrentId)
             // 单账号文件（accounts/<id>.json）是权威来源；索引 accounts.json 里的同名标记可能是历史残留，
             // 只有当单账号文件根本没写这个字段时，才用索引的值兜底（而不是两边 OR）。
             let indexFlags = index.flags[acc.id] ?? AntigravityIndex.AccountFlags()
@@ -359,7 +392,7 @@ public final class AntigravityStore: ObservableObject {
             )
         }
 
-        return (finalizedAccounts, dynamicCurrentId)
+        return (finalizedAccounts, effectiveCurrentId)
     }
 
     public static func parseIndex(data: Data) -> AntigravityIndex? {

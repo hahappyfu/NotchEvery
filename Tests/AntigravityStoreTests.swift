@@ -632,4 +632,73 @@ final class AntigravityStoreTests: XCTestCase {
         XCTAssertFalse(arranged.contains(where: { $0.account.id == "acc-disabled" }))
         XCTAssertEqual(arranged.first(where: { $0.logicalDistance == 0 })?.account.id, "acc-ok-2")
     }
+
+    // MARK: - 审计 I1：点选意向保护
+
+    /// fixture：两个账号，acc-1（user1）活跃时间更新（2000 > 1000），即「活跃度推断会选 acc-1」，
+    /// 用来模拟「用户点了 acc-2 但轮询按活跃度算回 acc-1」的冲突场景。
+    private func makeIntentFixture() throws -> URL {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir.appendingPathComponent("accounts"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let indexJSON = """
+        {"current_account_id": "acc-1", "accounts": [{"id": "acc-1"}, {"id": "acc-2"}]}
+        """
+        try indexJSON.data(using: .utf8)!.write(to: tempDir.appendingPathComponent("accounts.json"))
+
+        try """
+        {"id": "acc-1", "email": "user1@example.com", "name": "User 1", "disabled": false}
+        """.write(to: tempDir.appendingPathComponent("accounts/acc-1.json"), atomically: true, encoding: .utf8)
+        try """
+        {"id": "acc-2", "email": "user2@example.com", "name": "User 2", "disabled": false}
+        """.write(to: tempDir.appendingPathComponent("accounts/acc-2.json"), atomically: true, encoding: .utf8)
+
+        // user1 活跃时间更新 → 无意向时活跃度推断应选 acc-1
+        let dbURL = tempDir.appendingPathComponent("token_stats.db")
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(dbURL.path, &db), SQLITE_OK)
+        let sql = """
+        CREATE TABLE token_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp INTEGER NOT NULL,
+            account_email TEXT NOT NULL,
+            model TEXT NOT NULL,
+            total_tokens INTEGER NOT NULL
+        );
+        INSERT INTO token_usage (timestamp, account_email, model, total_tokens) VALUES (2000, 'user1@example.com', 'model-a', 100);
+        INSERT INTO token_usage (timestamp, account_email, model, total_tokens) VALUES (1000, 'user2@example.com', 'model-b', 200);
+        """
+        XCTAssertEqual(sqlite3_exec(db, sql, nil, nil, nil), SQLITE_OK)
+        sqlite3_close(db)
+        return tempDir
+    }
+
+    /// 用户点选 acc-2 后、即使 acc-1 活跃度更新，10 分钟意向窗口内轮询刷新不得把 current 弹回 acc-1。
+    func testIntentProtectsSelectionAgainstActivityInference() throws {
+        let tempDir = try makeIntentFixture()
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        let now = Date(timeIntervalSince1970: 1_000_000)
+
+        // 前置：无意向时活跃度推断选 acc-1（红线：无点选行为不变）
+        let (noIntentAccounts, noIntentId) = AntigravityStore.loadAccounts(from: tempDir, now: now)
+        XCTAssertEqual(noIntentId, "acc-1")
+
+        // 点选 acc-2（活跃度低于 acc-1）→ 意向新鲜期内 current 仍为 acc-2
+        let intent = AntigravityStore.AccountIntent(id: "acc-2", date: now)
+        let (accounts, currentId) = AntigravityStore.loadAccounts(from: tempDir, intent: intent, now: now.addingTimeInterval(5))
+        XCTAssertEqual(currentId, "acc-2", "意向新鲜期内不得被活跃度推断冲掉")
+        XCTAssertEqual(accounts.first(where: { $0.id == "acc-2" })?.isCurrent, true, "isCurrent 标记须与意向一致")
+        XCTAssertEqual(accounts.first(where: { $0.id == "acc-1" })?.isCurrent, false)
+
+        // 意向过期（> 600s）→ 回落活跃度推断
+        let (_, expiredId) = AntigravityStore.loadAccounts(
+            from: tempDir, intent: intent, now: now.addingTimeInterval(AntigravityStore.accountIntentFreshness + 1))
+        XCTAssertEqual(expiredId, "acc-1", "意向过期后应回到活跃度推断")
+
+        // 意向账号已消失 → 回落活跃度推断
+        let (_, vanishedId) = AntigravityStore.loadAccounts(
+            from: tempDir, intent: AntigravityStore.AccountIntent(id: "acc-9", date: now), now: now.addingTimeInterval(5))
+        XCTAssertEqual(vanishedId, "acc-1")
+    }
 }
