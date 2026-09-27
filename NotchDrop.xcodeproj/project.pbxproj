@@ -92,11 +92,13 @@
 		F101CE000000000000000009 /* ConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000000A /* ConfigStore.swift */; };
 		F101CE000000000000000015 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000016 /* Log.swift */; };
 		F101CE00000000000000002B /* ConfigStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000002C /* ConfigStoreTests.swift */; };
+		F101CE0000000000000000A1 /* PublishedPersistCorruptBackupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE0000000000000000A2 /* PublishedPersistCorruptBackupTests.swift */; };
 		F101CE000000000000000090 /* MockEventMonitors.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000091 /* MockEventMonitors.swift */; };
 		F101CE000000000000000055 /* DesignSystemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000054 /* DesignSystemTests.swift */; };
 		7B01000120260CD00000000A /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000009 /* DesignSystem.swift */; };
 		F101CE000000000000000057 /* SmoothNotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000056 /* SmoothNotchShape.swift */; };
 		F101CE00000000000000005A /* TokenFormatUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000059 /* TokenFormatUtilsTests.swift */; };
+		F101CE000000000000000095 /* SmoothNotchShapeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000096 /* SmoothNotchShapeTests.swift */; };
 		F101CE00000000000000005C /* TokenFormatUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000005B /* TokenFormatUtils.swift */; };
 		F101CE000000000000000080 /* UnfairLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000081 /* UnfairLock.swift */; };
 /* End PBXBuildFile section */
@@ -193,11 +195,13 @@
 		F101CE00000000000000000A /* ConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStore.swift; sourceTree = "<group>"; };
 		F101CE000000000000000016 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		F101CE00000000000000002C /* ConfigStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStoreTests.swift; sourceTree = "<group>"; };
+		F101CE0000000000000000A2 /* PublishedPersistCorruptBackupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublishedPersistCorruptBackupTests.swift; sourceTree = "<group>"; };
 		F101CE000000000000000091 /* MockEventMonitors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockEventMonitors.swift; sourceTree = "<group>"; };
 		F101CE000000000000000054 /* DesignSystemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystemTests.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000009 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		F101CE000000000000000056 /* SmoothNotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothNotchShape.swift; sourceTree = "<group>"; };
 		F101CE000000000000000059 /* TokenFormatUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenFormatUtilsTests.swift; sourceTree = "<group>"; };
+		F101CE000000000000000096 /* SmoothNotchShapeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothNotchShapeTests.swift; sourceTree = "<group>"; };
 		F101CE00000000000000005B /* TokenFormatUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenFormatUtils.swift; sourceTree = "<group>"; };
 		F101CE000000000000000081 /* UnfairLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnfairLock.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -339,8 +343,10 @@
 				7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */,
 				7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */,
 				F101CE00000000000000002C /* ConfigStoreTests.swift */,
+				F101CE0000000000000000A2 /* PublishedPersistCorruptBackupTests.swift */,
 				F101CE000000000000000054 /* DesignSystemTests.swift */,
 				F101CE000000000000000059 /* TokenFormatUtilsTests.swift */,
+				F101CE000000000000000096 /* SmoothNotchShapeTests.swift */,
 				F101CE000000000000000091 /* MockEventMonitors.swift */,
 			);
 			path = Tests;
@@ -582,8 +588,10 @@
 				7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */,
 				F101CE00000000000000002B /* ConfigStoreTests.swift in Sources */,
+				F101CE0000000000000000A1 /* PublishedPersistCorruptBackupTests.swift in Sources */,
 				F101CE000000000000000055 /* DesignSystemTests.swift in Sources */,
 				F101CE00000000000000005A /* TokenFormatUtilsTests.swift in Sources */,
+				F101CE000000000000000095 /* SmoothNotchShapeTests.swift in Sources */,
 				F101CE000000000000000090 /* MockEventMonitors.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

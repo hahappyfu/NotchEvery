@@ -51,6 +51,13 @@ class FileStorage: PersistProvider {
         }
     }
 
+    /// 解码失败时把坏文件备份为 <原名>.corrupt.<时间戳>（时间戳格式对齐 ConfigStore），供用户手工找回
+    func backupCorruptFile(forKey key: String) {
+        let path = pathForKey(key)
+        let backupPath = path.path + ".corrupt.\(Int(Date().timeIntervalSince1970))"
+        try? fm.copyItem(atPath: path.path, toPath: backupPath)
+    }
+
     func set(_ data: Data?, forKey key: String) {
         guard let data else { return }
         let path = pathForKey(key)
@@ -80,6 +87,8 @@ struct Persist<Value: Codable & Equatable> {
                 subject = CurrentValueSubject<Value, Never>(object)
             } catch {
                 storeLog.error("decode \(key) failed: \(error.localizedDescription), fallback to default")
+                // 审计 D-C1：sink 随后会用默认值原地覆盖坏文件，先备份原内容再回落默认
+                (engine as? FileStorage)?.backupCorruptFile(forKey: key)
                 subject = CurrentValueSubject<Value, Never>(defaultValue)
             }
         } else {

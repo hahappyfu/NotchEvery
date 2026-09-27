@@ -145,6 +145,8 @@ class TrayDrop: ObservableObject {
         var inEdit = items
         let shouldCleanItems = items.filter(\.shouldClean)
         for item in shouldCleanItems {
+            // 过期条目连同磁盘文件一起删除（W-C2：此前只移出集合，文件永久滞留）
+            removeFiles(of: item)
             inEdit.remove(item)
         }
         items = inEdit

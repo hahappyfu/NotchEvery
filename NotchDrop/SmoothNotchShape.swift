@@ -38,15 +38,35 @@ public struct SmoothNotchShape: Shape {
     }
 
     public func path(in rect: CGRect) -> Path {
-        guard rect.width > 0, rect.height > 0 else {
+        guard rect.size.width > 0, rect.size.height > 0 else {
             return Path()
         }
 
         let k: CGFloat = 0.5522847498
         let earW = min(max(0, cornerRadius), rect.width / 2)
-        let blendH = min(max(0, filletBlend), rect.height)
-        let maxBottomRadius = min(rect.height, (rect.width - 2 * earW) / 2)
-        let bRadius = max(0, min(bottomRadius, maxBottomRadius))
+        let maxBottomRadiusH = max(0, (rect.width - 2 * earW) / 2)
+        var bRadius = max(0, min(bottomRadius, maxBottomRadiusH))
+        var blendH = earW > 0 ? max(0, filletBlend) : 0
+
+        // 审计 U-C1：当 rect.height < blendH + bRadius 时，Step 2 终点 (minY + blendH)
+        // 会低于 Step 3 起点/终点 (maxY - bRadius)，导致侧边路径反向倒退自交，破坏 GPU 填充与缠绕规则。
+        // 常见于展开动画中间帧、面板最小保底高度 (minPanelHeight = 60pt < 64 + 26 = 90pt)、收起态 (28pt) 等场景。
+        // 修复策略（视觉稳定优先）：在可用高度不足容纳 blendH + bRadius 时，将两者按比例等比压缩，
+        // 既保持曲率形状协调与动画平滑连续，又确保 rect.maxY - bRadius >= rect.minY + blendH，消除路径自交；
+        // 正常大高度下（如展开态 filletBlend=64, bottomRadius=26，总高 >= 90pt）两者数值完全不变（原值无漂移）。
+        let totalH = blendH + bRadius
+        if totalH > rect.height {
+            if totalH > 0 {
+                let scale = rect.height / totalH
+                blendH *= scale
+                bRadius *= scale
+                // 浮点精度保护，确保 maxY - bRadius >= minY + blendH 绝对成立（下行直线位移 >= 0）
+                blendH = min(blendH, max(0, rect.height - bRadius))
+            } else {
+                blendH = 0
+                bRadius = 0
+            }
+        }
 
         let mainLeft = rect.minX + earW
         let mainRight = rect.maxX - earW

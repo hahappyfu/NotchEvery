@@ -47,7 +47,8 @@
 - [x] A1 剪贴板链：删 ClipboardZoneView/ClipboardMonitor/ClipboardStore/ClipboardPaster + pbxproj 引用 + Tests 3 文件 + 设置项；baseZoneOrder 四页→三页、NotchRootView 四 case→三 case、ContentType.clipboard 删；ConfigStore 剪贴板 key 清（pbxproj 结构已用 xcodebuild -list 验证）
 - [x] A2 FUnlock：删十件套 + lowlevel.c/h + Bridging-Header + pbxproj 引用（-36 行）+ Info.plist 蓝牙/AppleEvents 描述 + entitlements apple-events + 相关 Tests 5 文件；ADR-0011/0012 加 Superseded、README 清理；UnfairLock 迁新文件保活（QoderPoolQuotaProber/QoderCampaignClaimer 引用未断）。新增 UnfairLock.swift，共删 18 文件（agent-a2 执行，四项验证全过）
 - [x] A3 cc-switch：UsageStore 579→301 行（删 CCSwitchUsageStore 235 行/activeSource/.ccSwitch 分支/init(dbPath:)/死门面/savedUSD）；UsageStoreTests 整删（12 用例全为 cc-switch 门面测试）；AntigravityProxyStoreTests 删 1 用例保 4；ADR-0005 修订注记（agent-a3 执行）。**审计修正**：ponytail 报的「AntigravityProxyStore prod 零引用」是误报——UsageStore.refresh() 的 antigravityTools 活跃路径直接调用它，是唯一数据路径，已按任务预案保留
-- [ ] A4 ponytail delete 清单：appleDeviceNames/TimingLog/DebugLog/NotchSettingsView/PermissionGuide/Glass/RingBuffer/SpinnerView/AntigravityProxyStore/ConfigStore 死 API/savedUSD/islandFillet/bridgeSpinning/resetTime/studioPillBadge/configDir + 相关 Tests；MockEventMonitors 迁 Tests target
+- [x] A4 ponytail delete 清单（agent-a4 执行）：8 整文件删除 669 行 + ConfigStore 死 API -101 行 + islandFillet/bridgeSpinning/resetTime（有读者，改用 displayResetTime）/studioPillBadge/configDir/feedVertical + yagni（PreferencesWindow 单 tab/ShareType/withMutation）+ stdlib/shrink + MockEventMonitors 迁 Tests + README 数字修正。**TEST BUILD SUCCEEDED，188 tests 0 failures**
+- [x] 批次 A 提交：a9c83f4（80 文件，+1470/−5642，净删 4172 行）
 - [ ] A5 TrayDrop 僵尸链决策：复活 or 删干净（待用户确认，倾向删；牵连 PreferencesWindow 托盘卡、设置保留时长、main.swift:93）
 
 ## 批次 B：行为修复（P0，每条改完需构建/真机验证）
