@@ -401,6 +401,17 @@ class NotchViewModel: NSObject, ObservableObject {
         }
     }
 
+    /// 方向键切区：右键切下一区（next），左键切上一区（previous）
+    func handleArrowKey(_ direction: ArrowDirection) {
+        markSwipeHintSeen()
+        switch direction {
+        case .rightForward:
+            nextZone()
+        case .leftBackward:
+            previousZone()
+        }
+    }
+
     /// 首次滑动提示是否已展示过：持久化，只打扰一次
     @PublishedPersist(key: "hasSeenSwipeHint", defaultValue: false)
     var hasSeenSwipeHint: Bool

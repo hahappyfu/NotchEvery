@@ -113,12 +113,13 @@ struct NotchView: View {
                 }
                 vm.markSwipeHintSeen()
             }
-            .onReceive(vm.events.arrowKey) { _ in
+            .onReceive(vm.events.arrowKey) { direction in
                 guard vm.status == .opened else { return }
                 guard NSApp.keyWindow is NotchWindow else { return }
                 guard vm.notchOpenedRect.contains(NSEvent.mouseLocation) else { return }
                 guard !dropTargeting else { return }
-                vm.markSwipeHintSeen()
+                GearHapticFeedback.shared.triggerPageDetent()
+                vm.handleArrowKey(direction)
             }
             // 入场：从顶部锚点放大淡入（旧实现叠了 offset(-h/2)，内容从上方 191pt 处滑入，
             // 视觉上「顶部探过头、没吸住屏顶」，2026-09-11 用户反馈后撤掉）

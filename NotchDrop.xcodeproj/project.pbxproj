@@ -81,6 +81,7 @@
 		C1D2E3F4A506172839404303 /* IslandMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404302 /* IslandMetrics.swift */; };
 		7AE10C0220260AB000000D1 /* AppPathsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C1 /* AppPathsTests.swift */; };
 		7AE10C0220260AB000000D2 /* ContentZoneSwitcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */; };
+		7AE10C0220260AB000000DA1 /* ArrowKeyZoneSwitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000CA1 /* ArrowKeyZoneSwitchTests.swift */; };
 		7AE10C0220260AB000000D3 /* AntigravityStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C3 /* AntigravityStoreTests.swift */; };
 		7AE10C0220260AB000000D4 /* ScrollSwipeResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */; };
 		7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C5 /* TabMetricsTests.swift */; };
@@ -180,6 +181,7 @@
 		7AE10C0220260AB000000C1 /* AppPathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPathsTests.swift; sourceTree = "<group>"; };
 			7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetricsTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentZoneSwitcherTests.swift; sourceTree = "<group>"; };
+		7AE10C0220260AB000000CA1 /* ArrowKeyZoneSwitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrowKeyZoneSwitchTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C3 /* AntigravityStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityStoreTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSwipeResolverTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C5 /* TabMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabMetricsTests.swift; sourceTree = "<group>"; };
@@ -328,6 +330,7 @@
 				7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */,
 				7AE10C0220260AB000000C1 /* AppPathsTests.swift */,
 				7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */,
+				7AE10C0220260AB000000CA1 /* ArrowKeyZoneSwitchTests.swift */,
 				7AE10C0220260AB000000C3 /* AntigravityStoreTests.swift */,
 				7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */,
 				7AE10C0220260AB000000C5 /* TabMetricsTests.swift */,
@@ -570,6 +573,7 @@
 				7AE10C0220260AB0000000E2 /* AnimationMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D1 /* AppPathsTests.swift in Sources */,
 				7AE10C0220260AB000000D2 /* ContentZoneSwitcherTests.swift in Sources */,
+				7AE10C0220260AB000000DA1 /* ArrowKeyZoneSwitchTests.swift in Sources */,
 				7AE10C0220260AB000000D3 /* AntigravityStoreTests.swift in Sources */,
 				7AE10C0220260AB000000D4 /* ScrollSwipeResolverTests.swift in Sources */,
 				7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */,
