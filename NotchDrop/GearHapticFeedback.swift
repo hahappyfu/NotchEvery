@@ -23,17 +23,8 @@ public final class GearHapticFeedback {
         }
     }
 
-    /// 触发系统触觉反馈，确保 Window 处于 Key 状态以唤醒 Force Touch 硬件执行器
+    /// 触发系统触觉反馈（NSHapticFeedbackManager 不依赖 Window Key 状态，杜绝触发触觉时抢夺前台焦点）
     private func triggerHaptic(pattern: NSHapticFeedbackManager.FeedbackPattern) {
-        ensureWindowActive()
         NSHapticFeedbackManager.defaultPerformer.perform(pattern, performanceTime: .now)
-    }
-
-    private func ensureWindowActive() {
-        if let notchWin = NSApp.windows.first(where: { $0 is NotchWindow }) {
-            if !notchWin.isKeyWindow {
-                notchWin.makeKey()
-            }
-        }
     }
 }

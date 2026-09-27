@@ -306,9 +306,11 @@ class NotchViewModel: NSObject, ObservableObject {
             ghostFading = false
             status = .opened
         }
-        notchTimingMark("preActivate")
-        NSApp.activate(ignoringOtherApps: true)
-        notchTimingMark("postActivate")
+        if openReason != .drag {
+            notchTimingMark("preActivate")
+            NSApp.activate(ignoringOtherApps: true)
+            notchTimingMark("postActivate")
+        }
     }
 
     /// 两段收起：先缩回虚影尺寸，再连贯平滑清态回刘海（消灭 200ms 半空生硬掐断）
@@ -356,7 +358,9 @@ class NotchViewModel: NSObject, ObservableObject {
                 hoverGhosting = false
                 status = .opened
             }
-            NSApp.activate(ignoringOtherApps: true)
+            if reason != .drag {
+                NSApp.activate(ignoringOtherApps: true)
+            }
         }
     }
 
