@@ -49,6 +49,19 @@ final class QoderGatewayManagerTests: XCTestCase {
         XCTAssertFalse(sm.requestStart())
     }
 
+    /// 审计 I4：starting 态（20s 健康轮询窗口内）必须可取消——requestStop 放行 starting，
+    /// 经 stopping 由 markStopped 归位；停止后不能再停，也不能直接重新 start。
+    func testRequestStopFromStartingCancelsPendingStartup() {
+        var sm = GatewayStateMachine()
+        XCTAssertTrue(sm.requestStart())      // stopped -> starting
+        XCTAssertTrue(sm.requestStop(), "starting 的健康轮询窗口内用户必须能取消")
+        XCTAssertEqual(sm.state, .stopping)
+        XCTAssertTrue(sm.markStopped())       // stopping -> stopped（spawn 前取消即归位；已出进程走 terminationHandler 同款收尾）
+        XCTAssertEqual(sm.state, .stopped)
+        XCTAssertFalse(sm.requestStop(), "已 stopped 后再 stop 非法")
+        XCTAssertFalse(sm.markRunning(), "已 stopped 后不能直接 markRunning")
+    }
+
     // MARK: - 陈旧 PID 过滤：只认「可执行路径 == bundle 内网关路径」的 pid
 
     func testFilterPidsKeepsOnlyMatchingBinaryPath() {

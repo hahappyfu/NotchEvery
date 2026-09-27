@@ -39,8 +39,12 @@ struct GatewayStateMachine {
         state = .running; return true
     }
     mutating func requestStop() -> Bool {
-        guard case .running = state else { return false }
-        state = .stopping; return true
+        // 审计 I4：starting 也允许停——20s 健康轮询窗口内用户可取消，先转 stopping，
+        // 让 stop() / terminationHandler 走同一条正常终止链收尾成 stopped。
+        switch state {
+        case .running, .starting: state = .stopping; return true
+        default: return false
+        }
     }
     mutating func markStopped() -> Bool {
         guard case .stopping = state else { return false }
@@ -88,10 +92,13 @@ final class QoderGatewayManager: ObservableObject {
     var port: Int { Self.configuredPort }
 
     /// App 退出钩子：优雅停掉托管的网关进程（AppDelegate.applicationWillTerminate 调）。
+    /// 审计 I4：starting 态同样走 stop()——20s 启动窗口内也要能终止进程，不能只关 stdin。
     @MainActor
     func applicationWillTerminate() {
-        if case .running = sm.state { stop() }
-        else { stdinWriteEnd?.closeFile(); stdinWriteEnd = nil }
+        switch sm.state {
+        case .running, .starting: stop()
+        default: stdinWriteEnd?.closeFile(); stdinWriteEnd = nil
+        }
     }
 
     private var sm = GatewayStateMachine()
@@ -202,7 +209,11 @@ final class QoderGatewayManager: ObservableObject {
         }
     }
 
+    /// spawn + 看门狗 + 健康轮询。**只能在主队列调用**（start() 的后台探测完成后 dispatch 回主线程）：
+    /// 审计 I4 把 process/stdinWriteEnd/状态转移全部收敛到主线程读写，后台线程只做 spawn 前探测
+    /// 与无共享状态的健康轮询。后台探测期间状态可能已被 stop()/failCrash 改写，spawn 前重验。
     private func spawnAndWatch() {
+        guard case .starting = sm.state else { return }
         let binPath = Self.embeddedBinaryPath
         guard fm.isExecutableFile(atPath: binPath) else {
             failCrash("内嵌网关二进制缺失: \(binPath)")
@@ -250,28 +261,33 @@ final class QoderGatewayManager: ObservableObject {
         }
         process = p
 
-        // 健康轮询：在当前 utility 后台线程中每 250ms 探活，20s 超时（不依赖 RunLoop，给上游预热留足时间）
-        let deadline = Date().addingTimeInterval(20)
-        var started = false
-        while Date() < deadline {
-            if Self.isPortOpen(host: "127.0.0.1", port: UInt16(self.port), timeoutMS: 200) {
-                started = true
-                break
+        // 健康轮询：只读本地端口，不碰主线程状态，放 utility 后台线程轮询（不依赖 RunLoop）；
+        // 结果 dispatch 回主线程收尾——状态转移与 process 终止都只发生在主线程。
+        let port = self.port
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let deadline = Date().addingTimeInterval(20)
+            var started = false
+            while Date() < deadline {
+                if Self.isPortOpen(host: "127.0.0.1", port: UInt16(port), timeoutMS: 200) {
+                    started = true
+                    break
+                }
+                usleep(250_000)
             }
-            usleep(250_000)
-        }
-
-        if started {
-            DispatchQueue.main.async {
-                _ = self.sm.markRunning()
-                self.publishState()
-                gwLog.info("gateway running on :\(self.port) pid=\(p.processIdentifier)")
-                // 启动成功立即触发一次数据层刷新，避免用户干等 15s 轮询周期
-                QoderStore.shared.refresh(logURL: self.gatewayLogURL)
+            DispatchQueue.main.async { [weak self] in
+                // 轮询窗口内可能已被 stop（starting 可取消）或启动即退出（crashed）收尾，不再重复处理
+                guard let self, case .starting = self.sm.state else { return }
+                if started {
+                    _ = self.sm.markRunning()
+                    self.publishState()
+                    gwLog.info("gateway running on :\(self.port) pid=\(p.processIdentifier)")
+                    // 启动成功立即触发一次数据层刷新，避免用户干等 15s 轮询周期
+                    QoderStore.shared.refresh(logURL: self.gatewayLogURL)
+                } else {
+                    self.terminate(process: p)
+                    self.failCrash("启动超时（20s 未监听 \(self.port)）")
+                }
             }
-        } else {
-            self.terminate(process: p)
-            self.failCrash("启动超时（20s 未监听 \(self.port)）")
         }
     }
 
@@ -406,6 +422,12 @@ final class QoderGatewayManager: ObservableObject {
 
     private func failCrash(_ reason: String) {
         DispatchQueue.main.async {
+            // starting 可取消后，后台探测的失败上报可能在用户主动停止之后才到：
+            // stopping/stopped 已是用户决策结果，不得覆盖成 crashed。
+            switch self.sm.state {
+            case .stopping, .stopped: return
+            default: break
+            }
             _ = self.sm.markCrashed(reason); self.publishState()
             gwLog.error("gateway crashed: \(reason)")
         }
