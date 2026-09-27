@@ -74,8 +74,6 @@ public struct AntigravityAccount: Identifiable, Equatable {
 
     /// 向后兼容：旧属性现跟随当前展示档位（等价 displayPercentage）。
     public var percentage: Int { displayPercentage }
-    /// 向后兼容：旧属性现跟随当前展示档位（等价 displayResetTime）。
-    public var resetTime: Date? { displayResetTime }
 
     public init(
         id: String,

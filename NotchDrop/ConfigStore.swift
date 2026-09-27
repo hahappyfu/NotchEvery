@@ -13,7 +13,6 @@ final class ConfigStore {
     static let suiteName = "com.hahappyfu.NotchEvery.guard"
     /// 旧域名：只在一次性迁移时读取，迁移后不再碰。
     static let legacySuiteName = "com.fuhahah.Funlock.config"
-    private static let didMigrateKey = "didMigrate"
     private static let didMigrateFromLegacyKey = "didMigrateFromLegacy"
 
     /// 实际被代码读取、需要从旧域带过来的 key（逐项核对过，无摆设）。
@@ -51,11 +50,6 @@ final class ConfigStore {
         if suiteName == Self.suiteName {
             migrateFromLegacyIfNeeded(keys: Self.migratedKeys)
         }
-    }
-
-    /// 兼容旧构造器（通过 suiteName 初始化）
-    convenience init(suiteName: String) {
-        self.init(configFile: nil, suiteName: suiteName)
     }
 
     // MARK: - JSON 文件持久化与加载
@@ -135,25 +129,6 @@ final class ConfigStore {
 
     // MARK: - 迁移
 
-    /// 一次性迁移：把旧 standard 的指定 key 搬到 JSON 存储和 suite。
-    /// - Parameter keys: 需要迁移的业务 key 清单（不含系统 key）。
-    func migrateIfNeeded(fromKeys keys: [String]) {
-        guard !defaults.bool(forKey: ConfigStore.didMigrateKey) else { return }
-        let standard = UserDefaults.standard
-        standard.synchronize()
-
-        lock.lock()
-        for key in keys {
-            if let value = standard.object(forKey: key) {
-                cache[key] = value
-                defaults.set(value, forKey: key)
-            }
-        }
-        defaults.set(true, forKey: ConfigStore.didMigrateKey)
-        saveToDiskLocked()
-        lock.unlock()
-    }
-
     /// 一次性从 FUnlock 旧 suite（com.fuhahah.Funlock.config）把指定 key 搬到新域。
     func migrateFromLegacyIfNeeded(keys: [String]) {
         migrateFromLegacyIfNeeded(keys: keys, fromLegacySuite: Self.legacySuiteName)
@@ -210,88 +185,12 @@ final class ConfigStore {
         return (defaults.object(forKey: key) as? Bool) ?? fallback
     }
 
-    func get(_ key: String, fallback: String) -> String {
-        lock.lock()
-        defer { lock.unlock() }
-        if let str = cache[key] as? String {
-            return str
-        }
-        return (defaults.object(forKey: key) as? String) ?? fallback
-    }
-
-    func getData(_ key: String) -> Data? {
-        lock.lock()
-        defer { lock.unlock() }
-        if let base64Str = cache[key] as? String {
-            return Data(base64Encoded: base64Str)
-        }
-        return defaults.data(forKey: key)
-    }
-
     func set(_ value: Int, forKey key: String) {
         lock.lock()
         cache[key] = value
         defaults.set(value, forKey: key)
         saveToDiskLocked()
         lock.unlock()
-    }
-
-    func set(_ value: Bool, forKey key: String) {
-        lock.lock()
-        cache[key] = value
-        defaults.set(value, forKey: key)
-        saveToDiskLocked()
-        lock.unlock()
-    }
-
-    func set(_ value: String, forKey key: String) {
-        lock.lock()
-        cache[key] = value
-        defaults.set(value, forKey: key)
-        saveToDiskLocked()
-        lock.unlock()
-    }
-
-    func set(_ value: Data, forKey key: String) {
-        lock.lock()
-        cache[key] = value.base64EncodedString()
-        defaults.set(value, forKey: key)
-        saveToDiskLocked()
-        lock.unlock()
-    }
-
-    func removeObject(forKey key: String) {
-        lock.lock()
-        cache.removeValue(forKey: key)
-        defaults.removeObject(forKey: key)
-        saveToDiskLocked()
-        lock.unlock()
-    }
-
-    func object(forKey key: String) -> Any? {
-        lock.lock()
-        defer { lock.unlock() }
-        return cache[key] ?? defaults.object(forKey: key)
-    }
-
-    func bool(forKey key: String) -> Bool {
-        get(key, fallback: false)
-    }
-
-    func string(forKey key: String) -> String? {
-        lock.lock()
-        defer { lock.unlock() }
-        if let str = cache[key] as? String {
-            return str
-        }
-        if let num = cache[key] as? NSNumber {
-            return num.stringValue
-        }
-        return defaults.string(forKey: key)
-    }
-
-    func data(forKey key: String) -> Data? {
-        getData(key)
     }
 }
 

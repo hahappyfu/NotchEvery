@@ -108,7 +108,7 @@ final class AntigravityStoreTests: XCTestCase {
         XCTAssertTrue(account.isCurrent)
         XCTAssertFalse(account.isDisabled)
         XCTAssertEqual(account.percentage, 85)
-        XCTAssertNotNil(account.resetTime)
+        XCTAssertNotNil(account.displayResetTime)
     }
 
     func testParseAccountDualTierQuotas() throws {

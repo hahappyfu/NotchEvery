@@ -305,13 +305,7 @@ struct QoderPoolRingView: View {
     }
 
     private func rotationAngle(for distance: Int) -> Double {
-        switch distance {
-        case -2: return 22.0
-        case -1: return 12.0
-        case 1: return -12.0
-        case 2: return -22.0
-        default: return distance < 0 ? 22.0 : (distance > 0 ? -22.0 : 0.0)
-        }
+        distance == 0 ? 0 : (abs(distance) == 1 ? 12.0 : 22.0) * (distance < 0 ? 1 : -1)
     }
 
     /// 环下方余额小字：显示该号剩余额度（Int 取整，与顶部卡口径一致）。

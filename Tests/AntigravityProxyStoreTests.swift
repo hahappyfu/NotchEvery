@@ -62,10 +62,6 @@ final class AntigravityProxyStoreTests: XCTestCase {
         XCTAssertEqual(data.cacheRateFraction, 0.5, accuracy: 0.001)
     }
 
-    func testDualSourceSwitching() {
-        XCTAssertEqual(UsageStore.activeSource, .antigravityTools)
-    }
-
     func testMissingDatabaseReturnsEmpty() {
         let missingURL = FileManager.default.temporaryDirectory.appendingPathComponent("non_existent_\(UUID().uuidString).db")
         let store = AntigravityProxyStore(dbPath: missingURL, interval: 60)

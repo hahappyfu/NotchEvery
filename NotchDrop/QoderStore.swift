@@ -412,7 +412,7 @@ final class QoderStore: ObservableObject {
         publishIfChanged(\.quota, nil)
         publishIfChanged(\.poolMembers, [])
         publishIfChanged(\.poolStatusStickyId, nil)
-        withMutation { isQuotaStale = false }
+        isQuotaStale = false
     }
 
     func refresh(logURL: URL?) {
@@ -464,10 +464,10 @@ final class QoderStore: ObservableObject {
             let pool = QoderPoolStatus.decode(pData)
             publishIfChanged(\.poolMembers, pool?.accounts ?? [])
             publishIfChanged(\.poolStatusStickyId, pool?.stickyUserId)
-            if isQuotaStale { withMutation { isQuotaStale = false } }
+            if isQuotaStale { isQuotaStale = false }
         } catch {
             consecutiveFailures += 1
-            if consecutiveFailures >= 2 && !isQuotaStale { withMutation { isQuotaStale = true } }
+            if consecutiveFailures >= 2 && !isQuotaStale { isQuotaStale = true }
             storeLog.debug("fetch failed (\(self.consecutiveFailures)): \(error.localizedDescription)")
         }
     }
@@ -493,8 +493,6 @@ final class QoderStore: ObservableObject {
     }
 
     // MARK: 值级去重发布
-
-    private func withMutation(_ body: () -> Void) { body() }
 
     private func publishIfChanged<T: Equatable>(_ keyPath: ReferenceWritableKeyPath<QoderStore, T>, _ newValue: T) {
         if self[keyPath: keyPath] != newValue {

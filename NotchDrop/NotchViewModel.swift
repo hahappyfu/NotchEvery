@@ -153,7 +153,6 @@ class NotchViewModel: NSObject, ObservableObject {
 
     enum ContentType: Int, Codable, Hashable, Equatable {
         case normal
-        case clipboard
         case token
         case gateway
     }
@@ -214,8 +213,6 @@ class NotchViewModel: NSObject, ObservableObject {
     @Published var hoverGhosting: Bool = false
     /// 两段收起中间态：保持虚影视觉 200ms 再清态
     @Published private(set) var ghostFading: Bool = false
-    /// 过桥菊花：openFromGhost 后短闪 150ms
-    @Published private(set) var bridgeSpinning: Bool = false
 
     /// 展开弹簧：对齐 Apple 灵动岛原生感（360ms 快速舒展，0.82 阻尼保留微弹水滴感）
     let openAnimation: Animation = .spring(response: 0.36, dampingFraction: 0.82, blendDuration: 0.08)
@@ -234,10 +231,10 @@ class NotchViewModel: NSObject, ObservableObject {
     @PublishedPersist(key: "showGatewayZone", defaultValue: true)
     var showGatewayZone: Bool
 
-    /// 参与分页的区序：剪贴板作为第 4 页工具箱（概览 ｜ Token ｜ 网关 ｜ 剪贴板）。网关页关时剔除网关。
-    static let baseZoneOrder: [ContentType] = [.normal, .token, .gateway, .clipboard]
+    /// 参与分页的区序：三页（概览 ｜ Token ｜ 网关）。网关页关时剔除网关。
+    static let baseZoneOrder: [ContentType] = [.normal, .token, .gateway]
     static func zoneOrder(gatewayEnabled: Bool) -> [ContentType] {
-        gatewayEnabled ? baseZoneOrder : [.normal, .token, .clipboard]
+        gatewayEnabled ? baseZoneOrder : [.normal, .token]
     }
 
     let hapticSender = PassthroughSubject<Void, Never>()

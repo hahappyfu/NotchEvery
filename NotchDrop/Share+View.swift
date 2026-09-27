@@ -11,18 +11,11 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ShareView: View {
-    enum ShareType {
-        case airdrop
-
-        var imageName: String { "airplayaudio" }
-        var title: String { NSLocalizedString("AirDrop", comment: "AirDrop sharing title") }
-        var service: ([URL]) -> Share {
-            { urls in Share(files: urls, serviceName: .sendViaAirDrop) }
-        }
+    static let airdropService: ([URL]) -> Share = { urls in
+        Share(files: urls, serviceName: .sendViaAirDrop)
     }
 
     @StateObject var vm: NotchViewModel
-    let type: ShareType
 
     @State var trigger: UUID = .init()
     @State var targeting = false
@@ -50,7 +43,7 @@ struct ShareView: View {
                     .fill(Color.white.opacity(targeting ? 0.9 : 0.75))
                     .frame(width: 34, height: 34)
                     .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
-                Image(systemName: type.imageName)
+                Image(systemName: "airplayaudio")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.accentColor)
             }
@@ -58,7 +51,7 @@ struct ShareView: View {
             .scaleEffect(targeting ? 1.06 : 1.0)
             .animation(vm.animation, value: targeting)
             .modifier(SprayEffectModifier(trigger: trigger))
-            Text(type.title)
+            Text(NSLocalizedString("AirDrop", comment: "AirDrop sharing title"))
                 .font(.system(size: 11))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
@@ -77,7 +70,7 @@ struct ShareView: View {
                 picker.canChooseFiles = true
                 picker.begin { response in
                     if response == .OK {
-                        let drop = type.service(picker.urls)
+                        let drop = Self.airdropService(picker.urls)
                         drop.begin()
                     }
                 }
@@ -89,7 +82,7 @@ struct ShareView: View {
         assert(!Thread.isMainThread)
         guard let urls = providers.interfaceConvert() else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            let drop = type.service(urls)
+            let drop = Self.airdropService(urls)
             drop.begin()
         }
     }

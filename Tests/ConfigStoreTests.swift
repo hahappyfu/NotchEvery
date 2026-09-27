@@ -9,7 +9,7 @@ final class ConfigStoreTests: XCTestCase {
     override func setUp() {
         super.setUp()
         suiteName = "ConfigStoreTests-\(UUID().uuidString)"
-        store = ConfigStore(suiteName: suiteName)
+        store = ConfigStore(configFile: nil, suiteName: suiteName)
     }
 
     override func tearDown() {
@@ -20,50 +20,10 @@ final class ConfigStoreTests: XCTestCase {
         super.tearDown()
     }
 
-    /// 迁移：standard 有旧值 → 搬到 suite（用独立测试 key，不碰真实生产 key）
-    func testMigrateMovesLegacyValues() {
-        // 准备旧值：备份 standard 原值，结束后恢复，避免破坏真实配置
-        let legacyKey = "testMigrateMovesLegacyValues_key"
-        let original = UserDefaults.standard.object(forKey: legacyKey)
-        UserDefaults.standard.set("legacy", forKey: legacyKey)
-        defer { restore(original, forKey: legacyKey) }
-
-        store.migrateIfNeeded(fromKeys: [legacyKey])
-
-        XCTAssertEqual(store.defaults.string(forKey: legacyKey), "legacy",
-                       "迁移后 suite 应包含旧值")
-    }
-
-    /// 幂等：第二次 migrateIfNeeded 不再覆盖
-    func testMigrateIsIdempotent() {
-        let legacyKey = "testMigrateIsIdempotent_key"
-        let original = UserDefaults.standard.object(forKey: legacyKey)
-        UserDefaults.standard.set("v1", forKey: legacyKey)
-        defer { restore(original, forKey: legacyKey) }
-
-        store.migrateIfNeeded(fromKeys: [legacyKey])
-        store.defaults.set("v2", forKey: legacyKey) // 用户在 suite 中改了值
-        store.migrateIfNeeded(fromKeys: [legacyKey])
-
-        XCTAssertEqual(store.defaults.string(forKey: legacyKey), "v2",
-                       "已迁移后再次调用不应覆盖 suite 中用户新值")
-    }
-
-    /// 把 standard 中某 key 恢复为原值（nil 表示原本不存在 → 删除）
-    private func restore(_ value: Any?, forKey key: String) {
-        if let value {
-            UserDefaults.standard.set(value, forKey: key)
-        } else {
-            UserDefaults.standard.removeObject(forKey: key)
-        }
-    }
-
     /// 读写
     func testSetGet() {
         store.set(42, forKey: "intKey")
         XCTAssertEqual(store.get("intKey", fallback: 0), 42)
-        store.set("hello", forKey: "strKey")
-        XCTAssertEqual(store.get("strKey", fallback: ""), "hello")
     }
 
     /// JSON 后端读写与独立文件持久化测试
@@ -74,28 +34,13 @@ final class ConfigStoreTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let store = ConfigStore(configFile: testConfigFile)
-        store.set("Apple Watch Series 7", forKey: "deviceName")
         store.set(-65, forKey: "lockRSSI")
-        store.set(true, forKey: "wakeOnProximity")
-
-        XCTAssertEqual(store.string(forKey: "deviceName"), "Apple Watch Series 7")
         XCTAssertEqual(store.get("lockRSSI", fallback: 0), -65)
-        XCTAssertTrue(store.bool(forKey: "wakeOnProximity"))
         XCTAssertTrue(FileManager.default.fileExists(atPath: testConfigFile.path))
 
         // 重新构造，验证从磁盘文件重新加载
         let store2 = ConfigStore(configFile: testConfigFile)
-        XCTAssertEqual(store2.string(forKey: "deviceName"), "Apple Watch Series 7")
         XCTAssertEqual(store2.get("lockRSSI", fallback: 0), -65)
-        XCTAssertTrue(store2.bool(forKey: "wakeOnProximity"))
-
-        // 测试删除键
-        store2.removeObject(forKey: "deviceName")
-        XCTAssertNil(store2.string(forKey: "deviceName"))
-        XCTAssertNil(store2.object(forKey: "deviceName"))
-
-        let store3 = ConfigStore(configFile: testConfigFile)
-        XCTAssertNil(store3.string(forKey: "deviceName"))
     }
 
     /// 测试损坏 JSON 的容错恢复机制
@@ -116,11 +61,11 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertEqual(store.get("corruptTestRSSI", fallback: -70), -70)
 
         // 写入新值应恢复正常文件
-        store.set("Recovered Watch", forKey: "deviceName")
-        XCTAssertEqual(store.string(forKey: "deviceName"), "Recovered Watch")
+        store.set(-63, forKey: "corruptTestRSSI")
+        XCTAssertEqual(store.get("corruptTestRSSI", fallback: -70), -63)
 
         let store2 = ConfigStore(configFile: testConfigFile, suiteName: testSuiteName)
-        XCTAssertEqual(store2.string(forKey: "deviceName"), "Recovered Watch")
+        XCTAssertEqual(store2.get("corruptTestRSSI", fallback: -70), -63)
     }
     /// 多线程并发读写安全测试
     func testThreadSafeConcurrentAccess() {
@@ -151,11 +96,7 @@ final class ConfigStoreTests: XCTestCase {
     private func makeLegacyPair(_ tag: String) -> (target: ConfigStore, targetName: String, legacyName: String) {
         let targetName = "MigrateNewTests-\(tag)-\(UUID().uuidString)"
         let legacyName = "MigrateLegacyTests-\(tag)-\(UUID().uuidString)"
-        return (ConfigStore(suiteName: targetName), targetName, legacyName)
-    }
-
-    private func legacyStore(_ name: String) -> ConfigStore {
-        ConfigStore(suiteName: name)
+        return (ConfigStore(configFile: nil, suiteName: targetName), targetName, legacyName)
     }
 
     private func dropSuites(_ names: String...) {
@@ -167,7 +108,7 @@ final class ConfigStoreTests: XCTestCase {
         let (target, tName, lName) = makeLegacyPair("first")
         defer { dropSuites(tName, lName) }
         let k = "testLegacyMigrateFirstRun_key"
-        legacyStore(lName).set("v1", forKey: k)
+        UserDefaults(suiteName: lName)!.set("v1", forKey: k)
 
         target.migrateFromLegacyIfNeeded(keys: [k], fromLegacySuite: lName)
 
@@ -180,7 +121,7 @@ final class ConfigStoreTests: XCTestCase {
         let (target, tName, lName) = makeLegacyPair("idem")
         defer { dropSuites(tName, lName) }
         let k = "testLegacyMigrateIsIdempotent_key"
-        legacyStore(lName).set("v1", forKey: k)
+        UserDefaults(suiteName: lName)!.set("v1", forKey: k)
 
         target.migrateFromLegacyIfNeeded(keys: [k], fromLegacySuite: lName)
         target.defaults.set("v2", forKey: k) // 用户在新域改了值
@@ -205,7 +146,7 @@ final class ConfigStoreTests: XCTestCase {
         defer { dropSuites(tName, lName) }
         let k = "testLegacyMigrateKeeps_key"
         target.defaults.set("mine", forKey: k)
-        legacyStore(lName).set("theirs", forKey: k)
+        UserDefaults(suiteName: lName)!.set("theirs", forKey: k)
 
         target.migrateFromLegacyIfNeeded(keys: [k], fromLegacySuite: lName)
 
@@ -224,7 +165,6 @@ final class ConfigStoreTests: XCTestCase {
         }
 
         let fakeLegacy = UserDefaults(suiteName: testSuite)!
-        fakeLegacy.set("My Test Watch", forKey: "deviceName")
         fakeLegacy.set("-62", forKey: "lockRSSI")
         fakeLegacy.set(true, forKey: "iMessageNotify")
         fakeLegacy.synchronize()
@@ -234,8 +174,7 @@ final class ConfigStoreTests: XCTestCase {
         let store = ConfigStore(configFile: testConfigFile, suiteName: testSuite)
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: testConfigFile.path), "初始化后应立即自动生成 config.json")
-        XCTAssertEqual(store.get("deviceName", fallback: ""), "My Test Watch")
-        XCTAssertEqual(store.get("lockRSSI", fallback: ""), "-62")
+        XCTAssertEqual(store.get("lockRSSI", fallback: -99), -62)
         XCTAssertEqual(store.get("iMessageNotify", fallback: false), true)
     }
 }

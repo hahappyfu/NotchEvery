@@ -22,10 +22,6 @@ enum AppPaths {
         documentsDirectory.appendingPathComponent("ProcessIdentifier")
     }
 
-    static var configDir: URL {
-        documentsDirectory.appendingPathComponent("Config")
-    }
-
     static var configFile: URL {
         documentsDirectory.appendingPathComponent("config.json")
     }

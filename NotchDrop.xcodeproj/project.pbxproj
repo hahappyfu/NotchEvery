@@ -8,13 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		AD623CB6163DBEA68623E727 /* GearHapticFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */; };
-		ADD536681322E4704DCEE57C /* ClipboardZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF2F54FCD6E44AA0B1B2358 /* ClipboardZoneView.swift */; };
-		ADEE9E38C042E8F1DD29B8C5 /* ClipboardPaster.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD33598DD50C85A454E17644 /* ClipboardPaster.swift */; };
-		ADE98BBE36462682BA2B4D58 /* ClipboardPasterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD468F2BB0A461870188735C /* ClipboardPasterTests.swift */; };
-		AD758EE931D228E9116829AB /* ClipboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD8322FC835B98508D181070 /* ClipboardMonitor.swift */; };
-		AD542209974C386DCD7D8258 /* ClipboardMonitorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD064CB36D15F183952C6BD3 /* ClipboardMonitorTests.swift */; };
-		AD16E4E2E49195D13405E8A4 /* ClipboardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADD8B28135867395AC281B16 /* ClipboardStore.swift */; };
-		ADA2F0615B3ACCE026F52629 /* ClipboardStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD86C272A2D168F3DD154820 /* ClipboardStoreTests.swift */; };
 		64C0DDDB8CA2D27D40BEE1AF /* QoderPoolRingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADE020432E7E7EE9F4611A1C /* QoderPoolRingView.swift */; };
 		B96CDEEF10BB6DF183BAC32E /* GatewayZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07150B97FCF8381DF9E8C5E3 /* GatewayZoneView.swift */; };
 		F893696EEB43039AB65008AE /* QoderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EF84BF0B5B4C15680C431B7 /* QoderStore.swift */; };
@@ -36,7 +29,6 @@
 		46FF4055B685D52627D4D409 /* QoderGatewayConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490B9A3744870B3B10920C39 /* QoderGatewayConfigTests.swift */; };
 		50C0DE042C3A86EA00QGW004 /* qodercn-gateway in Embed Qoder Gateway */ = {isa = PBXBuildFile; fileRef = 50C0DE032C3A86EA00QGW003 /* qodercn-gateway */; };
 		7AE10C0220260AB0000000E2 /* AnimationMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */; };
-		F101CE000000000000000077 /* DecisionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000078 /* DecisionModels.swift */; };
 		7B01000120260CD000000006 /* PreferencesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000005 /* PreferencesWindow.swift */; };
 		7B01000120260CD000000008 /* PreferencesWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000007 /* PreferencesWindowController.swift */; };
 		148901532DC9149900F2E06C /* Share.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148901512DC9149900F2E06C /* Share.swift */; };
@@ -76,9 +68,6 @@
 		50E26E272C3AF5E9007CF247 /* TrayDrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E26E262C3AF5E9007CF247 /* TrayDrop.swift */; };
 		50E26E292C3AF67B007CF247 /* TrayDrop+DropItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E26E282C3AF67B007CF247 /* TrayDrop+DropItem.swift */; };
 		50EFDB522C3BF7B4002D3E0F /* Ext+NSImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EFDB512C3BF7B4002D3E0F /* Ext+NSImage.swift */; };
-		60AD62872C579F4400299297 /* NotchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60AD62862C579F4400299297 /* NotchSettingsView.swift */; };
-		A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071829304050 /* Glass.swift */; };
-		A1B2C3D4E5F6071829304053 /* SpinnerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071829304052 /* SpinnerView.swift */; };
 		B1C2D3E4F506172839404153 /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F506172839404152 /* AppPaths.swift */; };
 		C1D2E3F4A506172839404155 /* AntigravityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404154 /* AntigravityStore.swift */; };
 		C1D2E3F4A506172839404201 /* UsageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404200 /* UsageStore.swift */; };
@@ -97,37 +86,18 @@
 		7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C5 /* TabMetricsTests.swift */; };
 		7AE10C0220260AB000000D6 /* TrayDropTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C6 /* TrayDropTests.swift */; };
 		7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */; };
-		7AE10C0220260AB000000D8 /* UsageStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C8 /* UsageStoreTests.swift */; };
 		7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */; };
 		7AE10C0220260AB000000DA /* AntigravityProxyStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */; };
-		F101CE000000000000000003 /* SignalPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000004 /* SignalPipeline.swift */; };
 		F101CE000000000000000009 /* ConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000000A /* ConfigStore.swift */; };
-		F101CE00000000000000000B /* RingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000000C /* RingBuffer.swift */; };
-		F101CE00000000000000000D /* LEDeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000000E /* LEDeviceInfo.swift */; };
-		F101CE00000000000000000F /* appleDeviceNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000010 /* appleDeviceNames.swift */; };
-		F101CE000000000000000011 /* iMessageNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000012 /* iMessageNotifier.swift */; };
-		F101CE000000000000000013 /* IMMessageComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000014 /* IMMessageComposer.swift */; };
 		F101CE000000000000000015 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000016 /* Log.swift */; };
-		F101CE000000000000000017 /* DebugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000018 /* DebugLog.swift */; };
-		F101CE000000000000000019 /* InputActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000001A /* InputActivityMonitor.swift */; };
-		F101CE00000000000000001D /* TimingLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000001E /* TimingLog.swift */; };
-		F101CE000000000000000021 /* SystemInteractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000022 /* SystemInteractionService.swift */; };
-		F101CE000000000000000023 /* SecurityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000024 /* SecurityService.swift */; };
-		F101CE000000000000000025 /* lowlevel.c in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000026 /* lowlevel.c */; };
 		F101CE00000000000000002B /* ConfigStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000002C /* ConfigStoreTests.swift */; };
-		F101CE000000000000000033 /* IMMessageComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000034 /* IMMessageComposerTests.swift */; };
-		F101CE000000000000000035 /* ReasonActionMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000036 /* ReasonActionMappingTests.swift */; };
-		F101CE000000000000000037 /* iMessageNotifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000038 /* iMessageNotifierTests.swift */; };
-		F101CE00000000000000003F /* SystemEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000040 /* SystemEffects.swift */; };
-		F101CE000000000000000043 /* DiagTimeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000044 /* DiagTimeline.swift */; };
-		F101CE000000000000000049 /* PermissionGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000050 /* PermissionGuide.swift */; };
-		F101CE000000000000000051 /* PermissionGuideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000052 /* PermissionGuideTests.swift */; };
-		F101CE000000000000000045 /* DiagTimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000046 /* DiagTimelineTests.swift */; };
+		F101CE000000000000000090 /* MockEventMonitors.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000091 /* MockEventMonitors.swift */; };
 		F101CE000000000000000055 /* DesignSystemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000054 /* DesignSystemTests.swift */; };
 		7B01000120260CD00000000A /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000009 /* DesignSystem.swift */; };
 		F101CE000000000000000057 /* SmoothNotchShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000056 /* SmoothNotchShape.swift */; };
 		F101CE00000000000000005A /* TokenFormatUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000059 /* TokenFormatUtilsTests.swift */; };
 		F101CE00000000000000005C /* TokenFormatUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000005B /* TokenFormatUtils.swift */; };
+		F101CE000000000000000080 /* UnfairLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000081 /* UnfairLock.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -142,13 +112,6 @@
 
 /* Begin PBXFileReference section */
 		AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GearHapticFeedback.swift; sourceTree = "<group>"; };
-		ADF2F54FCD6E44AA0B1B2358 /* ClipboardZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardZoneView.swift; sourceTree = "<group>"; };
-		AD33598DD50C85A454E17644 /* ClipboardPaster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPaster.swift; sourceTree = "<group>"; };
-		AD468F2BB0A461870188735C /* ClipboardPasterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardPasterTests.swift; sourceTree = "<group>"; };
-		AD8322FC835B98508D181070 /* ClipboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitor.swift; sourceTree = "<group>"; };
-		AD064CB36D15F183952C6BD3 /* ClipboardMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitorTests.swift; sourceTree = "<group>"; };
-		ADD8B28135867395AC281B16 /* ClipboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStore.swift; sourceTree = "<group>"; };
-		AD86C272A2D168F3DD154820 /* ClipboardStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStoreTests.swift; sourceTree = "<group>"; };
 		ADE020432E7E7EE9F4611A1C /* QoderPoolRingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderPoolRingView.swift; sourceTree = "<group>"; };
 		07150B97FCF8381DF9E8C5E3 /* GatewayZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayZoneView.swift; sourceTree = "<group>"; };
 		4EF84BF0B5B4C15680C431B7 /* QoderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderStore.swift; sourceTree = "<group>"; };
@@ -169,7 +132,6 @@
 		52903A074BE6541670F1DDC1 /* QoderGatewayConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderGatewayConfig.swift; sourceTree = "<group>"; };
 		490B9A3744870B3B10920C39 /* QoderGatewayConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QoderGatewayConfigTests.swift; sourceTree = "<group>"; };
 		50C0DE032C3A86EA00QGW003 /* qodercn-gateway */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "qodercn-gateway"; sourceTree = BUILT_PRODUCTS_DIR; };
-		F101CE000000000000000078 /* DecisionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecisionModels.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000005 /* PreferencesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindow.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000007 /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
 		148901512DC9149900F2E06C /* Share.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Share.swift; sourceTree = "<group>"; };
@@ -204,9 +166,6 @@
 		50E26E262C3AF5E9007CF247 /* TrayDrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayDrop.swift; sourceTree = "<group>"; };
 		50E26E282C3AF67B007CF247 /* TrayDrop+DropItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TrayDrop+DropItem.swift"; sourceTree = "<group>"; };
 		50EFDB512C3BF7B4002D3E0F /* Ext+NSImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Ext+NSImage.swift"; sourceTree = "<group>"; };
-		60AD62862C579F4400299297 /* NotchSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchSettingsView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6071829304050 /* Glass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Glass.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6071829304052 /* SpinnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpinnerView.swift; sourceTree = "<group>"; };
 		B1C2D3E4F506172839404152 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		C1D2E3F4A506172839404154 /* AntigravityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityStore.swift; sourceTree = "<group>"; };
 		C1D2E3F4A506172839404200 /* UsageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStore.swift; sourceTree = "<group>"; };
@@ -226,40 +185,19 @@
 		7AE10C0220260AB000000C5 /* TabMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabMetricsTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C6 /* TrayDropTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayDropTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneSizeGuardTests.swift; sourceTree = "<group>"; };
-		7AE10C0220260AB000000C8 /* UsageStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStoreTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMetricsTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityProxyStoreTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB0000000A7 /* NotchEveryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchEveryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		F101CE000000000000000004 /* SignalPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalPipeline.swift; sourceTree = "<group>"; };
 		F101CE00000000000000000A /* ConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStore.swift; sourceTree = "<group>"; };
-		F101CE00000000000000000C /* RingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingBuffer.swift; sourceTree = "<group>"; };
-		F101CE00000000000000000E /* LEDeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LEDeviceInfo.swift; sourceTree = "<group>"; };
-		F101CE000000000000000010 /* appleDeviceNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = appleDeviceNames.swift; sourceTree = "<group>"; };
-		F101CE000000000000000012 /* iMessageNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iMessageNotifier.swift; sourceTree = "<group>"; };
-		F101CE000000000000000014 /* IMMessageComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMMessageComposer.swift; sourceTree = "<group>"; };
 		F101CE000000000000000016 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
-		F101CE000000000000000018 /* DebugLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLog.swift; sourceTree = "<group>"; };
-		F101CE00000000000000001A /* InputActivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputActivityMonitor.swift; sourceTree = "<group>"; };
-		F101CE00000000000000001E /* TimingLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimingLog.swift; sourceTree = "<group>"; };
-		F101CE000000000000000022 /* SystemInteractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemInteractionService.swift; sourceTree = "<group>"; };
-		F101CE000000000000000024 /* SecurityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityService.swift; sourceTree = "<group>"; };
-		F101CE000000000000000026 /* lowlevel.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = lowlevel.c; sourceTree = "<group>"; };
-		F101CE000000000000000027 /* lowlevel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = lowlevel.h; sourceTree = "<group>"; };
-		F101CE000000000000000028 /* NotchEvery-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NotchEvery-Bridging-Header.h; sourceTree = "<group>"; };
 		F101CE00000000000000002C /* ConfigStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStoreTests.swift; sourceTree = "<group>"; };
-		F101CE000000000000000034 /* IMMessageComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMMessageComposerTests.swift; sourceTree = "<group>"; };
-		F101CE000000000000000036 /* ReasonActionMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReasonActionMappingTests.swift; sourceTree = "<group>"; };
-		F101CE000000000000000038 /* iMessageNotifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iMessageNotifierTests.swift; sourceTree = "<group>"; };
-		F101CE000000000000000040 /* SystemEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEffects.swift; sourceTree = "<group>"; };
-		F101CE000000000000000044 /* DiagTimeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagTimeline.swift; sourceTree = "<group>"; };
-		F101CE000000000000000050 /* PermissionGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionGuide.swift; sourceTree = "<group>"; };
-		F101CE000000000000000052 /* PermissionGuideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionGuideTests.swift; sourceTree = "<group>"; };
-		F101CE000000000000000046 /* DiagTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagTimelineTests.swift; sourceTree = "<group>"; };
+		F101CE000000000000000091 /* MockEventMonitors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockEventMonitors.swift; sourceTree = "<group>"; };
 		F101CE000000000000000054 /* DesignSystemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystemTests.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000009 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		F101CE000000000000000056 /* SmoothNotchShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothNotchShape.swift; sourceTree = "<group>"; };
 		F101CE000000000000000059 /* TokenFormatUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenFormatUtilsTests.swift; sourceTree = "<group>"; };
 		F101CE00000000000000005B /* TokenFormatUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenFormatUtils.swift; sourceTree = "<group>"; };
+		F101CE000000000000000081 /* UnfairLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnfairLock.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -304,10 +242,6 @@
 			isa = PBXGroup;
 			children = (
 				AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */,
-				ADF2F54FCD6E44AA0B1B2358 /* ClipboardZoneView.swift */,
-				AD33598DD50C85A454E17644 /* ClipboardPaster.swift */,
-				AD8322FC835B98508D181070 /* ClipboardMonitor.swift */,
-				ADD8B28135867395AC281B16 /* ClipboardStore.swift */,
 				ADE020432E7E7EE9F4611A1C /* QoderPoolRingView.swift */,
 				AD10C5A1B2C3D4E5F6071805 /* QoderAccountNicknames.swift */,
 				07150B97FCF8381DF9E8C5E3 /* GatewayZoneView.swift */,
@@ -328,7 +262,6 @@
 				504381872C3A86EC000ED325 /* Assets.xcassets */,
 				504381922C3A8755000ED325 /* main.swift */,
 				5043819A2C3A8A06000ED325 /* AppDelegate.swift */,
-				F101CE000000000000000078 /* DecisionModels.swift */,
 				501F0E8B2C59E6BD00F0113C /* Language.swift */,
 				504381982C3A8893000ED325 /* NotchWindow.swift */,
 				504381A32C3A8C7E000ED325 /* NotchWindowController.swift */,
@@ -343,8 +276,6 @@
 				C1D2E3F4A506172839404200 /* UsageStore.swift */,
 				F101CE00000000000000005B /* TokenFormatUtils.swift */,
 				B1C2D3E4F506172839404152 /* AppPaths.swift */,
-				A1B2C3D4E5F6071829304050 /* Glass.swift */,
-				A1B2C3D4E5F6071829304052 /* SpinnerView.swift */,
 				B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */,
 				D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */,
 				C9D0E1F2A3B4071829304100 /* NotchRootView.swift */,
@@ -353,7 +284,6 @@
 				504381AE2C3ADFF2000ED325 /* NotchContentView.swift */,
 				7AE10C0220260AB000000002 /* ZoneSizeGuard.swift */,
 				F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */,
-				60AD62862C579F4400299297 /* NotchSettingsView.swift */,
 				504381A52C3A8CFD000ED325 /* NotchViewController.swift */,
 				504381A72C3A926E000ED325 /* NotchViewModel.swift */,
 				50CB767D2C3BC8880070D5E6 /* NotchViewModel+Events.swift */,
@@ -370,25 +300,9 @@
 				502E41D52C3CEC990060660E /* Ext+NSAlert.swift */,
 				5044EE9F2C3B116000071C5C /* PublishedPersist.swift */,
 				D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */,
-				F101CE000000000000000040 /* SystemEffects.swift */,
-				F101CE000000000000000044 /* DiagTimeline.swift */,
-				F101CE000000000000000050 /* PermissionGuide.swift */,
-				F101CE000000000000000004 /* SignalPipeline.swift */,
 				F101CE00000000000000000A /* ConfigStore.swift */,
-				F101CE00000000000000000C /* RingBuffer.swift */,
-				F101CE00000000000000000E /* LEDeviceInfo.swift */,
-				F101CE000000000000000010 /* appleDeviceNames.swift */,
-				F101CE000000000000000012 /* iMessageNotifier.swift */,
-				F101CE000000000000000014 /* IMMessageComposer.swift */,
 				F101CE000000000000000016 /* Log.swift */,
-				F101CE000000000000000018 /* DebugLog.swift */,
-				F101CE00000000000000001A /* InputActivityMonitor.swift */,
-				F101CE00000000000000001E /* TimingLog.swift */,
-				F101CE000000000000000022 /* SystemInteractionService.swift */,
-				F101CE000000000000000024 /* SecurityService.swift */,
-				F101CE000000000000000026 /* lowlevel.c */,
-				F101CE000000000000000027 /* lowlevel.h */,
-				F101CE000000000000000028 /* NotchEvery-Bridging-Header.h */,
+				F101CE000000000000000081 /* UnfairLock.swift */,
 			);
 			path = NotchDrop;
 			sourceTree = "<group>";
@@ -403,9 +317,6 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				AD468F2BB0A461870188735C /* ClipboardPasterTests.swift */,
-				AD064CB36D15F183952C6BD3 /* ClipboardMonitorTests.swift */,
-				AD86C272A2D168F3DD154820 /* ClipboardStoreTests.swift */,
 				2A53F58C465FA56AEF12E4DC /* QoderStoreTests.swift */,
 				AD10C5A1B2C3D4E5F6071803 /* QoderCampaignClaimerTests.swift */,
 				AD10C5A1B2C3D4E5F607181A /* QoderAccountNicknamesTests.swift */,
@@ -421,18 +332,13 @@
 				7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */,
 				7AE10C0220260AB000000C5 /* TabMetricsTests.swift */,
 				7AE10C0220260AB000000C6 /* TrayDropTests.swift */,
-				7AE10C0220260AB000000C8 /* UsageStoreTests.swift */,
 				7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */,
 				7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */,
 				7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */,
-				F101CE000000000000000046 /* DiagTimelineTests.swift */,
-				F101CE000000000000000052 /* PermissionGuideTests.swift */,
 				F101CE00000000000000002C /* ConfigStoreTests.swift */,
-				F101CE000000000000000034 /* IMMessageComposerTests.swift */,
-				F101CE000000000000000036 /* ReasonActionMappingTests.swift */,
-				F101CE000000000000000038 /* iMessageNotifierTests.swift */,
 				F101CE000000000000000054 /* DesignSystemTests.swift */,
 				F101CE000000000000000059 /* TokenFormatUtilsTests.swift */,
+				F101CE000000000000000091 /* MockEventMonitors.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -590,10 +496,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				AD623CB6163DBEA68623E727 /* GearHapticFeedback.swift in Sources */,
-				ADD536681322E4704DCEE57C /* ClipboardZoneView.swift in Sources */,
-				ADEE9E38C042E8F1DD29B8C5 /* ClipboardPaster.swift in Sources */,
-				AD758EE931D228E9116829AB /* ClipboardMonitor.swift in Sources */,
-				AD16E4E2E49195D13405E8A4 /* ClipboardStore.swift in Sources */,
 				64C0DDDB8CA2D27D40BEE1AF /* QoderPoolRingView.swift in Sources */,
 				AD10C5A1B2C3D4E5F6071806 /* QoderAccountNicknames.swift in Sources */,
 				B96CDEEF10BB6DF183BAC32E /* GatewayZoneView.swift in Sources */,
@@ -632,11 +534,9 @@
 				504381AA2C3A9514000ED325 /* EventMonitor.swift in Sources */,
 				501F0E8C2C59E6BD00F0113C /* Language.swift in Sources */,
 				5043819B2C3A8A06000ED325 /* AppDelegate.swift in Sources */,
-				F101CE000000000000000077 /* DecisionModels.swift in Sources */,
 				148901532DC9149900F2E06C /* Share.swift in Sources */,
 				148901542DC9149900F2E06C /* Share+View.swift in Sources */,
 				504381932C3A8755000ED325 /* main.swift in Sources */,
-				60AD62872C579F4400299297 /* NotchSettingsView.swift in Sources */,
 				504381A82C3A926E000ED325 /* NotchViewModel.swift in Sources */,
 				5044EEA02C3B116000071C5C /* PublishedPersist.swift in Sources */,
 				C1D2E3F4A506172839404157 /* AntigravityAccountsCardView.swift in Sources */,
@@ -648,26 +548,10 @@
 				C1D2E3F4A506172839404201 /* UsageStore.swift in Sources */,
 				F101CE00000000000000005C /* TokenFormatUtils.swift in Sources */,
 				B1C2D3E4F506172839404153 /* AppPaths.swift in Sources */,
-				A1B2C3D4E5F6071829304051 /* Glass.swift in Sources */,
-				A1B2C3D4E5F6071829304053 /* SpinnerView.swift in Sources */,
 				D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */,
-				F101CE000000000000000003 /* SignalPipeline.swift in Sources */,
 				F101CE000000000000000009 /* ConfigStore.swift in Sources */,
-				F101CE00000000000000000B /* RingBuffer.swift in Sources */,
-				F101CE00000000000000000D /* LEDeviceInfo.swift in Sources */,
-				F101CE00000000000000000F /* appleDeviceNames.swift in Sources */,
-				F101CE000000000000000011 /* iMessageNotifier.swift in Sources */,
-				F101CE000000000000000013 /* IMMessageComposer.swift in Sources */,
+				F101CE000000000000000080 /* UnfairLock.swift in Sources */,
 				F101CE000000000000000015 /* Log.swift in Sources */,
-				F101CE000000000000000017 /* DebugLog.swift in Sources */,
-				F101CE000000000000000019 /* InputActivityMonitor.swift in Sources */,
-				F101CE00000000000000001D /* TimingLog.swift in Sources */,
-				F101CE000000000000000021 /* SystemInteractionService.swift in Sources */,
-				F101CE000000000000000023 /* SecurityService.swift in Sources */,
-				F101CE000000000000000025 /* lowlevel.c in Sources */,
-				F101CE00000000000000003F /* SystemEffects.swift in Sources */,
-				F101CE000000000000000043 /* DiagTimeline.swift in Sources */,
-				F101CE000000000000000049 /* PermissionGuide.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -675,9 +559,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ADE98BBE36462682BA2B4D58 /* ClipboardPasterTests.swift in Sources */,
-				AD542209974C386DCD7D8258 /* ClipboardMonitorTests.swift in Sources */,
-				ADA2F0615B3ACCE026F52629 /* ClipboardStoreTests.swift in Sources */,
 				A960E466FF0B6C2E724CB7E1 /* QoderStoreTests.swift in Sources */,
 				AD10C5A1B2C3D4E5F6071804 /* QoderCampaignClaimerTests.swift in Sources */,
 				AD10C5A1B2C3D4E5F607181B /* QoderAccountNicknamesTests.swift in Sources */,
@@ -693,18 +574,13 @@
 				7AE10C0220260AB000000D4 /* ScrollSwipeResolverTests.swift in Sources */,
 				7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D6 /* TrayDropTests.swift in Sources */,
-				7AE10C0220260AB000000D8 /* UsageStoreTests.swift in Sources */,
 				7AE10C0220260AB000000DA /* AntigravityProxyStoreTests.swift in Sources */,
 				7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */,
 				F101CE00000000000000002B /* ConfigStoreTests.swift in Sources */,
-				F101CE000000000000000033 /* IMMessageComposerTests.swift in Sources */,
-				F101CE000000000000000035 /* ReasonActionMappingTests.swift in Sources */,
-				F101CE000000000000000037 /* iMessageNotifierTests.swift in Sources */,
-				F101CE000000000000000045 /* DiagTimelineTests.swift in Sources */,
-				F101CE000000000000000051 /* PermissionGuideTests.swift in Sources */,
 				F101CE000000000000000055 /* DesignSystemTests.swift in Sources */,
 				F101CE00000000000000005A /* TokenFormatUtilsTests.swift in Sources */,
+				F101CE000000000000000090 /* MockEventMonitors.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -877,7 +753,6 @@
 				MARKETING_VERSION = 2.16;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hahappyfu.NotchEvery;
 				PRODUCT_NAME = NotchEvery;
-				SWIFT_OBJC_BRIDGING_HEADER = "NotchDrop/NotchEvery-Bridging-Header.h";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -917,7 +792,6 @@
 				MARKETING_VERSION = 2.16;
 				PRODUCT_BUNDLE_IDENTIFIER = com.hahappyfu.NotchEvery;
 				PRODUCT_NAME = NotchEvery;
-				SWIFT_OBJC_BRIDGING_HEADER = "NotchDrop/NotchEvery-Bridging-Header.h";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};

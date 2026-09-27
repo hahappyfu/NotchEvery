@@ -53,10 +53,7 @@ public struct TokenRequest: Identifiable, Equatable {
         if let matched = AntigravityStore.shared.accounts.first(where: { $0.email.lowercased() == lower }) {
             return matched.name
         }
-        if let atIndex = lower.firstIndex(of: "@") {
-            return String(lower[..<atIndex])
-        }
-        return lower
+        return accountEmailPrefix
     }
 
     /// 账号邮箱前缀

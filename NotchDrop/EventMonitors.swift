@@ -94,12 +94,3 @@ class EventMonitors: EventMonitorsProtocol {
         keyDownEvent.start()
     }
 }
-
-// ——— Preview/测试用 Mock ———
-final class MockEventMonitors: EventMonitorsProtocol {
-    let mouseLocation: CurrentValueSubject<NSPoint, Never> = .init(.zero)
-    let mouseDown: PassthroughSubject<Void, Never> = .init()
-    let optionKeyPress: CurrentValueSubject<Bool, Never> = .init(false)
-    let scrollDelta: PassthroughSubject<ScrollDelta, Never> = .init()
-    let arrowKey: PassthroughSubject<ArrowDirection, Never> = .init()
-}

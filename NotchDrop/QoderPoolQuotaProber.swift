@@ -84,7 +84,7 @@ final class QoderPoolQuotaProber: QoderPoolQuotaProbing, @unchecked Sendable {
     private let transport: QoderCampaignTransport
     private let poolDirectory: URL
     /// 本类不是 actor 隔离的，probeAll() 可能被后台 Task 并发触发，标志位必须加锁访问。
-    /// 复用仓库既有的 UnfairLock（SignalPipeline.swift）。
+    /// 复用仓库既有的 UnfairLock（UnfairLock.swift）。
     private let stateLock = UnfairLock()
     private var isRunning = false
 

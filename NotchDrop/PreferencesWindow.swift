@@ -10,45 +10,11 @@ import SwiftUI
 import LaunchAtLogin
 import AppKit
 
-enum PreferencesTab: String, CaseIterable, Identifiable {
-    case general = "通用"
-
-    var id: String { rawValue }
-
-    var icon: String {
-        switch self {
-        case .general: return "gearshape"
-        }
-    }
-}
-
 struct PreferencesWindow: View {
-    @State private var selectedTab: PreferencesTab = .general
-
     var body: some View {
-        NavigationSplitView {
-            List(PreferencesTab.allCases, selection: $selectedTab) { tab in
-                NavigationLink(value: tab) {
-                    Label(tab.rawValue, systemImage: tab.icon)
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.vertical, 4)
-                }
-            }
-            .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 220)
-        } detail: {
-            detailContent
-                .frame(minWidth: 480, minHeight: 450)
-                .background(Color(nsColor: .windowBackgroundColor))
-        }
-    }
-
-    @ViewBuilder
-    private var detailContent: some View {
-        switch selectedTab {
-        case .general:
-            GeneralSettingsTab()
-        }
+        GeneralSettingsTab()
+            .frame(minWidth: 480, minHeight: 450)
+            .background(Color(nsColor: .windowBackgroundColor))
     }
 }
 

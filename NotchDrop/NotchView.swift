@@ -32,16 +32,6 @@ struct NotchView: View {
         }
     }
 
-    /// 岛体侧边呼吸边距（旧称「凹角半径」；凹角方案已废弃，此值现仅作岛宽外扩与内容留白，见 ADR-0010 修订）
-    var islandFillet: CGFloat {
-        let isGhost = vm.hoverGhosting || vm.ghostFading
-        switch vm.status {
-        case .closed: return isGhost ? IslandMetrics.filletRadius(for: vm.deviceNotchRect.size) : 0
-        case .opened: return IslandMetrics.openFilletRadius
-        case .popping: return 0
-        }
-    }
-
     /// 底部圆角：随状态变化（原型 12 / 20 / 26）
     var islandBottomRadius: CGFloat {
         let isGhost = vm.hoverGhosting || vm.ghostFading
@@ -105,11 +95,6 @@ struct NotchView: View {
                 guard vm.status == .opened else { return }
                 guard vm.notchOpenedRect.contains(NSEvent.mouseLocation) else { return }
                 guard !dropTargeting else { return }
-
-                // 垂直滚动时：若在剪贴板专区，触发精密机械齿轮棘轮触觉（每步距咔嗒一次）
-                if vm.contentType == .clipboard && abs(delta.deltaY) > abs(delta.deltaX) {
-                    GearHapticFeedback.shared.feedVertical(deltaY: delta.deltaY, now: delta.timestamp)
-                }
 
                 guard let direction = swipeResolver.feed(
                     deltaX: delta.deltaX,

@@ -366,7 +366,7 @@ struct AntigravityAccountsCardView: View {
 
 extension AntigravityAccount {
     var resetCountdownText: String {
-        AntigravityStore.formatCountdown(from: resetTime)
+        AntigravityStore.formatCountdown(from: displayResetTime)
     }
 }
 

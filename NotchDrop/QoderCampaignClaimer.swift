@@ -113,7 +113,7 @@ final class QoderCampaignClaimer {
     /// 本类不是 actor 隔离的，且 claimAll() 由 Task.detached 在后台线程发起（QoderStore.runCampaignClaim /
     /// AppDelegate 冷启动巡检），
     /// 多个 detached Task 可能真正并行进入这里，故标志位必须加锁访问，不能用裸 Bool（数据竞争）。
-    /// 复用仓库既有的 UnfairLock（SignalPipeline.swift）。
+    /// 复用仓库既有的 UnfairLock（UnfairLock.swift）。
     private let stateLock = UnfairLock()
     private var isRunning = false
 

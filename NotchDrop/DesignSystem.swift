@@ -57,14 +57,4 @@ public extension View {
     func studioCard(radius: CGFloat = 10, isHovered: Bool = false, isSelected: Bool = false) -> some View {
         modifier(StudioCardModifier(radius: radius, isHovered: isHovered, isSelected: isSelected))
     }
-
-    func studioPillBadge(color: Color) -> some View {
-        self
-            .font(.system(size: 10, weight: .medium).monospacedDigit())
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.16), in: Capsule())
-            .overlay(Capsule().strokeBorder(color.opacity(0.32), lineWidth: 0.5))
-            .foregroundStyle(color)
-    }
 }

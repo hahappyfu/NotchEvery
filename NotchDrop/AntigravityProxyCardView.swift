@@ -88,8 +88,6 @@ struct AntigravityProxyCardView: View {
     }
 
     private func timeString(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm:ss"
-        return f.string(from: date)
+        date.formatted(date: .omitted, time: .standard)
     }
 }
