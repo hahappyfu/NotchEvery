@@ -62,31 +62,46 @@ struct QoderLogTailer {
 
     /// 从 url 读 cursor.offset 之后的新完整行，推进 cursor，返回解析出的事件。
     /// 尾部残行（无换行）不消费、offset 停在最后一个完整行末尾。
-    static func readIncremental(url: URL, cursor: inout Cursor) throws -> [QoderUsageEvent] {
+    /// - Returns: (事件, 是否发生轮转/截断重扫)。调用方拿到 rotated=true 时须清空当日聚合桶再灌
+    ///   （旧实现直接把重扫内容二次累加，copytruncate 轮转后「今日请求/credits」翻倍）。
+    /// - Throws: 打开文件 / seek 失败（瞬时读错误）时抛出，**cursor 保持原样**，调用方下一轮重试即可；
+    ///   旧实现把 seek 失败 `try?` 吞成 size=0，误判成轮转触发全文件重扫，同样导致翻倍。
+    static func readIncremental(url: URL, cursor: inout Cursor) throws -> (events: [QoderUsageEvent], rotated: Bool) {
         let fh = try FileHandle(forReadingFrom: url)
         defer { try? fh.close() }
-        let size = (try? fh.seekToEndOfFile()) ?? 0
+        let size = try fh.seekToEndOfFile()
 
+        var offset = cursor.offset
+        var rotated = false
         // 轮转/截断：文件变小 → 从头重扫
-        if size < cursor.offset {
-            cursor.offset = 0
+        if size < offset {
+            offset = 0
+            rotated = true
         }
-        if size == cursor.offset { return [] }
+        if size == offset {
+            // 轮转上报后必须把归零落盘，否则下一轮 size == 旧 offset 会把轮转信号弄丢，
+            // 重写进来的内容永远读不到。此分支到此已无可能抛错的调用，提交安全。
+            if rotated { cursor.offset = 0 }
+            return ([], rotated)
+        }
 
-        try fh.seek(toOffset: cursor.offset)
+        try fh.seek(toOffset: offset)
         let data = fh.readDataToEndOfFile()
-        guard !data.isEmpty else { return [] }
+        // 自此以后不再有抛错点，cursor 可以放心提交；抛错只可能发生在上面两行，cursor 保持原样。
 
         // 只消费到最后一个换行符；之后的残行留待下次
         guard let lastNL = data.lastIndex(of: 0x0A) else {
-            return []  // 整块都是残行，不推进 offset
+            cursor.offset = offset  // 轮转归零后整块都是残行：把归零落盘，避免轮转信号丢失
+            return ([], rotated)
         }
         let complete = data.subdata(in: data.startIndex..<(lastNL + 1))
-        cursor.offset += UInt64(complete.count)
+        offset += UInt64(complete.count)
+        cursor.offset = offset  // 读到完整内容后才提交，前面任何一步抛错都不动 cursor
 
         let text = String(data: complete, encoding: .utf8) ?? ""
-        return text.split(separator: "\n", omittingEmptySubsequences: true)
+        let events = text.split(separator: "\n", omittingEmptySubsequences: true)
             .compactMap { QoderLogParser.parse(String($0)) }
+        return (events, rotated)
     }
 }
 
@@ -129,6 +144,12 @@ struct QoderAggregator {
                 yesterday = y
             }
         }
+    }
+
+    /// 轮转重放语义（审计 I3）：cursor 归零全文件重扫前清空当日桶，避免「旧计数 + 重放」翻倍。
+    /// 只动 today；yesterday 是跨日历史，轮转后旧内容可能已不在文件里，不能凭空清零。
+    mutating func resetToday() {
+        today = QoderDailyAgg()
     }
 
     private func accumulate(_ agg: inout QoderDailyAgg, _ ev: QoderUsageEvent) {

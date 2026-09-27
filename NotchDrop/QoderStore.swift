@@ -473,10 +473,17 @@ final class QoderStore: ObservableObject {
     }
 
     private func updateUsageFromLog(url: URL) {
-        guard let events = try? QoderLogTailer.readIncremental(url: url, cursor: &logTailerCursor),
-              !events.isEmpty else { return }
+        // 审计 I3：读失败（抛错）时 cursor 保持原样，静默留给下一轮重试，不得误判成轮转归零。
+        guard let result = try? QoderLogTailer.readIncremental(url: url, cursor: &logTailerCursor) else {
+            storeLog.debug("log tail read failed, cursor kept at \(self.logTailerCursor.offset), retry next tick")
+            return
+        }
+        // 轮转（copytruncate/logrotate）：文件从头重扫，先清当日桶再灌重放内容，
+        // 否则旧计数 + 重放内容 = 今日翻倍。跨日其它桶不动。
+        if result.rotated { aggregator.resetToday() }
+        guard !result.events.isEmpty else { return }
         let todayStr = Self.dayString(Date())
-        aggregator.apply(events: events, today: todayStr)
+        aggregator.apply(events: result.events, today: todayStr)
         publishIfChanged(\.today, aggregator.today)
         publishIfChanged(\.yesterday, aggregator.yesterday)
     }

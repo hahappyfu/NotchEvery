@@ -46,18 +46,18 @@ final class QoderLogParserTests: XCTestCase {
 
         var cursor = QoderLogTailer.Cursor()
         let first = try QoderLogTailer.readIncremental(url: tmp, cursor: &cursor)
-        XCTAssertEqual(first.count, 1)
+        XCTAssertEqual(first.events.count, 1)
 
         // 无追加 → 第二次读到 0
         let second = try QoderLogTailer.readIncremental(url: tmp, cursor: &cursor)
-        XCTAssertEqual(second.count, 0)
+        XCTAssertEqual(second.events.count, 0)
 
         // 追加一行 → 第三次只读到新的那行
         let extra = "2026/09/21 10:00:05 remote usage model=b acct=y in=5 out=5 cached=0 reasoning=0 total=10 credits=0.2\n"
         let fh = try FileHandle(forWritingTo: tmp); fh.seekToEndOfFile(); fh.write(Data(extra.utf8)); try fh.close()
         let third = try QoderLogTailer.readIncremental(url: tmp, cursor: &cursor)
-        XCTAssertEqual(third.count, 1)
-        XCTAssertEqual(third.first?.model, "b")
+        XCTAssertEqual(third.events.count, 1)
+        XCTAssertEqual(third.events.first?.model, "b")
     }
 
     func testPartialTrailingLineNotConsumed() throws {
@@ -70,14 +70,14 @@ final class QoderLogParserTests: XCTestCase {
 
         var cursor = QoderLogTailer.Cursor()
         let r1 = try QoderLogTailer.readIncremental(url: tmp, cursor: &cursor)
-        XCTAssertEqual(r1.count, 1, "残行不应计入")
-        XCTAssertEqual(r1.first?.model, "a")
+        XCTAssertEqual(r1.events.count, 1, "残行不应计入")
+        XCTAssertEqual(r1.events.first?.model, "a")
 
         let fh = try FileHandle(forWritingTo: tmp); fh.seekToEndOfFile()
         fh.write(Data("ts=100 credits=0.3\n".utf8)); try fh.close()
         let r2 = try QoderLogTailer.readIncremental(url: tmp, cursor: &cursor)
-        XCTAssertEqual(r2.count, 1)
-        XCTAssertEqual(r2.first?.model, "c")
+        XCTAssertEqual(r2.events.count, 1)
+        XCTAssertEqual(r2.events.first?.model, "c")
     }
 
     // MARK: - 日界聚合
@@ -157,7 +157,45 @@ final class QoderLogParserTests: XCTestCase {
         let small = "2026/09/21 11:00:00 remote usage model=z acct=k in=1 out=1 cached=0 reasoning=0 total=2 credits=0.1\n"
         try small.write(to: tmp, atomically: true, encoding: .utf8)
         let after = try QoderLogTailer.readIncremental(url: tmp, cursor: &cursor)
-        XCTAssertEqual(after.count, 1, "轮转后应从零重扫并读到新行")
-        XCTAssertEqual(after.first?.model, "z")
+        XCTAssertTrue(after.rotated, "文件变小必须上报轮转信号，供 store 清当日桶")
+        XCTAssertEqual(after.events.count, 1, "轮转后应从零重扫并读到新行")
+        XCTAssertEqual(after.events.first?.model, "z")
+    }
+
+    /// 审计 I3：copytruncate 轮转后全文件重扫，调用方（QoderStore）按 rotated 信号先清当日桶再灌
+    /// 重放内容——「今日请求/今日 credits」必须等于单份，不得翻倍。旧实现只累加不去重，
+    /// 轮转一次翻一倍；且 seek 失败被 try? 吞成 size=0 也会误触发同一条翻倍路径。
+    /// 本用例按 store 的真实编排（tail → rotated ? resetToday → apply）复现整个链路。
+    func testRotationReplayDoesNotDoubleTodayBucket() throws {
+        let tmp = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("qgw-\(UUID().uuidString).log")
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        let line1 = "2026/09/21 10:00:00 remote usage model=a acct=x in=100 out=10 cached=0 reasoning=0 total=110 credits=1.0\n"
+        try line1.write(to: tmp, atomically: true, encoding: .utf8)
+        let todayStr = "2026-09-21"  // 固定 now 注入：跨零点测试同款，today 入参即日界
+
+        var cursor = QoderLogTailer.Cursor()
+        var agg = QoderAggregator()
+        func tailAndApply() throws {
+            let r = try QoderLogTailer.readIncremental(url: tmp, cursor: &cursor)
+            if r.rotated { agg.resetToday() }
+            agg.apply(events: r.events, today: todayStr)
+        }
+
+        try tailAndApply()
+        XCTAssertEqual(agg.today.calls, 1)
+        XCTAssertEqual(agg.today.credits, 1.0, accuracy: 1e-9)
+
+        // 模拟 copytruncate：原地截断为空（网关稍后重新写入）。本轮 tailAndApply 应拿到
+        // rotated 信号并清当日桶（rotated 标志本身已由上一条 shrink 用例显式断言）。
+        try Data().write(to: tmp)
+        try tailAndApply()
+        XCTAssertEqual(agg.today.calls, 0, "截断上报 rotated 后当日桶应清零，等待重放")
+
+        // 网关把同样内容写回新文件：重放一遍后今日计数 = 单份，不翻倍
+        try line1.write(to: tmp, atomically: true, encoding: .utf8)
+        try tailAndApply()
+        XCTAssertEqual(agg.today.calls, 1, "轮转重放后今日计数等于单份")
+        XCTAssertEqual(agg.today.credits, 1.0, accuracy: 1e-9)
+        XCTAssertEqual(agg.today.tokensIn, 100)
     }
 }
