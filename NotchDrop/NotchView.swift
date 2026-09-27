@@ -202,35 +202,46 @@ struct NotchView: View {
         .animation(reduceMotion ? nil : (vm.transitionActive ? (isOpening ? vm.openAnimation : vm.closeAnimation) : nil), value: islandSize)
     }
 
-    /// 悬停 peek 提示：双模态胶囊（左侧 Antigravity 代理今日看板，右侧 AI 缓存命中率）
+    /// 悬停 peek 提示：双模态胶囊（左侧 Antigravity 代理今日看板，右侧 AI 缓存命中率；自适应小 Peek 宽度杜绝溢出）
     private var peekHint: some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 5) {
             // 左区：Antigravity 代理今日看板
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 Circle()
                     .fill(Color.green)
-                    .frame(width: 6, height: 6)
-                Text("今日 \(formattedTokensText) · \(formattedCallsText)")
+                    .frame(width: 5, height: 5)
+                Text(islandSize.width < 230 ? "\(formattedTokensText) · \(formattedCallsText.replacingOccurrences(of: " 次", with: ""))" : "今日 \(formattedTokensText) · \(formattedCallsText)")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Color.white.opacity(0.90))
                     .monospacedDigit()
-                    .fixedSize()
+                    .lineLimit(1)
             }
 
-            // 中区：弱分隔
-            Rectangle()
-                .fill(Color.white.opacity(0.18))
-                .frame(width: 1, height: 10)
+            // 中区 + 右区：宽 Peek 保留完整分隔与文案；窄 Peek（< 230pt，如无刘海屏 200pt）紧凑降级
+            if islandSize.width >= 230 {
+                Rectangle()
+                    .fill(Color.white.opacity(0.18))
+                    .frame(width: 1, height: 10)
 
-            // 右区：AI 缓存命中率
-            HStack(spacing: 4) {
-                Text("⚡️ 缓存 \(formattedCacheRateText)")
-                    .font(.system(size: 11, weight: .medium))
+                HStack(spacing: 3) {
+                    Text("⚡️ 缓存 \(formattedCacheRateText)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(StudioColor.cyan)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                }
+            } else if usage.cacheRateFraction > 0 {
+                Text("⚡️\(formattedCacheRateText)")
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(StudioColor.cyan)
                     .monospacedDigit()
+                    .lineLimit(1)
             }
         }
-        .padding(.horizontal, 4)
+        .lineLimit(1)
+        .minimumScaleFactor(0.75)
+        .padding(.horizontal, 6)
+        .frame(maxWidth: islandSize.width - 8, alignment: .center)
     }
 
     private var formattedTokensText: String {
