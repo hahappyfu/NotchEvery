@@ -66,10 +66,10 @@ struct NotchRootView: View {
     private var leftEarPill: some View {
         // 左耳：当前 cc-switch 供应商（claude-desktop 槽）；查无则整只隐藏
         if vm.contentType == .token, let provider = usage.providerName {
-            HStack(spacing: 6) {
+            HStack(spacing: 4) {
                 Circle()
                     .fill(Color.green)
-                    .frame(width: 8, height: 8)
+                    .frame(width: 6, height: 6)
                 Text(provider)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.primary)
@@ -77,21 +77,23 @@ struct NotchRootView: View {
             .monospacedDigit()
             .lineLimit(1)
             .truncationMode(.tail)
-            .minimumScaleFactor(0.8)
+            .minimumScaleFactor(0.75)
         }
     }
 
     @ViewBuilder
     private var rightEarPill: some View {
-        // 右耳：今日调用次数（标签+数字，不然裸数字不知所云）
+        // 右耳：今日调用次数（图标+数字紧凑呈现，防 16 寸真机 54.5pt 耳区截断）
         if vm.contentType == .token {
-            HStack(spacing: 4) {
-                Text("请求次数")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
+            HStack(spacing: 3) {
+                Image(systemName: "arrow.up.arrow.down")
+                    .font(.system(size: 8.5, weight: .semibold))
+                    .foregroundStyle(.secondary)
                 RollupText(text: usage.summary.calls, font: .system(size: 11, weight: .medium), color: .secondary)
             }
             .lineLimit(1)
+            .truncationMode(.tail)
+            .minimumScaleFactor(0.75)
         }
     }
 
