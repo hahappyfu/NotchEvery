@@ -268,10 +268,18 @@ public final class AntigravityStore: ObservableObject {
         func queryDB(url: URL, sql: String) {
             guard FileManager.default.fileExists(atPath: url.path) else { return }
             var db: OpaquePointer?
-            // 与 AntigravityProxyStore.openReadOnly 同理：普通只读先行以看到 WAL 未 checkpoint 数据
+            // 与 AntigravityProxyStore.openReadOnly 同理：普通只读先行以看到 WAL 未 checkpoint 数据；探针确保能真正读取，否则降级 immutable=1
             let readOnlyFlags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX
-            if sqlite3_open_v2(url.path, &db, readOnlyFlags, nil) != SQLITE_OK {
-                sqlite3_close(db)
+            var canRead = false
+            if sqlite3_open_v2(url.path, &db, readOnlyFlags, nil) == SQLITE_OK {
+                var probe: OpaquePointer?
+                if sqlite3_prepare_v2(db, "SELECT 1 FROM sqlite_master LIMIT 1;", -1, &probe, nil) == SQLITE_OK {
+                    sqlite3_finalize(probe)
+                    canRead = true
+                }
+            }
+            if !canRead {
+                if let db = db { sqlite3_close(db) }
                 db = nil
                 let uriFlags = SQLITE_OPEN_READONLY | SQLITE_OPEN_URI | SQLITE_OPEN_FULLMUTEX
                 guard sqlite3_open_v2("file://\(url.path)?immutable=1", &db, uriFlags, nil) == SQLITE_OK else {

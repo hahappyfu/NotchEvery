@@ -193,4 +193,69 @@ final class AntigravityProxyStoreTests: XCTestCase {
 
         sqlite3_close(writer)
     }
+
+    func testReadOnlyFallbackToImmutableWhenSHMUnavailable() throws {
+        // 模拟现实中写方退出/清理导致 -shm 缺失且目录只读（无法创建 -shm）时的错误码 14 场景。
+        // 旧实现因 sqlite3_open_v2 返回 0 未能触发降级导致读取全空，
+        // 新实现通过探针检测到 prepare 失败并平滑降级到 immutable=1。
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tempDir.path)
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+
+        let dbURL = tempDir.appendingPathComponent("proxy_logs.db")
+        var writer: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(dbURL.path, &writer), SQLITE_OK)
+        XCTAssertEqual(sqlite3_exec(writer, "PRAGMA journal_mode=WAL;", nil, nil, nil), SQLITE_OK)
+
+        let createTable = """
+        CREATE TABLE request_logs (
+            id TEXT PRIMARY KEY,
+            timestamp INTEGER,
+            method TEXT,
+            url TEXT,
+            status INTEGER,
+            duration INTEGER,
+            model TEXT,
+            error TEXT,
+            request_body TEXT,
+            response_body TEXT,
+            input_tokens INTEGER,
+            output_tokens INTEGER,
+            account_email TEXT,
+            mapped_model TEXT,
+            protocol TEXT,
+            client_ip TEXT,
+            username TEXT,
+            cached_tokens INTEGER
+        );
+        """
+        XCTAssertEqual(sqlite3_exec(writer, createTable, nil, nil, nil), SQLITE_OK)
+
+        let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+        let insertSQL = """
+        INSERT INTO request_logs (id, timestamp, method, url, status, duration, model, input_tokens, output_tokens, cached_tokens, account_email)
+        VALUES
+        ('fallback-1', \(nowMs), 'POST', '/v1', 200, 800, 'gemini-3.8-flash-high', 300, 100, 50, 'fallback@test.com');
+        """
+        XCTAssertEqual(sqlite3_exec(writer, insertSQL, nil, nil, nil), SQLITE_OK)
+        XCTAssertEqual(sqlite3_wal_checkpoint_v2(writer, nil, SQLITE_CHECKPOINT_TRUNCATE, nil, nil), SQLITE_OK)
+        sqlite3_close(writer)
+
+        // 移除 -shm 并设置目录为只读，确保任何试图以读写方式打开/创建 -shm 的行为受限
+        let shmPath = dbURL.path + "-shm"
+        try? FileManager.default.removeItem(atPath: shmPath)
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: tempDir.path)
+
+        let store = AntigravityProxyStore(dbPath: dbURL, interval: 60)
+        let data = store.fetchSnapshot()
+
+        // 必须成功降级到 immutable=1 读出主库数据，不能返回空
+        XCTAssertEqual(data.recentRequests.count, 1)
+        XCTAssertEqual(data.recentRequests.first?.id, "fallback-1")
+        XCTAssertEqual(data.recentRequests.first?.accountEmail, "fallback@test.com")
+        XCTAssertEqual(data.summary.calls, "1")
+    }
 }

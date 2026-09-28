@@ -168,11 +168,21 @@ public final class AntigravityProxyStore: ObservableObject {
 
     private static func openReadOnly(_ url: URL) -> OpaquePointer? {
         var db: OpaquePointer?
-        // 先普通只读打开才能读到 WAL 里未 checkpoint 的最新数据；immutable=1 会无视 WAL，
-        // 仅当 -shm 不可用（如写方已退出且目录只读，错误码 14）时才降级
+        // 先普通只读打开才能读到 WAL 里未 checkpoint 的最新数据；immutable=1 会无视 WAL。
+        // 但 sqlite3_open_v2 是惰性的，当 -shm 缺失且无写方或权限不足时 open 返回 0，后续 prepare 会报 14 (CANTOPEN)。
+        // 必须通过探针检测真实读取能力，不可用时才平滑降级到 immutable=1。
         let readOnlyFlags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX
-        if sqlite3_open_v2(url.path, &db, readOnlyFlags, nil) != SQLITE_OK {
-            sqlite3_close(db)
+        var canRead = false
+        if sqlite3_open_v2(url.path, &db, readOnlyFlags, nil) == SQLITE_OK {
+            var probe: OpaquePointer?
+            if sqlite3_prepare_v2(db, "SELECT 1 FROM sqlite_master LIMIT 1;", -1, &probe, nil) == SQLITE_OK {
+                sqlite3_finalize(probe)
+                canRead = true
+            }
+        }
+
+        if !canRead {
+            if let db = db { sqlite3_close(db) }
             db = nil
             let uriFlags = SQLITE_OPEN_READONLY | SQLITE_OPEN_URI | SQLITE_OPEN_FULLMUTEX
             guard sqlite3_open_v2("file://\(url.path)?immutable=1", &db, uriFlags, nil) == SQLITE_OK else {
