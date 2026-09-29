@@ -40,63 +40,27 @@ public enum TokenFormatUtils {
         return "\(count)"
     }
 
-    /// 智能精简模型名称为友好的短名徽标文本（保留版本号与关键档位）
+    /// 智能精简模型名称为友好的徽标文本：
+    /// Claude 系列压缩为「型号-代际」短名；其余模型（gemini/qwen/deepseek/glm…）原名已具
+    /// 辨识度，保留原样仅剔除冗余尾部段，防止被折叠为单一名词。
     public static func friendlyModelName(_ full: String) -> String {
+        guard !full.isEmpty else { return "" }
         let lower = full.lowercased()
 
-        // 1. Gemini 系列：精确识别版本（3.8 / 3.7 / 2.5 / 3 等）+ 变体
-        if lower.contains("gemini") {
-            var version = ""
+        // Claude 系列：提取型号（sonnet/opus/haiku/fable）与代际
+        let kinds = ["sonnet", "opus", "haiku", "fable"]
+        if let kind = kinds.first(where: { lower.contains($0) }) {
             let parts = lower.components(separatedBy: "-")
-            for part in parts {
-                if Double(part) != nil || (part.allSatisfy { $0.isNumber || $0 == "." } && !part.isEmpty && part.contains { $0.isNumber }) {
-                    version = part
-                    break
+            if let idx = parts.firstIndex(of: kind) {
+                // 代际段：1~2 位纯数字，多段以 "." 连接（haiku-4-5 → 4.5）
+                var digits = parts[(idx + 1)...].filter(isVersionPart)
+                if digits.isEmpty {
+                    // 旧式命名：代际在型号前（claude-3-5-sonnet-20241022）
+                    digits = parts[..<idx].filter(isVersionPart)
                 }
+                return digits.isEmpty ? kind : "\(kind)-\(digits.joined(separator: "."))"
             }
-
-            var kind = ""
-            if lower.contains("flash") {
-                if lower.contains("high") { kind = "Flash High" }
-                else if lower.contains("low") { kind = "Flash Low" }
-                else if lower.contains("lite") { kind = "Flash Lite" }
-                else if lower.contains("medium") { kind = "Flash Med" }
-                else if lower.contains("tiered") { kind = "Flash Tier" }
-                else { kind = "Flash" }
-            } else if lower.contains("pro") {
-                if lower.contains("high") { kind = "Pro High" }
-                else if lower.contains("low") { kind = "Pro Low" }
-                else { kind = "Pro" }
-            }
-
-            if !version.isEmpty && !kind.isEmpty {
-                return "\(version) \(kind)"
-            } else if !kind.isEmpty {
-                return kind
-            } else if !version.isEmpty {
-                return "Gemini \(version)"
-            }
-            return "Gemini"
-        }
-
-        // 2. Claude 系列：提取代际与型号
-        if lower.contains("sonnet") {
-            if lower.contains("3-5") || lower.contains("3.5") { return "Sonnet 3.5" }
-            if lower.contains("3-7") || lower.contains("3.7") { return "Sonnet 3.7" }
-            if lower.contains("4-6") || lower.contains("4.6") { return "Sonnet 4.6" }
-            if lower.contains("5") { return "Sonnet 5" }
-            return "Sonnet"
-        }
-        if lower.contains("opus") {
-            if lower.contains("4-6") || lower.contains("4.6") { return "Opus 4.6" }
-            if lower.contains("5") { return "Opus 5" }
-            return "Opus"
-        }
-        if lower.contains("haiku") {
-            if lower.contains("4-5") || lower.contains("4.5") { return "Haiku 4.5" }
-            if lower.contains("4") { return "Haiku 4" }
-            if lower.contains("3-5") || lower.contains("3.5") { return "Haiku 3.5" }
-            return "Haiku"
+            return full
         }
 
         // 3. OpenAI 与其他开源模型
@@ -104,7 +68,20 @@ public enum TokenFormatUtils {
         if lower.contains("o1") { return "o1" }
         if lower.contains("o3") { return "o3" }
         if lower.contains("120b") { return "OSS 120B" }
-        return full
+
+        // 4. 其余模型：保留原名，仅剔除冗余尾部段
+        return full.components(separatedBy: "-")
+            .filter { $0.lowercased() != "tiered" }
+            .joined(separator: "-")
+    }
+
+    /// 版本代际段：1~2 位纯数字或点分版本号（如 5、4-5、3.5），排除 20241022 这类日期段
+    private static func isVersionPart(_ part: String) -> Bool {
+        guard !part.isEmpty else { return false }
+        let subparts = part.split(separator: ".")
+        return !subparts.isEmpty && subparts.allSatisfy { sub in
+            !sub.isEmpty && sub.count <= 2 && sub.allSatisfy(\.isNumber)
+        }
     }
 
     /// 计算缓存命中比例（0.0 ~ 1.0）

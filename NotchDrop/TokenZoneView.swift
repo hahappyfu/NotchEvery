@@ -120,8 +120,8 @@ private struct TokenRowView: View {
     @State private var hovering = false
     @State private var flashOpacity: Double = 0
 
-    private let colIdentityW: CGFloat = 140
-    private let colTokensW: CGFloat = 180
+    private let colIdentityW: CGFloat = 145
+    private let colTokensW: CGFloat = 175
     private let colTimingW: CGFloat = 70
 
     private var cacheFraction: Double {
@@ -149,22 +149,16 @@ private struct TokenRowView: View {
         HStack(spacing: 0) {
             // 1. 左栏：身份（定宽 145，左对齐）
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 5) {
-                    Text(TokenFormatUtils.friendlyModelName(row.model))
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1.5)
-                        .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
-                        .lineLimit(1)
+                Text(TokenFormatUtils.friendlyModelName(row.model))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1.5)
+                    .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+                    .lineLimit(1)
 
-                    Text(row.friendlyAccountName)
-                        .font(.system(size: 10.5, weight: .medium))
-                        .foregroundStyle(Color.white.opacity(0.9))
-                        .lineLimit(1)
-                }
-                Text(row.accountEmailPrefix.isEmpty ? row.time : row.accountEmailPrefix)
-                    .font(.system(size: 9.5).monospacedDigit())
+                Text(row.friendlyAccountName)
+                    .font(.system(size: 9.5, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }

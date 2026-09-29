@@ -28,13 +28,27 @@ final class TokenFormatUtilsTests: XCTestCase {
     }
 
     func testFriendlyModelName() {
-        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-3.8-flash-high"), "3.8 Flash High")
-        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-3.7-flash"), "3.7 Flash")
-        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-2.5-pro"), "2.5 Pro")
-        XCTAssertEqual(TokenFormatUtils.friendlyModelName("claude-3-5-sonnet-20241022"), "Sonnet 3.5")
-        XCTAssertEqual(TokenFormatUtils.friendlyModelName("claude-sonnet-5"), "Sonnet 5")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName(""), "")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-3.8-flash"), "gemini-3.8-flash")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-3.8-flash-high"), "gemini-3.8-flash-high")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-2.5-pro"), "gemini-2.5-pro")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("claude-3-5-sonnet-20241022"), "sonnet-3.5")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("claude-3.5-sonnet"), "sonnet-3.5")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("claude-sonnet-5"), "sonnet-5")
         XCTAssertEqual(TokenFormatUtils.friendlyModelName("gpt-4o-2024-08-06"), "GPT-4o")
         XCTAssertEqual(TokenFormatUtils.friendlyModelName("custom-model"), "custom-model")
+    }
+
+    /// 多供应商模型名：保留辨识度，防止被折叠为单一名词
+    func testFriendlyModelNameMultiVendors() {
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("gemini-3.7-flash-tiered"), "gemini-3.7-flash")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("Qwen3.8-Flash"), "Qwen3.8-Flash")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("DeepSeek-V4-Pro"), "DeepSeek-V4-Pro")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("deepseek-v3"), "deepseek-v3")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("glm-5.3-flash"), "glm-5.3-flash")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("claude-opus-5"), "opus-5")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("claude-fable-5"), "fable-5")
+        XCTAssertEqual(TokenFormatUtils.friendlyModelName("claude-haiku-4-5"), "haiku-4.5")
     }
 
     func testCacheRateFractionAndTier() {

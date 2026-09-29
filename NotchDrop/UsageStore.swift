@@ -2,7 +2,7 @@
 //  UsageStore.swift
 //  NotchEvery
 //
-//  单数据源适配器：Antigravity Tools 本地反代日志（~/.antigravity_tools/proxy_logs.db）。
+//  单数据源适配器：CC Switch 本地用量库（~/.cc-switch/cc-switch.db）。
 //  数据流：只读安全抓取 SQLite → 归一化/格式化 → 主线程发布。
 //
 
@@ -96,7 +96,7 @@ public final class UsageStore: ObservableObject {
         refreshing = true
 
         DispatchQueue.global(qos: .utility).async { [weak self] in
-            let data = AntigravityProxyStore.fetch(dbPath: AntigravityProxyStore.defaultDBPath)
+            let data = CCSwitchUsageStore.fetch(dbPath: CCSwitchUsageStore.defaultDBPath)
 
             DispatchQueue.main.async {
                 guard let self = self else { return }
@@ -121,11 +121,9 @@ public final class UsageStore: ObservableObject {
     }
 }
 
-// MARK: - AntigravityProxyStore 数据源实现
+// MARK: - CCSwitchUsageStore 数据源实现
 
-public final class AntigravityProxyStore: ObservableObject {
-    public static let shared = AntigravityProxyStore()
-
+public enum CCSwitchUsageStore {
     public static let defaultDBPath: URL = {
         let base: URL
         if let pw = getpwuid(getuid()), let dir = pw.pointee.pw_dir {
@@ -133,44 +131,41 @@ public final class AntigravityProxyStore: ObservableObject {
         } else {
             base = FileManager.default.homeDirectoryForCurrentUser
         }
-        return base.appendingPathComponent(".antigravity_tools/proxy_logs.db")
+        return base.appendingPathComponent(".cc-switch/cc-switch.db")
     }()
 
-    private let dbPath: URL
-    private let interval: TimeInterval
-
-    public init(dbPath: URL = AntigravityProxyStore.defaultDBPath, interval: TimeInterval = 3) {
-        self.dbPath = dbPath
-        self.interval = interval
-    }
-
-    public func fetchSnapshot(now: Date = Date()) -> UsageData {
-        Self.fetch(dbPath: dbPath, now: now)
-    }
-
-    public static func fetch(dbPath: URL, now: Date = Date()) -> UsageData {
+    public static func fetch(dbPath: URL = defaultDBPath, now: Date = Date()) -> UsageData {
         guard let db = openReadOnly(dbPath) else { return .empty }
         defer { sqlite3_close(db) }
-
-        var data = UsageData()
-        data.providerName = "本地反代 :8045"
-        data.providerId = "antigravity-proxy"
-        data.recentRequests = queryRecent(db)
+        sqlite3_busy_timeout(db, 500)
 
         let startOfDay = Calendar.current.startOfDay(for: now)
-        let (summary, fraction, cacheTotal) = queryTodaySummary(db, since: startOfDay)
-        data.summary = summary
-        data.cacheRateFraction = fraction
-        data.footer.cacheReadTotal = cacheTotal
-        data.footer.lastRequestAt = queryLatestCreatedAt(db)
+        let startOfDayTimestamp = Int64(startOfDay.timeIntervalSince1970)
+
+        var data = UsageData()
+        let (provName, provId) = queryCurrentProvider(db)
+        data.providerName = provName
+        data.providerId = provId
+        data.recentRequests = queryRecent(db, startOfDayTimestamp: startOfDayTimestamp)
+
+        // 若当前未查到 is_current 供应商，回退取最近一次请求的供应商名
+        if data.providerName == nil, let latest = data.recentRequests.first {
+            data.providerName = latest.accountEmail
+        }
+
+        let summaryTuple = querySummary(db, startOfDayTimestamp: startOfDayTimestamp)
+        data.summary = summaryTuple.summary
+        data.cacheRateFraction = summaryTuple.cacheRateFraction
+        data.footer = UsageFooter(
+            cacheReadTotal: summaryTuple.cacheReadTotal,
+            lastRequestAt: queryLastRequestTime(db)
+        )
+
         return data
     }
 
     private static func openReadOnly(_ url: URL) -> OpaquePointer? {
         var db: OpaquePointer?
-        // 先普通只读打开才能读到 WAL 里未 checkpoint 的最新数据；immutable=1 会无视 WAL。
-        // 但 sqlite3_open_v2 是惰性的，当 -shm 缺失且无写方或权限不足时 open 返回 0，后续 prepare 会报 14 (CANTOPEN)。
-        // 必须通过探针检测真实读取能力，不可用时才平滑降级到 immutable=1。
         let readOnlyFlags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX
         var canRead = false
         if sqlite3_open_v2(url.path, &db, readOnlyFlags, nil) == SQLITE_OK {
@@ -186,116 +181,139 @@ public final class AntigravityProxyStore: ObservableObject {
             db = nil
             let uriFlags = SQLITE_OPEN_READONLY | SQLITE_OPEN_URI | SQLITE_OPEN_FULLMUTEX
             guard sqlite3_open_v2("file://\(url.path)?immutable=1", &db, uriFlags, nil) == SQLITE_OK else {
-                sqlite3_close(db)
-                usageLog.info("antigravity proxy db unavailable at \(url.path)")
+                if let db = db { sqlite3_close(db) }
                 return nil
             }
         }
         sqlite3_exec(db, "PRAGMA query_only = ON;", nil, nil, nil)
-        sqlite3_busy_timeout(db, 500)
         return db
     }
 
     private static func prepare(_ db: OpaquePointer, _ sql: String) -> OpaquePointer? {
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            usageLog.error("prepare failed: \(String(cString: sqlite3_errmsg(db)))")
             return nil
         }
         return stmt
     }
 
-    private static func queryRecent(_ db: OpaquePointer) -> [TokenRequest] {
+    private static func text(_ stmt: OpaquePointer, _ col: Int32) -> String {
+        guard let cStr = sqlite3_column_text(stmt, col) else { return "" }
+        return String(cString: cStr)
+    }
+
+    private static func queryRecent(_ db: OpaquePointer, startOfDayTimestamp: Int64) -> [TokenRequest] {
         let sql = """
-            SELECT id, timestamp, model, input_tokens, output_tokens,
-                   duration, status, account_email, mapped_model, cached_tokens
-            FROM request_logs
-            ORDER BY timestamp DESC
-            LIMIT 5
-            """
+        SELECT
+            l.request_id,
+            l.created_at,
+            l.model,
+            l.input_tokens,
+            l.output_tokens,
+            l.cache_read_tokens,
+            CAST(l.total_cost_usd AS REAL),
+            l.status_code,
+            COALESCE(l.latency_ms, l.duration_ms, 0),
+            COALESCE(p.name, l.provider_id)
+        FROM proxy_request_logs l
+        LEFT JOIN providers p ON p.id = l.provider_id
+        WHERE l.created_at >= ?
+        ORDER BY l.created_at DESC
+        LIMIT 5;
+        """
         guard let stmt = prepare(db, sql) else { return [] }
         defer { sqlite3_finalize(stmt) }
 
-        var rows: [TokenRequest] = []
+        sqlite3_bind_int64(stmt, 1, startOfDayTimestamp)
+        var list: [TokenRequest] = []
         while sqlite3_step(stmt) == SQLITE_ROW {
-            let tsRaw = sqlite3_column_int64(stmt, 1)
-            let date = tsRaw > 10_000_000_000
-                ? Date(timeIntervalSince1970: TimeInterval(tsRaw) / 1000.0)
-                : Date(timeIntervalSince1970: TimeInterval(tsRaw))
+            let reqId = text(stmt, 0)
+            let createdAt = sqlite3_column_int64(stmt, 1)
+            let model = text(stmt, 2)
+            let inTokens = Int(sqlite3_column_int64(stmt, 3))
+            let outTokens = Int(sqlite3_column_int64(stmt, 4))
+            let cachedTokens = Int(sqlite3_column_int64(stmt, 5))
+            let costUSD = sqlite3_column_double(stmt, 6)
+            let status = Int(sqlite3_column_int(stmt, 7))
+            let latencyMs = sqlite3_column_double(stmt, 8)
+            let provName = text(stmt, 9)
 
-            let mappedModel = text(stmt, 8)
-            let rawModel = text(stmt, 2)
-            let displayModel = (mappedModel?.isEmpty == false ? mappedModel : rawModel) ?? "unknown"
-            let email = text(stmt, 7)
-            let cached = Int(sqlite3_column_int64(stmt, 9))
+            let timeStr = timeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(createdAt)))
+            let costStr = formatCost(usd: costUSD, priced: true)
 
-            rows.append(TokenRequest(
-                id: text(stmt, 0) ?? "",
-                time: timeFormatter.string(from: date),
-                model: displayModel,
-                inputTokens: Int(sqlite3_column_int64(stmt, 3)),
-                outputTokens: Int(sqlite3_column_int64(stmt, 4)),
-                durationSeconds: Double(sqlite3_column_int64(stmt, 5)) / 1000.0,
-                cost: "$0.00",
-                status: Int(sqlite3_column_int64(stmt, 6)),
-                accountEmail: email,
-                cachedTokens: cached
+            list.append(TokenRequest(
+                id: reqId,
+                time: timeStr,
+                model: model,
+                inputTokens: inTokens,
+                outputTokens: outTokens,
+                durationSeconds: latencyMs / 1000.0,
+                cost: costStr,
+                status: status,
+                accountEmail: provName.isEmpty ? nil : provName,
+                cachedTokens: cachedTokens
             ))
         }
-        return rows
+        return list
     }
 
-    private static func queryTodaySummary(_ db: OpaquePointer, since: Date) -> (TokenSummary, Double, Int) {
-        let sinceMs = Int64(since.timeIntervalSince1970 * 1000.0)
-        let sinceSec = Int64(since.timeIntervalSince1970)
-
+    private static func querySummary(_ db: OpaquePointer, startOfDayTimestamp: Int64) -> (summary: TokenSummary, cacheRateFraction: Double, cacheReadTotal: Int) {
         let sql = """
-            SELECT COUNT(*),
-                   COALESCE(SUM(input_tokens), 0),
-                   COALESCE(SUM(output_tokens), 0),
-                   COALESCE(SUM(cached_tokens), 0)
-            FROM request_logs
-            WHERE (timestamp >= ? AND timestamp > 10000000000)
-               OR (timestamp >= ? AND timestamp <= 10000000000)
-            """
+        SELECT
+            COUNT(*),
+            COALESCE(SUM(input_tokens), 0),
+            COALESCE(SUM(output_tokens), 0),
+            COALESCE(SUM(cache_read_tokens), 0),
+            COALESCE(SUM(CAST(total_cost_usd AS REAL)), 0.0)
+        FROM proxy_request_logs
+        WHERE created_at >= ?;
+        """
         guard let stmt = prepare(db, sql) else { return (.empty, 0, 0) }
         defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_int64(stmt, 1, sinceMs)
-        sqlite3_bind_int64(stmt, 2, sinceSec)
 
+        sqlite3_bind_int64(stmt, 1, startOfDayTimestamp)
         guard sqlite3_step(stmt) == SQLITE_ROW else { return (.empty, 0, 0) }
 
-        let calls = sqlite3_column_int64(stmt, 0)
-        let inputTokens = sqlite3_column_int64(stmt, 1)
-        let outputTokens = sqlite3_column_int64(stmt, 2)
-        let cachedTokens = sqlite3_column_int64(stmt, 3)
+        let callsCount = Int(sqlite3_column_int64(stmt, 0))
+        let inTotal = Int(sqlite3_column_int64(stmt, 1))
+        let outTotal = Int(sqlite3_column_int64(stmt, 2))
+        let cacheReadTotal = Int(sqlite3_column_int64(stmt, 3))
+        let costTotalUSD = sqlite3_column_double(stmt, 4)
 
-        let total = inputTokens + outputTokens
-        let fraction = inputTokens > 0 ? min(1.0, max(0.0, Double(cachedTokens) / Double(inputTokens))) : 0
+        let totalTokens = inTotal + outTotal + cacheReadTotal
+        let totalTokensStr = TokenFormatUtils.formatCompactTokens(totalTokens)
+
+        let denominator = inTotal + cacheReadTotal
+        let fraction = denominator > 0 ? Double(cacheReadTotal) / Double(denominator) : 0
+        let cacheRateStr = String(format: "%.1f%%", fraction * 100)
+        let costStr = formatCost(usd: costTotalUSD, priced: true)
+        let callsStr = "\(callsCount)次"
 
         let summary = TokenSummary(
-            totalTokens: total.formatted(),
-            cacheRate: String(format: "%.1f%%", fraction * 100),
-            calls: "\(calls)",
-            cost: "$0.00"
+            totalTokens: totalTokensStr,
+            cacheRate: cacheRateStr,
+            calls: callsStr,
+            cost: costStr
         )
-        return (summary, fraction, Int(cachedTokens))
+        return (summary, fraction, cacheReadTotal)
     }
 
-    private static func queryLatestCreatedAt(_ db: OpaquePointer) -> Date? {
-        let sql = """
-            SELECT timestamp
-            FROM request_logs
-            ORDER BY timestamp DESC
-            LIMIT 1
-            """
+    private static func queryLastRequestTime(_ db: OpaquePointer) -> Date? {
+        let sql = "SELECT created_at FROM proxy_request_logs ORDER BY created_at DESC LIMIT 1"
         guard let stmt = prepare(db, sql) else { return nil }
         defer { sqlite3_finalize(stmt) }
         guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
-        let ts = sqlite3_column_int64(stmt, 0)
-        return ts > 10_000_000_000
-            ? Date(timeIntervalSince1970: TimeInterval(ts) / 1000.0)
-            : Date(timeIntervalSince1970: TimeInterval(ts))
+        return Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(stmt, 0)))
+    }
+
+    private static func queryCurrentProvider(_ db: OpaquePointer) -> (name: String?, id: String?) {
+        let sql = "SELECT id, name FROM providers WHERE is_current = 1 ORDER BY (CASE WHEN app_type = 'claude-desktop' THEN 0 ELSE 1 END) LIMIT 1"
+        guard let stmt = prepare(db, sql) else { return (nil, nil) }
+        defer { sqlite3_finalize(stmt) }
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return (nil, nil) }
+        let idStr = text(stmt, 0)
+        let nameStr = text(stmt, 1)
+        return (nameStr.isEmpty ? nil : nameStr, idStr.isEmpty ? nil : idStr)
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -304,8 +322,10 @@ public final class AntigravityProxyStore: ObservableObject {
         return f
     }()
 
-    private static func text(_ stmt: OpaquePointer?, _ column: Int32) -> String? {
-        guard let c = sqlite3_column_text(stmt, column) else { return nil }
-        return String(cString: c)
+    public static func formatCost(usd: Double, priced: Bool) -> String {
+        guard priced else { return "未定价" }
+        if usd >= 0.01 { return String(format: "$%.2f", usd) }
+        if usd > 0 { return String(format: "$%.4f", usd) }
+        return "$0.00"
     }
 }
