@@ -4,7 +4,7 @@
 //
 import SwiftUI
 
-/// 三页外壳：滑动切页 + dots + 耳区（设置走右键菜单 Popover，挂根，右上齿轮已删）。
+/// 两页外壳：滑动切页 + dots + 耳区（设置走右键菜单 Popover，挂根，右上齿轮已删）。
 struct NotchRootView: View {
     @StateObject var vm: NotchViewModel
     @StateObject private var usage = UsageStore.shared
@@ -131,9 +131,6 @@ private struct PageTransitionWrapper: View, Equatable {
                 OverviewPageView(vm: vm)
             case .token:
                 TokenZoneView()
-                    .frame(maxWidth: .infinity, alignment: .top)
-            case .gateway:
-                GatewayZoneView(vm: vm)
                     .frame(maxWidth: .infinity, alignment: .top)
             }
         }

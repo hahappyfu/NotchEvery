@@ -181,7 +181,6 @@ class NotchViewModel: NSObject, ObservableObject {
     enum ContentType: Int, Codable, Hashable, Equatable {
         case normal
         case token
-        case gateway
     }
 
     // ——— 几何经由 NotchGeometry 计算，Published 仍在门面以保持绑定 ———
@@ -257,15 +256,8 @@ class NotchViewModel: NSObject, ObservableObject {
     @PublishedPersist(key: "hapticFeedback", defaultValue: true)
     var hapticFeedback: Bool
 
-    /// 网关分区开关（设置页持久化；关闭时从分页剔除）
-    @PublishedPersist(key: "showGatewayZone", defaultValue: true)
-    var showGatewayZone: Bool
-
-    /// 参与分页的区序：三页（概览 ｜ Token ｜ 网关）。网关页关时剔除网关。
-    static let baseZoneOrder: [ContentType] = [.normal, .token, .gateway]
-    static func zoneOrder(gatewayEnabled: Bool) -> [ContentType] {
-        gatewayEnabled ? baseZoneOrder : [.normal, .token]
-    }
+    /// 参与分页的区序：两页（概览 ｜ Token）。
+    static let baseZoneOrder: [ContentType] = [.normal, .token]
 
     let hapticSender = PassthroughSubject<Void, Never>()
 
@@ -383,10 +375,9 @@ class NotchViewModel: NSObject, ObservableObject {
     /// 设置 Popover 弹出状态：根齿轮与右键菜单共用（设置走 Popover 定案，不占分页）
     @Published var showSettings = false
 
-    /// 功能区固定顺序：左右滑按此循环（概览｜Token｜网关）。网关页由 showGatewayZone 控制剔除。
-    /// 单一事实来源 = ConfigStore 键 showGatewayZone（与 @PublishedPersist 同一持久层），默认开。
+    /// 功能区固定顺序：左右滑按此循环（概览｜Token）。
     static var zoneOrder: [ContentType] {
-        zoneOrder(gatewayEnabled: ConfigStore.shared.get("showGatewayZone", fallback: true))
+        baseZoneOrder
     }
 
     /// 页—区分区双向映射（TabView 分页地基，越界回概览）

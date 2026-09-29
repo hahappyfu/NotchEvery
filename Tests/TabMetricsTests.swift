@@ -48,15 +48,14 @@ final class TabMetricsTests: XCTestCase {
     }
 
     func testPageZoneMapping() {
-        // 三分区映射：概览、Token、网关（开关默认开）
-        ConfigStore.shared.set(1, forKey: "showGatewayZone") // Int 走 NSNumber.boolValue，等价 Bool
-        XCTAssertEqual(NotchViewModel.zoneOrder, [.normal, .token, .gateway])
+        // 双分区映射：概览、Token
+        XCTAssertEqual(NotchViewModel.zoneOrder, [.normal, .token])
         XCTAssertEqual(NotchViewModel.pageIndex(for: .normal), 0)
         XCTAssertEqual(NotchViewModel.pageIndex(for: .token), 1)
-        XCTAssertEqual(NotchViewModel.pageIndex(for: .gateway), 2)
         XCTAssertEqual(NotchViewModel.zone(for: 0), .normal)
         XCTAssertEqual(NotchViewModel.zone(for: 1), .token)
-        XCTAssertEqual(NotchViewModel.zone(for: 2), .gateway)
+        XCTAssertEqual(NotchViewModel.zone(for: -1), .normal)
+        XCTAssertEqual(NotchViewModel.zone(for: 99), .normal)
     }
 
     func testOverviewPageSpacingAndPadding() {

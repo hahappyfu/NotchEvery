@@ -11,7 +11,6 @@ final class ArrowKeyZoneSwitchTests: XCTestCase {
     }
 
     func testArrowKeyNextAdvancesAndWraps() {
-        ConfigStore.shared.set(1, forKey: "showGatewayZone")
         let mocks = MockEventMonitors()
         let vm = NotchViewModel(events: mocks)
         mocks.arrowKey.sink { [weak vm] direction in
@@ -24,14 +23,10 @@ final class ArrowKeyZoneSwitchTests: XCTestCase {
         XCTAssertTrue(vm.hasSeenSwipeHint)
 
         mocks.arrowKey.send(.rightForward)
-        XCTAssertEqual(vm.contentType, .gateway)
-
-        mocks.arrowKey.send(.rightForward)
         XCTAssertEqual(vm.contentType, .normal)
     }
 
-    func testArrowKeyPreviousWrapsAround() {
-        ConfigStore.shared.set(1, forKey: "showGatewayZone")
+    func testArrowKeyPreviousRewindsAndWraps() {
         let mocks = MockEventMonitors()
         let vm = NotchViewModel(events: mocks)
         mocks.arrowKey.sink { [weak vm] direction in
@@ -40,26 +35,10 @@ final class ArrowKeyZoneSwitchTests: XCTestCase {
 
         vm.jumpToZone(.normal)
         mocks.arrowKey.send(.leftBackward)
-        XCTAssertEqual(vm.contentType, .gateway)
+        XCTAssertEqual(vm.contentType, .token)
         XCTAssertTrue(vm.hasSeenSwipeHint)
-    }
-
-    func testArrowKeyRespectsGatewayDisabled() {
-        ConfigStore.shared.set(0, forKey: "showGatewayZone")
-        let mocks = MockEventMonitors()
-        let vm = NotchViewModel(events: mocks)
-        mocks.arrowKey.sink { [weak vm] direction in
-            vm?.handleArrowKey(direction)
-        }.store(in: &cancellables)
-
-        vm.jumpToZone(.normal)
-        mocks.arrowKey.send(.rightForward)
-        XCTAssertEqual(vm.contentType, .token)
-
-        mocks.arrowKey.send(.rightForward)
-        XCTAssertEqual(vm.contentType, .normal)
 
         mocks.arrowKey.send(.leftBackward)
-        XCTAssertEqual(vm.contentType, .token)
+        XCTAssertEqual(vm.contentType, .normal)
     }
 }
