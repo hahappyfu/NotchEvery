@@ -52,8 +52,26 @@ final class TokenFormatUtilsTests: XCTestCase {
     }
 
     func testCacheRateFractionAndTier() {
-        let fraction = TokenFormatUtils.cacheRateFraction(cached: 81698, input: 170075)
-        XCTAssertEqual(String(format: "%.2f", fraction), "0.48")
+        // cc-switch 口径：input 为增量未缓存输入，cached 为缓存读取输入，总输入 = input + cached
+        // 典型命中场景：cached (3000) > input (1000)，总输入 4000，命中率 75%（旧实现会直接截断为 100%）
+        let fractionHigh = TokenFormatUtils.cacheRateFraction(cached: 3000, input: 1000)
+        XCTAssertEqual(String(format: "%.2f", fractionHigh), "0.75")
+
+        // 真实日志样例：cached (93108) 与 input (6065)，命中率 93.9%
+        let fractionReal = TokenFormatUtils.cacheRateFraction(cached: 93108, input: 6065)
+        XCTAssertEqual(String(format: "%.3f", fractionReal), "0.939")
+
+        // 低命中率场景：cached (192) 与 input (1532)，总输入 1724，命中率 11.1%
+        let fractionLow = TokenFormatUtils.cacheRateFraction(cached: 192, input: 1532)
+        XCTAssertEqual(String(format: "%.3f", fractionLow), "0.111")
+
+        // 无缓存场景
+        XCTAssertEqual(TokenFormatUtils.cacheRateFraction(cached: 0, input: 1000), 0.0)
+        // 边界保护
+        XCTAssertEqual(TokenFormatUtils.cacheRateFraction(cached: 0, input: 0), 0.0)
+        XCTAssertEqual(TokenFormatUtils.cacheRateFraction(cached: -1, input: 1000), 0.0)
+
+        // 缓存等级判断
         XCTAssertEqual(TokenFormatUtils.cacheRateTier(fraction: 0.78), .high)
         XCTAssertEqual(TokenFormatUtils.cacheRateTier(fraction: 0.48), .medium)
         XCTAssertEqual(TokenFormatUtils.cacheRateTier(fraction: 0.20), .low)

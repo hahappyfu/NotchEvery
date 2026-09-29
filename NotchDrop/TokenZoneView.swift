@@ -167,7 +167,7 @@ private struct TokenRowView: View {
             // 2. 中栏：Token 构成与缓存命中（定宽 180，水平居中）
             VStack(spacing: 3) {
                 HStack(alignment: .firstTextBaseline) {
-                    let total = row.inputTokens + row.outputTokens
+                    let total = row.inputTokens + row.outputTokens + row.cachedTokens
                     Text(TokenFormatUtils.formatCompactTokens(total))
                         .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
                         .foregroundStyle(.white)

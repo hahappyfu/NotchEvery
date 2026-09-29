@@ -85,9 +85,14 @@ public enum TokenFormatUtils {
     }
 
     /// 计算缓存命中比例（0.0 ~ 1.0）
+    /// 口径说明：在 cc-switch 与现代 LLM API 中，input 为未命中缓存的增量输入 Tokens，cached 为读取缓存的 Tokens。
+    /// 总 Prompt Tokens = input + cached。
+    /// 缓存命中率 = cached / (input + cached)。
     public static func cacheRateFraction(cached: Int, input: Int) -> Double {
-        guard input > 0, cached > 0 else { return 0 }
-        return min(1.0, max(0.0, Double(cached) / Double(input)))
+        guard cached > 0 else { return 0 }
+        let totalInput = input + cached
+        guard totalInput > 0 else { return 0 }
+        return min(1.0, max(0.0, Double(cached) / Double(totalInput)))
     }
 
     /// 缓存命中等级（用于驱动语义色彩）
