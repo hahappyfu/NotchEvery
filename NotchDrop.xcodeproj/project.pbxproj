@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AD278622E22CEAA86F3CE928 /* ModelDistributionCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5DBC24BF6910457FC4AB97 /* ModelDistributionCardView.swift */; };
 		AD623CB6163DBEA68623E727 /* GearHapticFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */; };
 		7AE10C0220260AB0000000E2 /* AnimationMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */; };
 		7B01000120260CD000000006 /* PreferencesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000005 /* PreferencesWindow.swift */; };
@@ -89,6 +90,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AD5DBC24BF6910457FC4AB97 /* ModelDistributionCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDistributionCardView.swift; sourceTree = "<group>"; };
 		AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GearHapticFeedback.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000005 /* PreferencesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindow.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000007 /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
@@ -197,6 +199,7 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				AD5DBC24BF6910457FC4AB97 /* ModelDistributionCardView.swift */,
 				AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */,
 				148901512DC9149900F2E06C /* Share.swift */,
 				148901522DC9149900F2E06C /* Share+View.swift */,
@@ -399,6 +402,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD278622E22CEAA86F3CE928 /* ModelDistributionCardView.swift in Sources */,
 				AD623CB6163DBEA68623E727 /* GearHapticFeedback.swift in Sources */,
 				504381992C3A8893000ED325 /* NotchWindow.swift in Sources */,
 				504381AF2C3ADFF2000ED325 /* NotchContentView.swift in Sources */,
