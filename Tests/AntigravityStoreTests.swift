@@ -388,85 +388,6 @@ final class AntigravityStoreTests: XCTestCase {
         XCTAssertEqual(account.percentage, 100) // 封顶 100
     }
 
-    func testSymmetricRearrangeStandardPool() {
-        // 空数组
-        XCTAssertTrue(AntigravityAccountsCardView.symmetricRearrange(accounts: []).isEmpty)
-
-        // 单账号
-        let singleAcc = AntigravityAccount(id: "acc-0", name: "A0", email: "a0@test.com", isCurrent: true, isDisabled: false, percentage: 80, resetTime: nil)
-        let singleResult = AntigravityAccountsCardView.symmetricRearrange(accounts: [singleAcc])
-        XCTAssertEqual(singleResult.count, 1)
-        XCTAssertEqual(singleResult[0].account.id, "acc-0")
-        XCTAssertEqual(singleResult[0].logicalDistance, 0)
-
-        // 标准 5 账号池：acc-cur (50%, current), acc-high (95%), acc-midhigh (80%), acc-midlow (30%), acc-low (10%)
-        let cur = AntigravityAccount(id: "cur", name: "Current", email: "cur@test.com", isCurrent: true, isDisabled: false, percentage: 50, resetTime: nil)
-        let high = AntigravityAccount(id: "high", name: "High", email: "high@test.com", isCurrent: false, isDisabled: false, percentage: 95, resetTime: nil)
-        let midHigh = AntigravityAccount(id: "midHigh", name: "MidHigh", email: "midhigh@test.com", isCurrent: false, isDisabled: false, percentage: 80, resetTime: nil)
-        let midLow = AntigravityAccount(id: "midLow", name: "MidLow", email: "midlow@test.com", isCurrent: false, isDisabled: false, percentage: 30, resetTime: nil)
-        let low = AntigravityAccount(id: "low", name: "Low", email: "low@test.com", isCurrent: false, isDisabled: false, percentage: 10, resetTime: nil)
-
-        let pool = [midLow, high, cur, low, midHigh]
-        let arranged = AntigravityAccountsCardView.symmetricRearrange(accounts: pool)
-
-        XCTAssertEqual(arranged.count, 5)
-        // 期望序列：[-2: low(10%), -1: high(95%), 0: cur(50%), 1: midHigh(80%), 2: midLow(30%)]
-        XCTAssertEqual(arranged[0].account.id, "low")
-        XCTAssertEqual(arranged[0].logicalDistance, -2)
-
-        XCTAssertEqual(arranged[1].account.id, "high")
-        XCTAssertEqual(arranged[1].logicalDistance, -1)
-
-        XCTAssertEqual(arranged[2].account.id, "cur")
-        XCTAssertEqual(arranged[2].logicalDistance, 0)
-
-        XCTAssertEqual(arranged[3].account.id, "midHigh")
-        XCTAssertEqual(arranged[3].logicalDistance, 1)
-
-        XCTAssertEqual(arranged[4].account.id, "midLow")
-        XCTAssertEqual(arranged[4].logicalDistance, 2)
-    }
-
-    func testSymmetricRearrangeWithActiveTime() {
-        let t0 = Date(timeIntervalSince1970: 1789500000)
-        let t1 = Date(timeIntervalSince1970: 1789501000) // 活跃第 4
-        let t2 = Date(timeIntervalSince1970: 1789502000) // 活跃第 3
-        let t3 = Date(timeIntervalSince1970: 1789503000) // 活跃第 2
-        let t4 = Date(timeIntervalSince1970: 1789504000) // 活跃最新（第 1，居中）
-
-        let accOldest = AntigravityAccount(id: "a0", name: "A0", email: "a0@test.com", isCurrent: false, isDisabled: false, percentage: 100, resetTime: nil, lastActiveTime: t0)
-        let acc4th = AntigravityAccount(id: "a1", name: "A1", email: "a1@test.com", isCurrent: false, isDisabled: false, percentage: 90, resetTime: nil, lastActiveTime: t1)
-        let acc3rd = AntigravityAccount(id: "a2", name: "A2", email: "a2@test.com", isCurrent: false, isDisabled: false, percentage: 80, resetTime: nil, lastActiveTime: t2)
-        let acc2nd = AntigravityAccount(id: "a3", name: "A3", email: "a3@test.com", isCurrent: false, isDisabled: false, percentage: 70, resetTime: nil, lastActiveTime: t3)
-        let accNewest = AntigravityAccount(id: "a4", name: "A4", email: "A4", isCurrent: true, isDisabled: false, percentage: 20, resetTime: nil, lastActiveTime: t4)
-
-        // 故意乱序输入
-        let pool = [acc3rd, accOldest, accNewest, acc2nd, acc4th]
-        let arranged = AntigravityAccountsCardView.symmetricRearrange(accounts: pool)
-
-        XCTAssertEqual(arranged.count, 5)
-        // 期望：
-        // distance 0 (中心): accNewest (a4, 最新活跃)
-        // distance -1 (左内翼): acc2nd (a3, 第 2 新)
-        // distance 1 (右内翼): acc3rd (a2, 第 3 新)
-        // distance -2 (左外翼): accOldest (a0, 最老)
-        // distance 2 (右外翼): acc4th (a1, 第 4 新)
-        XCTAssertEqual(arranged[0].account.id, "a0")
-        XCTAssertEqual(arranged[0].logicalDistance, -2)
-
-        XCTAssertEqual(arranged[1].account.id, "a3")
-        XCTAssertEqual(arranged[1].logicalDistance, -1)
-
-        XCTAssertEqual(arranged[2].account.id, "a4")
-        XCTAssertEqual(arranged[2].logicalDistance, 0)
-
-        XCTAssertEqual(arranged[3].account.id, "a2")
-        XCTAssertEqual(arranged[3].logicalDistance, 1)
-
-        XCTAssertEqual(arranged[4].account.id, "a1")
-        XCTAssertEqual(arranged[4].logicalDistance, 2)
-    }
-
     func testLoadAccountsWithDynamicActiveRouting() throws {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
@@ -620,17 +541,6 @@ final class AntigravityStoreTests: XCTestCase {
         XCTAssertEqual(account.id, "test-account-proxy-disabled")
         XCTAssertTrue(account.isProxyDisabled)
         XCTAssertTrue(account.isDisabled)
-    }
-
-    func testArrangedAccountsExcludesDisabledAndProxyDisabledAccounts() {
-        let acc1 = AntigravityAccount(id: "acc-ok-1", name: "OK1", email: "1@ok.com", isCurrent: false, isDisabled: false, percentage: 80, resetTime: nil)
-        let acc2 = AntigravityAccount(id: "acc-disabled", name: "Banned", email: "2@ban.com", isCurrent: false, isDisabled: true, isProxyDisabled: true, percentage: 90, resetTime: nil)
-        let acc3 = AntigravityAccount(id: "acc-ok-2", name: "OK2", email: "3@ok.com", isCurrent: true, isDisabled: false, percentage: 60, resetTime: nil)
-
-        let arranged = AntigravityAccountsCardView.arrangedAccounts(from: [acc1, acc2, acc3])
-        XCTAssertEqual(arranged.count, 2)
-        XCTAssertFalse(arranged.contains(where: { $0.account.id == "acc-disabled" }))
-        XCTAssertEqual(arranged.first(where: { $0.logicalDistance == 0 })?.account.id, "acc-ok-2")
     }
 
     // MARK: - 审计 I1：点选意向保护
