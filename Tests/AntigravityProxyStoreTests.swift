@@ -212,6 +212,57 @@ final class AntigravityProxyStoreTests: XCTestCase {
         XCTAssertEqual(data.recentRequests[1].accountEmail, "P1")
     }
 
+    // MARK: - 今日模型用量分布
+
+    func testQueryModelUsagesAggregationAndShare() throws {
+        let (dbURL, db) = try openTempDB(fileName: "cc-switch.db")
+        defer {
+            sqlite3_close(db)
+            try? FileManager.default.removeItem(at: dbURL.deletingLastPathComponent())
+        }
+
+        let ts = todayNoonTimestamp
+        let yesterday = ts - 86400
+        // 今天 6 个模型 + 昨天干扰行；m-a 两行验证 calls 聚合
+        // dayTotal = (5000+1000) + 300 + 4000 + 30 + 2000 + 1000 = 13330
+        XCTAssertEqual(sqlite3_exec(db, insertLogSQL("""
+        ('r1', 'p1', 'claude-desktop', 'm-a', 'claude-opus-5', 5000, 0, 0, '0.001', 200, 1000, \(ts)),
+        ('r2', 'p1', 'claude-desktop', 'm-a', 'claude-opus-5', 1000, 0, 0, '0.001', 200, 1000, \(ts - 10)),
+        ('r3', 'p1', 'claude-desktop', 'm-b', 'claude-opus-5', 100, 100, 100, '0.002', 200, 1000, \(ts - 20)),
+        ('r4', 'p1', 'claude-desktop', 'm-c', 'claude-opus-5', 4000, 0, 0, '0.004', 200, 1000, \(ts - 30)),
+        ('r5', 'p1', 'claude-desktop', 'm-d', 'claude-opus-5', 10, 10, 10, '0.008', 200, 1000, \(ts - 40)),
+        ('r6', 'p1', 'claude-desktop', 'm-e', 'claude-opus-5', 2000, 0, 0, '0.016', 200, 1000, \(ts - 50)),
+        ('r7', 'p1', 'claude-desktop', 'm-f', 'claude-opus-5', 1000, 0, 0, '0.032', 200, 1000, \(ts - 60)),
+        ('r-old', 'p1', 'claude-desktop', 'm-old', 'claude-opus-5', 9000, 0, 0, '1.0', 200, 1000, \(yesterday))
+        """), nil, nil, nil), SQLITE_OK)
+        sqlite3_close(db)
+
+        let data = CCSwitchUsageStore.fetch(dbPath: dbURL)
+
+        // 只聚合当天，且只取 top5（m-d 总量 30 被切掉，m-old 属于昨天被过滤）
+        XCTAssertEqual(data.modelUsages.count, 5)
+        XCTAssertEqual(data.modelUsages.map(\.model), ["m-a", "m-c", "m-e", "m-f", "m-b"])
+
+        let first = data.modelUsages[0]
+        XCTAssertEqual(first.model, "m-a")
+        XCTAssertEqual(first.calls, 2)
+        XCTAssertEqual(first.totalTokens, 6000) // 5000 + 1000，input+output+cacheRead
+        XCTAssertEqual(first.cachedTokens, 0)
+        XCTAssertEqual(first.shareFraction, 6000.0 / 13330.0, accuracy: 1e-9)
+
+        let last = data.modelUsages[4]
+        XCTAssertEqual(last.model, "m-b")
+        XCTAssertEqual(last.totalTokens, 300)
+        XCTAssertEqual(last.cachedTokens, 100)
+        XCTAssertEqual(last.shareFraction, 300.0 / 13330.0, accuracy: 1e-9)
+
+        for item in data.modelUsages {
+            XCTAssertTrue(item.shareFraction >= 0.0 && item.shareFraction <= 1.0)
+        }
+
+        XCTAssertEqual(data.totalCostTodayUSD, 0.064, accuracy: 1e-9) // 0.002+0.002+0.004+0.008+0.016+0.032
+    }
+
     // MARK: - 文案格式化
 
     func testFormatCostBoundaries() {

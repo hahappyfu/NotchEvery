@@ -15,6 +15,33 @@ private let usageLog = Logger(subsystem: Bundle.main.bundleIdentifier ?? "NotchE
 
 // MARK: - 数据模型
 
+/// 单个模型的今日用量条目（shareFraction 为占今日全量 token 的比例）
+public struct ModelUsageItem: Identifiable, Equatable {
+    public var id: String { model }
+    public let model: String
+    public let calls: Int
+    public let totalTokens: Int
+    public let cachedTokens: Int
+    public let costUSD: Double
+    public let shareFraction: Double
+
+    public init(
+        model: String,
+        calls: Int,
+        totalTokens: Int,
+        cachedTokens: Int,
+        costUSD: Double,
+        shareFraction: Double
+    ) {
+        self.model = model
+        self.calls = calls
+        self.totalTokens = totalTokens
+        self.cachedTokens = cachedTokens
+        self.costUSD = costUSD
+        self.shareFraction = shareFraction
+    }
+}
+
 /// footer 数据（文案格式化在展示层）
 public struct UsageFooter: Equatable {
     public var cacheReadTotal: Int = 0
@@ -35,6 +62,9 @@ public struct UsageData: Equatable {
     public var footer = UsageFooter()
     public var providerName: String?
     public var providerId: String?
+    /// 今日按模型聚合的用量（token 降序，最多 5 条）
+    public var modelUsages: [ModelUsageItem] = []
+    public var totalCostTodayUSD: Double = 0.0
 
     public static let empty = UsageData()
 
@@ -44,7 +74,9 @@ public struct UsageData: Equatable {
         cacheRateFraction: Double = 0,
         footer: UsageFooter = UsageFooter(),
         providerName: String? = nil,
-        providerId: String? = nil
+        providerId: String? = nil,
+        modelUsages: [ModelUsageItem] = [],
+        totalCostTodayUSD: Double = 0.0
     ) {
         self.recentRequests = recentRequests
         self.summary = summary
@@ -52,6 +84,8 @@ public struct UsageData: Equatable {
         self.footer = footer
         self.providerName = providerName
         self.providerId = providerId
+        self.modelUsages = modelUsages
+        self.totalCostTodayUSD = totalCostTodayUSD
     }
 }
 
@@ -66,6 +100,8 @@ public final class UsageStore: ObservableObject {
     @Published public private(set) var footer = UsageFooter()
     @Published public private(set) var providerName: String?
     @Published public private(set) var providerId: String?
+    @Published public private(set) var modelUsages: [ModelUsageItem] = []
+    @Published public private(set) var totalCostTodayUSD: Double = 0.0
 
     private let interval: TimeInterval
     private var timer: Timer?
@@ -108,6 +144,8 @@ public final class UsageStore: ObservableObject {
                 if self.footer != data.footer { self.footer = data.footer }
                 if self.providerName != data.providerName { self.providerName = data.providerName }
                 if self.providerId != data.providerId { self.providerId = data.providerId }
+                if self.modelUsages != data.modelUsages { self.modelUsages = data.modelUsages }
+                if self.totalCostTodayUSD != data.totalCostTodayUSD { self.totalCostTodayUSD = data.totalCostTodayUSD }
             }
         }
     }
@@ -160,6 +198,10 @@ public enum CCSwitchUsageStore {
             cacheReadTotal: summaryTuple.cacheReadTotal,
             lastRequestAt: queryLastRequestTime(db)
         )
+
+        let modelTuple = queryModelUsages(db, startOfDayTimestamp: startOfDayTimestamp)
+        data.modelUsages = modelTuple.items
+        data.totalCostTodayUSD = modelTuple.totalCost
 
         return data
     }
@@ -304,6 +346,50 @@ public enum CCSwitchUsageStore {
         defer { sqlite3_finalize(stmt) }
         guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
         return Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(stmt, 0)))
+    }
+
+    /// 今日按模型聚合：token 降序取前 5；shareFraction 分母与 totalCost 均按今日全量口径
+    private static func queryModelUsages(_ db: OpaquePointer, startOfDayTimestamp: Int64) -> (items: [ModelUsageItem], totalCost: Double) {
+        let sql = """
+        SELECT
+            model,
+            COUNT(*) as calls,
+            COALESCE(SUM(input_tokens + output_tokens + cache_read_tokens), 0) as total_tokens,
+            COALESCE(SUM(cache_read_tokens), 0) as cached_tokens,
+            COALESCE(SUM(CAST(total_cost_usd AS REAL)), 0.0) as cost
+        FROM proxy_request_logs
+        WHERE created_at >= ?
+        GROUP BY model
+        ORDER BY total_tokens DESC;
+        """
+        guard let stmt = prepare(db, sql) else { return ([], 0) }
+        defer { sqlite3_finalize(stmt) }
+
+        sqlite3_bind_int64(stmt, 1, startOfDayTimestamp)
+        var rows: [(model: String, calls: Int, totalTokens: Int, cachedTokens: Int, cost: Double)] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            rows.append((
+                model: text(stmt, 0),
+                calls: Int(sqlite3_column_int64(stmt, 1)),
+                totalTokens: Int(sqlite3_column_int64(stmt, 2)),
+                cachedTokens: Int(sqlite3_column_int64(stmt, 3)),
+                cost: sqlite3_column_double(stmt, 4)
+            ))
+        }
+
+        let dayTotalTokens = rows.reduce(0) { $0 + $1.totalTokens }
+        let totalCost = rows.reduce(0.0) { $0 + $1.cost }
+        let items = rows.prefix(5).map { row in
+            ModelUsageItem(
+                model: row.model,
+                calls: row.calls,
+                totalTokens: row.totalTokens,
+                cachedTokens: row.cachedTokens,
+                costUSD: row.cost,
+                shareFraction: dayTotalTokens > 0 ? Double(row.totalTokens) / Double(dayTotalTokens) : 0.0
+            )
+        }
+        return (items, totalCost)
     }
 
     private static func queryCurrentProvider(_ db: OpaquePointer) -> (name: String?, id: String?) {
