@@ -201,46 +201,63 @@ struct NotchView: View {
         .animation(reduceMotion ? nil : (vm.transitionActive ? (isOpening ? vm.openAnimation : vm.closeAnimation) : nil), value: islandSize)
     }
 
-    /// 悬停 peek 提示：双模态胶囊（左侧 Antigravity 代理今日看板，右侧 AI 缓存命中率；自适应小 Peek 宽度杜绝溢出）
+    /// 悬停 peek 提示：双模态胶囊（左侧当前主力模型身份，右侧 AI 用量与缓存命中率，纯正原生字阶无杂乱图标）
     private var peekHint: some View {
-        HStack(spacing: 5) {
-            // 左区：Antigravity 代理今日看板
-            HStack(spacing: 4) {
+        HStack(spacing: 8) {
+            // 左区：当前主力模型身份微胶囊
+            HStack(spacing: 5) {
                 Circle()
-                    .fill(Color.green)
-                    .frame(width: 5, height: 5)
-                Text(islandSize.width < 230 ? "\(formattedTokensText) · \(formattedCallsText.replacingOccurrences(of: " 次", with: ""))" : "今日 \(formattedTokensText) · \(formattedCallsText)")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.90))
-                    .monospacedDigit()
+                    .fill(StudioColor.emerald)
+                    .frame(width: 4.5, height: 4.5)
+                Text(topModelName)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.92))
                     .lineLimit(1)
             }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
 
-            // 中区 + 右区：宽 Peek 保留完整分隔与文案；窄 Peek（< 230pt，如无刘海屏 200pt）紧凑降级
-            if islandSize.width >= 230 {
-                Rectangle()
-                    .fill(Color.white.opacity(0.18))
-                    .frame(width: 1, height: 10)
+            // 中区：极细半透明分割线
+            Rectangle()
+                .fill(Color.white.opacity(0.16))
+                .frame(width: 1, height: 9)
 
-                HStack(spacing: 3) {
-                    Text("⚡️ 缓存 \(formattedCacheRateText)")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(StudioColor.cyan)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                }
-            } else if usage.cacheRateFraction > 0 {
-                Text("⚡️\(formattedCacheRateText)")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(StudioColor.cyan)
+            // 右区：Token 用量与缓存命中率（纯净排版，等宽数字）
+            HStack(spacing: 5) {
+                Text(formattedTokensText)
+                    .font(.system(size: 11, weight: .semibold))
                     .monospacedDigit()
-                    .lineLimit(1)
+                    .foregroundStyle(Color.white.opacity(0.92))
+
+                if usage.cacheRateFraction > 0 {
+                    Text("·")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.white.opacity(0.35))
+                    Text(formattedCacheRateText)
+                        .font(.system(size: 11, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(StudioColor.cyan)
+                }
             }
         }
         .lineLimit(1)
         .minimumScaleFactor(0.75)
         .padding(.horizontal, 6)
         .frame(maxWidth: islandSize.width - 8, alignment: .center)
+    }
+
+    private var topModelName: String {
+        if let top = usage.modelUsages.first?.model, !top.isEmpty {
+            return TokenFormatUtils.friendlyModelName(top)
+        }
+        if let recent = usage.recentRequests.first?.model, !recent.isEmpty {
+            return TokenFormatUtils.friendlyModelName(recent)
+        }
+        if let provider = usage.providerName, !provider.isEmpty {
+            return provider
+        }
+        return "本地代理"
     }
 
     private var formattedTokensText: String {
