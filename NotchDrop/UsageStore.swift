@@ -360,6 +360,7 @@ public enum CCSwitchUsageStore {
         FROM proxy_request_logs
         WHERE created_at >= ?
         GROUP BY model
+        HAVING total_tokens > 0
         ORDER BY total_tokens DESC;
         """
         guard let stmt = prepare(db, sql) else { return ([], 0) }

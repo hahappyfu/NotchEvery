@@ -130,21 +130,25 @@ func modelPaletteColor(for index: Int) -> Color {
 private struct SegmentedProportionBar: View {
     let items: [ModelUsageItem]
 
+    private var validItems: [ModelUsageItem] {
+        items.filter { $0.totalTokens > 0 && $0.shareFraction > 0 }
+    }
+
     var body: some View {
         GeometryReader { geo in
             let totalW = geo.size.width
-            if items.isEmpty {
+            if validItems.isEmpty {
                 Capsule()
                     .fill(Color.white.opacity(0.08))
                     .frame(height: 6)
             } else {
                 let spacing: CGFloat = 1.5
-                let count = items.count
+                let count = validItems.count
                 let totalSpacing = CGFloat(max(0, count - 1)) * spacing
                 let availableW = max(0, totalW - totalSpacing)
 
                 HStack(spacing: spacing) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    ForEach(Array(validItems.enumerated()), id: \.element.id) { index, item in
                         let rawW = availableW * CGFloat(item.shareFraction)
                         let w = max(4.0, rawW)
                         RoundedRectangle(cornerRadius: 3, style: .continuous)

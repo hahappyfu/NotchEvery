@@ -223,7 +223,7 @@ final class AntigravityProxyStoreTests: XCTestCase {
 
         let ts = todayNoonTimestamp
         let yesterday = ts - 86400
-        // 今天 6 个模型 + 昨天干扰行；m-a 两行验证 calls 聚合
+        // 今天 6 个模型 + 1 条 0 Token 失败行 + 昨天干扰行；m-a 两行验证 calls 聚合
         // dayTotal = (5000+1000) + 300 + 4000 + 30 + 2000 + 1000 = 13330
         XCTAssertEqual(sqlite3_exec(db, insertLogSQL("""
         ('r1', 'p1', 'claude-desktop', 'm-a', 'claude-opus-5', 5000, 0, 0, '0.001', 200, 1000, \(ts)),
@@ -233,15 +233,17 @@ final class AntigravityProxyStoreTests: XCTestCase {
         ('r5', 'p1', 'claude-desktop', 'm-d', 'claude-opus-5', 10, 10, 10, '0.008', 200, 1000, \(ts - 40)),
         ('r6', 'p1', 'claude-desktop', 'm-e', 'claude-opus-5', 2000, 0, 0, '0.016', 200, 1000, \(ts - 50)),
         ('r7', 'p1', 'claude-desktop', 'm-f', 'claude-opus-5', 1000, 0, 0, '0.032', 200, 1000, \(ts - 60)),
+        ('r-zero', 'p1', 'claude-desktop', 'm-zero', 'claude-opus-5', 0, 0, 0, '0.0', 500, 1000, \(ts - 70)),
         ('r-old', 'p1', 'claude-desktop', 'm-old', 'claude-opus-5', 9000, 0, 0, '1.0', 200, 1000, \(yesterday))
         """), nil, nil, nil), SQLITE_OK)
         sqlite3_close(db)
 
         let data = CCSwitchUsageStore.fetch(dbPath: dbURL)
 
-        // 只聚合当天，且只取 top5（m-d 总量 30 被切掉，m-old 属于昨天被过滤）
+        // 只聚合当天且有消耗的模型，且只取 top5（m-d 总量 30 被切掉，m-zero 0消耗被过滤，m-old 属于昨天被过滤）
         XCTAssertEqual(data.modelUsages.count, 5)
         XCTAssertEqual(data.modelUsages.map(\.model), ["m-a", "m-c", "m-e", "m-f", "m-b"])
+        XCTAssertFalse(data.modelUsages.contains(where: { $0.model == "m-zero" }))
 
         let first = data.modelUsages[0]
         XCTAssertEqual(first.model, "m-a")
