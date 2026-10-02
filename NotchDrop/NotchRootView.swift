@@ -32,18 +32,26 @@ struct NotchRootView: View {
         // 宽度不再自钉 zone 宽：那会让外壳留白失效、内容永远贴边
         // （2026-09-11 探针坐实 box=704 / zone=640 / inner=640）；改由外壳给「面板宽−留白」的提案，内容按提案填充
         .zoneSizeReporter(active: true)
-        // 用量轮询随面板开合（与额度卡同节奏，收起即停）
-        .onAppear { UsageStore.shared.start() }
+        // 用量轮询随面板开合（与额度卡同节奏，收起即停）；AntigravityStore 供第二页账号昵称匹配
+        .onAppear {
+            UsageStore.shared.start()
+            AntigravityStore.shared.start()
+        }
         .onChange(of: vm.status) { status in
             if status == .closed {
                 UsageStore.shared.stop()
+                AntigravityStore.shared.stop()
             } else {
                 UsageStore.shared.start()
+                AntigravityStore.shared.start()
             }
         }
         // 收起兜底：NotchView 用 `if vm.status == .opened` 条件渲染摘掉整棵子树，
         // 视图被移除时上面的 onChange 收不到 .closed，停轮询只能靠 onDisappear。
-        .onDisappear { UsageStore.shared.stop() }
+        .onDisappear {
+            UsageStore.shared.stop()
+            AntigravityStore.shared.stop()
+        }
     }
 
     private var earsRow: some View {
