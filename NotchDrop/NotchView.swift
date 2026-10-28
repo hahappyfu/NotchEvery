@@ -225,7 +225,7 @@ struct NotchView: View {
 
             // 右区：Token 用量与缓存命中率（纯净排版，等宽数字）
             HStack(spacing: 5) {
-                Text(formattedTokensText)
+                Text(TokenFormatUtils.formatCompactTokens(usage.todayTotalTokens))
                     .font(.system(size: 11, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(Color.white.opacity(0.92))
@@ -258,17 +258,6 @@ struct NotchView: View {
             return provider
         }
         return "本地代理"
-    }
-
-    private var formattedTokensText: String {
-        let clean = usage.summary.totalTokens.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
-        if let count = Int(clean) {
-            return TokenFormatUtils.formatCompactTokens(count)
-        }
-        if clean.hasSuffix("K") || clean.hasSuffix("k") || clean.hasSuffix("M") || clean.hasSuffix("B") {
-            return clean
-        }
-        return usage.summary.totalTokens
     }
 
     private var formattedCallsText: String {

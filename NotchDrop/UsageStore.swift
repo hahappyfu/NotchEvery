@@ -22,7 +22,6 @@ public struct ModelUsageItem: Identifiable, Equatable {
     public let calls: Int
     public let totalTokens: Int
     public let cachedTokens: Int
-    public let costUSD: Double
     public let shareFraction: Double
 
     public init(
@@ -30,14 +29,12 @@ public struct ModelUsageItem: Identifiable, Equatable {
         calls: Int,
         totalTokens: Int,
         cachedTokens: Int,
-        costUSD: Double,
         shareFraction: Double
     ) {
         self.model = model
         self.calls = calls
         self.totalTokens = totalTokens
         self.cachedTokens = cachedTokens
-        self.costUSD = costUSD
         self.shareFraction = shareFraction
     }
 }
@@ -64,7 +61,10 @@ public struct UsageData: Equatable {
     public var providerId: String?
     /// 今日按模型聚合的用量（token 降序，最多 5 条）
     public var modelUsages: [ModelUsageItem] = []
-    public var totalCostTodayUSD: Double = 0.0
+    /// 今日全量 token（所有请求，含被列表截断的模型）
+    public var todayTotalTokens: Int = 0
+    /// 今日活跃模型数（有 token 消耗的去重模型数，不受前 5 条截断影响）
+    public var activeModelCount: Int = 0
 
     public static let empty = UsageData()
 
@@ -76,7 +76,8 @@ public struct UsageData: Equatable {
         providerName: String? = nil,
         providerId: String? = nil,
         modelUsages: [ModelUsageItem] = [],
-        totalCostTodayUSD: Double = 0.0
+        todayTotalTokens: Int = 0,
+        activeModelCount: Int = 0
     ) {
         self.recentRequests = recentRequests
         self.summary = summary
@@ -85,7 +86,8 @@ public struct UsageData: Equatable {
         self.providerName = providerName
         self.providerId = providerId
         self.modelUsages = modelUsages
-        self.totalCostTodayUSD = totalCostTodayUSD
+        self.todayTotalTokens = todayTotalTokens
+        self.activeModelCount = activeModelCount
     }
 }
 
@@ -101,7 +103,8 @@ public final class UsageStore: ObservableObject {
     @Published public private(set) var providerName: String?
     @Published public private(set) var providerId: String?
     @Published public private(set) var modelUsages: [ModelUsageItem] = []
-    @Published public private(set) var totalCostTodayUSD: Double = 0.0
+    @Published public private(set) var todayTotalTokens: Int = 0
+    @Published public private(set) var activeModelCount: Int = 0
 
     private let interval: TimeInterval
     private var timer: Timer?
@@ -145,7 +148,8 @@ public final class UsageStore: ObservableObject {
                 if self.providerName != data.providerName { self.providerName = data.providerName }
                 if self.providerId != data.providerId { self.providerId = data.providerId }
                 if self.modelUsages != data.modelUsages { self.modelUsages = data.modelUsages }
-                if self.totalCostTodayUSD != data.totalCostTodayUSD { self.totalCostTodayUSD = data.totalCostTodayUSD }
+                if self.todayTotalTokens != data.todayTotalTokens { self.todayTotalTokens = data.todayTotalTokens }
+                if self.activeModelCount != data.activeModelCount { self.activeModelCount = data.activeModelCount }
             }
         }
     }
@@ -201,7 +205,8 @@ public enum CCSwitchUsageStore {
 
         let modelTuple = queryModelUsages(db, startOfDayTimestamp: startOfDayTimestamp)
         data.modelUsages = modelTuple.items
-        data.totalCostTodayUSD = modelTuple.totalCost
+        data.todayTotalTokens = modelTuple.dayTotalTokens
+        data.activeModelCount = modelTuple.activeModelCount
 
         return data
     }
@@ -253,7 +258,6 @@ public enum CCSwitchUsageStore {
             l.input_tokens,
             l.output_tokens,
             l.cache_read_tokens,
-            CAST(l.total_cost_usd AS REAL),
             l.status_code,
             COALESCE(l.latency_ms, l.duration_ms, 0),
             COALESCE(p.name, l.provider_id)
@@ -275,13 +279,11 @@ public enum CCSwitchUsageStore {
             let inTokens = Int(sqlite3_column_int64(stmt, 3))
             let outTokens = Int(sqlite3_column_int64(stmt, 4))
             let cachedTokens = Int(sqlite3_column_int64(stmt, 5))
-            let costUSD = sqlite3_column_double(stmt, 6)
-            let status = Int(sqlite3_column_int(stmt, 7))
-            let latencyMs = sqlite3_column_double(stmt, 8)
-            let provName = text(stmt, 9)
+            let status = Int(sqlite3_column_int(stmt, 6))
+            let latencyMs = sqlite3_column_double(stmt, 7)
+            let provName = text(stmt, 8)
 
             let timeStr = timeFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(createdAt)))
-            let costStr = formatCost(usd: costUSD, priced: true)
 
             list.append(TokenRequest(
                 id: reqId,
@@ -290,7 +292,6 @@ public enum CCSwitchUsageStore {
                 inputTokens: inTokens,
                 outputTokens: outTokens,
                 durationSeconds: latencyMs / 1000.0,
-                cost: costStr,
                 status: status,
                 accountEmail: provName.isEmpty ? nil : provName,
                 cachedTokens: cachedTokens
@@ -305,8 +306,7 @@ public enum CCSwitchUsageStore {
             COUNT(*),
             COALESCE(SUM(input_tokens), 0),
             COALESCE(SUM(output_tokens), 0),
-            COALESCE(SUM(cache_read_tokens), 0),
-            COALESCE(SUM(CAST(total_cost_usd AS REAL)), 0.0)
+            COALESCE(SUM(cache_read_tokens), 0)
         FROM proxy_request_logs
         WHERE created_at >= ?;
         """
@@ -320,7 +320,6 @@ public enum CCSwitchUsageStore {
         let inTotal = Int(sqlite3_column_int64(stmt, 1))
         let outTotal = Int(sqlite3_column_int64(stmt, 2))
         let cacheReadTotal = Int(sqlite3_column_int64(stmt, 3))
-        let costTotalUSD = sqlite3_column_double(stmt, 4)
 
         let totalTokens = inTotal + outTotal + cacheReadTotal
         let totalTokensStr = TokenFormatUtils.formatCompactTokens(totalTokens)
@@ -328,14 +327,12 @@ public enum CCSwitchUsageStore {
         let denominator = inTotal + cacheReadTotal
         let fraction = denominator > 0 ? Double(cacheReadTotal) / Double(denominator) : 0
         let cacheRateStr = String(format: "%.1f%%", fraction * 100)
-        let costStr = formatCost(usd: costTotalUSD, priced: true)
         let callsStr = "\(callsCount)次"
 
         let summary = TokenSummary(
             totalTokens: totalTokensStr,
             cacheRate: cacheRateStr,
-            calls: callsStr,
-            cost: costStr
+            calls: callsStr
         )
         return (summary, fraction, cacheReadTotal)
     }
@@ -348,49 +345,45 @@ public enum CCSwitchUsageStore {
         return Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(stmt, 0)))
     }
 
-    /// 今日按模型聚合：token 降序取前 5；shareFraction 分母与 totalCost 均按今日全量口径
-    private static func queryModelUsages(_ db: OpaquePointer, startOfDayTimestamp: Int64) -> (items: [ModelUsageItem], totalCost: Double) {
+    /// 今日按模型聚合：token 降序取前 5；shareFraction 分母按今日全量口径
+    private static func queryModelUsages(_ db: OpaquePointer, startOfDayTimestamp: Int64) -> (items: [ModelUsageItem], dayTotalTokens: Int, activeModelCount: Int) {
         let sql = """
         SELECT
             model,
             COUNT(*) as calls,
             COALESCE(SUM(input_tokens + output_tokens + cache_read_tokens), 0) as total_tokens,
-            COALESCE(SUM(cache_read_tokens), 0) as cached_tokens,
-            COALESCE(SUM(CAST(total_cost_usd AS REAL)), 0.0) as cost
+            COALESCE(SUM(cache_read_tokens), 0) as cached_tokens
         FROM proxy_request_logs
         WHERE created_at >= ?
         GROUP BY model
         HAVING total_tokens > 0
         ORDER BY total_tokens DESC;
         """
-        guard let stmt = prepare(db, sql) else { return ([], 0) }
+        guard let stmt = prepare(db, sql) else { return ([], 0, 0) }
         defer { sqlite3_finalize(stmt) }
 
         sqlite3_bind_int64(stmt, 1, startOfDayTimestamp)
-        var rows: [(model: String, calls: Int, totalTokens: Int, cachedTokens: Int, cost: Double)] = []
+        var rows: [(model: String, calls: Int, totalTokens: Int, cachedTokens: Int)] = []
         while sqlite3_step(stmt) == SQLITE_ROW {
             rows.append((
                 model: text(stmt, 0),
                 calls: Int(sqlite3_column_int64(stmt, 1)),
                 totalTokens: Int(sqlite3_column_int64(stmt, 2)),
-                cachedTokens: Int(sqlite3_column_int64(stmt, 3)),
-                cost: sqlite3_column_double(stmt, 4)
+                cachedTokens: Int(sqlite3_column_int64(stmt, 3))
             ))
         }
 
         let dayTotalTokens = rows.reduce(0) { $0 + $1.totalTokens }
-        let totalCost = rows.reduce(0.0) { $0 + $1.cost }
         let items = rows.prefix(5).map { row in
             ModelUsageItem(
                 model: row.model,
                 calls: row.calls,
                 totalTokens: row.totalTokens,
                 cachedTokens: row.cachedTokens,
-                costUSD: row.cost,
                 shareFraction: dayTotalTokens > 0 ? Double(row.totalTokens) / Double(dayTotalTokens) : 0.0
             )
         }
-        return (items, totalCost)
+        return (items, dayTotalTokens, rows.count)
     }
 
     private static func queryCurrentProvider(_ db: OpaquePointer) -> (name: String?, id: String?) {
@@ -408,11 +401,4 @@ public enum CCSwitchUsageStore {
         f.dateFormat = "HH:mm"
         return f
     }()
-
-    public static func formatCost(usd: Double, priced: Bool) -> String {
-        guard priced else { return "未定价" }
-        if usd >= 0.01 { return String(format: "$%.2f", usd) }
-        if usd > 0 { return String(format: "$%.4f", usd) }
-        return "$0.00"
-    }
 }

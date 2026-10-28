@@ -17,7 +17,6 @@ public struct TokenRequest: Identifiable, Equatable {
     public let outputTokens: Int
     /// 耗时存数值（秒），展示层格式化，避免反解析字符串
     public let durationSeconds: Double
-    public let cost: String
     public let status: Int
     public var accountEmail: String?
     public let cachedTokens: Int
@@ -29,7 +28,6 @@ public struct TokenRequest: Identifiable, Equatable {
         inputTokens: Int,
         outputTokens: Int,
         durationSeconds: Double,
-        cost: String,
         status: Int,
         accountEmail: String? = nil,
         cachedTokens: Int = 0
@@ -40,7 +38,6 @@ public struct TokenRequest: Identifiable, Equatable {
         self.inputTokens = inputTokens
         self.outputTokens = outputTokens
         self.durationSeconds = durationSeconds
-        self.cost = cost
         self.status = status
         self.accountEmail = accountEmail
         self.cachedTokens = cachedTokens
@@ -72,16 +69,14 @@ public struct TokenSummary: Equatable {
     public let totalTokens: String
     public let cacheRate: String
     public let calls: String
-    public let cost: String
 
-    public init(totalTokens: String, cacheRate: String, calls: String, cost: String) {
+    public init(totalTokens: String, cacheRate: String, calls: String) {
         self.totalTokens = totalTokens
         self.cacheRate = cacheRate
         self.calls = calls
-        self.cost = cost
     }
 
-    public static let empty = TokenSummary(totalTokens: "0", cacheRate: "0.0%", calls: "0次", cost: "$0.00")
+    public static let empty = TokenSummary(totalTokens: "0", cacheRate: "0.0%", calls: "0次")
 }
 
 /// 数字变化时的滚动过渡：老值上滑出、新值滑入（reduceMotion 降级为直替）。

@@ -261,18 +261,5 @@ final class AntigravityProxyStoreTests: XCTestCase {
         for item in data.modelUsages {
             XCTAssertTrue(item.shareFraction >= 0.0 && item.shareFraction <= 1.0)
         }
-
-        XCTAssertEqual(data.totalCostTodayUSD, 0.064, accuracy: 1e-9) // 0.002+0.002+0.004+0.008+0.016+0.032
-    }
-
-    // MARK: - 文案格式化
-
-    func testFormatCostBoundaries() {
-        XCTAssertEqual(CCSwitchUsageStore.formatCost(usd: 0, priced: true), "$0.00")
-        XCTAssertEqual(CCSwitchUsageStore.formatCost(usd: 0.005, priced: true), "$0.0050")
-        XCTAssertEqual(CCSwitchUsageStore.formatCost(usd: 0.0099, priced: true), "$0.0099")
-        XCTAssertEqual(CCSwitchUsageStore.formatCost(usd: 0.01, priced: true), "$0.01")
-        XCTAssertEqual(CCSwitchUsageStore.formatCost(usd: 1.5, priced: true), "$1.50")
-        XCTAssertEqual(CCSwitchUsageStore.formatCost(usd: 0.5, priced: false), "未定价")
     }
 }

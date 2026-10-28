@@ -43,6 +43,10 @@ class NotchWindow: NSWindow {
         ]
         level = .statusBar + 8 // kills ibar lol
         hasShadow = false
+        // 消除 orderFrontRegardless 的系统淡入（「面板闪一下」的成因）
+        animationBehavior = .none
+        // NSWindow 默认 true，切换 App 时面板会消失
+        hidesOnDeactivate = false
         contentView?.wantsLayer = true
         contentView?.layer?.drawsAsynchronously = true
         // 恒黑岛（ADR-0010）：硬件刘海恒黑，窗口外观锁死深色，

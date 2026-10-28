@@ -14,10 +14,6 @@ public struct ModelDistributionCardView: View {
         self.store = store
     }
 
-    private var dayTotalTokens: Int {
-        store.modelUsages.reduce(0) { $0 + $1.totalTokens }
-    }
-
     public var body: some View {
         VStack(spacing: 0) {
             headerView
@@ -60,7 +56,7 @@ public struct ModelDistributionCardView: View {
 
             Spacer()
 
-            Text("\(TokenFormatUtils.formatCompactTokens(dayTotalTokens)) Tokens")
+            Text("\(TokenFormatUtils.formatCompactTokens(store.todayTotalTokens)) Tokens")
                 .font(.system(size: 11).monospacedDigit())
                 .foregroundStyle(.secondary)
         }
@@ -73,9 +69,13 @@ public struct ModelDistributionCardView: View {
 
     // MARK: - Model List
     private var modelListView: some View {
-        VStack(spacing: 4) {
+        // 整批先算一次显示名：短名是否唯一取决于同屏的其他行，不能按行独立决定；
+        // 去前缀后再过 friendlyModelName，保住 Claude 系列的型号压缩
+        let names = TokenFormatUtils.displayModelNames(store.modelUsages.map(\.model))
+            .map(TokenFormatUtils.friendlyModelName)
+        return VStack(spacing: 4) {
             ForEach(Array(store.modelUsages.prefix(5).enumerated()), id: \.element.id) { index, item in
-                ModelRowView(item: item, index: index)
+                ModelRowView(item: item, index: index, displayName: names[index])
             }
         }
     }
@@ -96,17 +96,20 @@ public struct ModelDistributionCardView: View {
                 .frame(height: 0.5)
 
             HStack {
-                Text(String(format: "今日花费 $%.2f", store.totalCostTodayUSD))
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-
                 Spacer()
 
-                Text("共 \(store.modelUsages.count) 个活跃模型")
+                Text(activeModelsText)
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// 活跃模型数与列表行数同源：超出前 5 时标明截断，避免「6 个模型 vs 5 行」的同屏矛盾
+    private var activeModelsText: String {
+        store.activeModelCount > 5
+            ? "共 \(store.activeModelCount) 个活跃模型 · 显示前 5"
+            : "共 \(store.activeModelCount) 个活跃模型"
     }
 }
 
@@ -172,19 +175,11 @@ private struct SegmentedProportionBar: View {
 private struct ModelRowView: View {
     let item: ModelUsageItem
     let index: Int
+    let displayName: String
     @State private var isHovered = false
 
     private var color: Color {
         modelPaletteColor(for: index)
-    }
-
-    private var costText: String? {
-        guard item.costUSD > 0 else { return nil }
-        if item.costUSD >= 0.01 {
-            return String(format: "$%.2f", item.costUSD)
-        } else {
-            return String(format: "$%.3f", item.costUSD)
-        }
     }
 
     var body: some View {
@@ -195,7 +190,7 @@ private struct ModelRowView: View {
                     .fill(color)
                     .frame(width: 5, height: 5)
 
-                Text(TokenFormatUtils.friendlyModelName(item.model))
+                Text(displayName)
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 5)
@@ -212,7 +207,7 @@ private struct ModelRowView: View {
                     .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
                     .foregroundStyle(.white)
 
-                Text(String(format: "%.1f%%", item.shareFraction * 100))
+                Text(TokenFormatUtils.percentText(item.shareFraction))
                     .font(.system(size: 10, weight: .medium).monospacedDigit())
                     .foregroundStyle(color)
             }
@@ -225,12 +220,6 @@ private struct ModelRowView: View {
                 Text("\(item.calls)次")
                     .font(.system(size: 9.5).monospacedDigit())
                     .foregroundStyle(.secondary)
-
-                if let cost = costText {
-                    Text(cost)
-                        .font(.system(size: 9.5, weight: .medium).monospacedDigit())
-                        .foregroundStyle(Color.white.opacity(0.75))
-                }
             }
             .lineLimit(1)
             .minimumScaleFactor(0.85)

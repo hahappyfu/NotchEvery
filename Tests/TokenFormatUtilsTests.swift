@@ -25,6 +25,34 @@ final class TokenFormatUtilsTests: XCTestCase {
         XCTAssertEqual(TokenFormatUtils.formatCount(89), "89")
         XCTAssertEqual(TokenFormatUtils.formatCount(2_412), "2.4k")
         XCTAssertEqual(TokenFormatUtils.formatCount(1_500_000), "1.5M")
+        XCTAssertEqual(TokenFormatUtils.formatCount(999_960_000), "1.0B")
+    }
+
+    /// 进位跳级：换算后四舍五入会印成 "1000.0" 时升到下一单位
+    func testCompactCarryOver() {
+        XCTAssertEqual(TokenFormatUtils.formatCompactTokens(999_949), "999.9k")
+        XCTAssertEqual(TokenFormatUtils.formatCompactTokens(999_960), "1.0M")
+        XCTAssertEqual(TokenFormatUtils.formatCompactTokens(999_960_000), "1.0B")
+        // k 是最小单位，无处可升
+        XCTAssertEqual(TokenFormatUtils.formatCompactTokens(9_999), "10.0k")
+    }
+
+    func testPercentText() {
+        XCTAssertEqual(TokenFormatUtils.percentText(0), "0.0%")
+        XCTAssertEqual(TokenFormatUtils.percentText(0.0003), "<0.1%")
+        XCTAssertEqual(TokenFormatUtils.percentText(0.415), "41.5%")
+    }
+
+    /// 短名在本批唯一才剥供应商前缀，重名保留全名
+    func testDisplayModelNames() {
+        XCTAssertEqual(
+            TokenFormatUtils.displayModelNames(["wbintl/deepseek-v4.1", "glm-5.3"]),
+            ["deepseek-v4.1", "glm-5.3"]
+        )
+        XCTAssertEqual(
+            TokenFormatUtils.displayModelNames(["wbintl/deepseek-v4.1", "deepseek-v4.1"]),
+            ["wbintl/deepseek-v4.1", "deepseek-v4.1"]
+        )
     }
 
     func testFriendlyModelName() {

@@ -11,15 +11,9 @@ public enum TokenFormatUtils {
     /// 格式化 Token 数量（超紧凑人类可读单位）：>= 1B、>= 1M、>= 1k 或原始数值（不带冗余单词，节省刘海宝贵宽度）
     public static func formatCompactTokens(_ count: Int) -> String {
         let v = Double(count)
-        if count >= 1_000_000_000 {
-            return String(format: "%.1fB", v / 1_000_000_000.0)
-        }
-        if count >= 1_000_000 {
-            return String(format: "%.1fM", v / 1_000_000.0)
-        }
-        if count >= 1_000 {
-            return String(format: "%.1fk", v / 1_000.0)
-        }
+        if count >= 1_000_000_000 { return compactUnit(v / 1_000_000_000.0, "B", next: nil) }
+        if count >= 1_000_000 { return compactUnit(v / 1_000_000.0, "M", next: "B") }
+        if count >= 1_000 { return compactUnit(v / 1_000.0, "k", next: "M") }
         return "\(count)"
     }
 
@@ -28,16 +22,23 @@ public enum TokenFormatUtils {
         return "\(formatCompactTokens(count)) Tokens"
     }
 
-    /// 格式化请求数/调用数：>= 1M、>= 1k 或原始数值
+    /// 格式化请求数/调用数：与 Token 同规则（>= 1B / 1M / 1k / 原值）
     public static func formatCount(_ count: Int) -> String {
-        let v = Double(count)
-        if count >= 1_000_000 {
-            return String(format: "%.1fM", v / 1_000_000.0)
+        formatCompactTokens(count)
+    }
+
+    /// 单位换算后若四舍五入会印成 "1000.0"（阈值 999.95 即 %.1f 的舍入点），升到下一单位
+    private static func compactUnit(_ value: Double, _ suffix: String, next: String?) -> String {
+        if value >= 999.95, let next {
+            return String(format: "%.1f\(next)", value / 1000.0)
         }
-        if count >= 1_000 {
-            return String(format: "%.1fk", v / 1_000.0)
-        }
-        return "\(count)"
+        return String(format: "%.1f\(suffix)", value)
+    }
+
+    /// 占比文本：极小非零值印 "<0.1%"（不显示为误导性的 "0.0%"）
+    public static func percentText(_ fraction: Double) -> String {
+        if fraction > 0, fraction < 0.0005 { return "<0.1%" }
+        return String(format: "%.1f%%", fraction * 100)
     }
 
     /// 智能精简模型名称为友好的徽标文本：
@@ -82,6 +83,15 @@ public enum TokenFormatUtils {
         return !subparts.isEmpty && subparts.allSatisfy { sub in
             !sub.isEmpty && sub.count <= 2 && sub.allSatisfy(\.isNumber)
         }
+    }
+
+    /// 批量去供应商前缀：短名（最后一个 "/" 之后）在本批唯一才剥，重名则保留全名，
+    /// 避免 `wbintl/deepseek-v4.1` 与 `deepseek-v4.1` 并排时出现两个一模一样的标签
+    public static func displayModelNames(_ models: [String]) -> [String] {
+        let shorts = models.map { $0.components(separatedBy: "/").last ?? $0 }
+        var seen: [String: Int] = [:]
+        for short in shorts { seen[short, default: 0] += 1 }
+        return models.indices.map { seen[shorts[$0]] == 1 ? shorts[$0] : models[$0] }
     }
 
     /// 计算缓存命中比例（0.0 ~ 1.0）
