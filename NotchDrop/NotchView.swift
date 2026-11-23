@@ -9,13 +9,12 @@ import SwiftUI
 
 struct NotchView: View {
     @StateObject var vm: NotchViewModel
-    @StateObject private var usage = UsageStore.shared
+    @ObservedObject private var magpie = MagpieStore.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State var dropTargeting: Bool = false
     @State private var swipeResolver = ScrollSwipeResolver()
 
-    /// 岛体尺寸：闲置=物理刘海同形；悬停=peek；展开=内容测量值；popping=微胀
+    /// 岛体尺寸：闲置=物理刘海同形；悬停=peek；展开=内容测量值
     var islandSize: CGSize {
         let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {
@@ -27,8 +26,6 @@ struct NotchView: View {
             )
         case .opened:
             return vm.zoneOpenedSize
-        case .popping:
-            return CGSize(width: vm.deviceNotchRect.width, height: vm.deviceNotchRect.height + 4)
         }
     }
 
@@ -38,7 +35,6 @@ struct NotchView: View {
         switch vm.status {
         case .closed: return isGhost ? IslandMetrics.peekBottomRadius(for: vm.deviceNotchRect.size) : 12
         case .opened: return IslandMetrics.openBottomRadius
-        case .popping: return 10
         }
     }
 
@@ -93,7 +89,6 @@ struct NotchView: View {
                 // 三重守卫：展开态、鼠标在面板内、未拖文件
                 guard vm.status == .opened else { return }
                 guard vm.notchOpenedRect.contains(NSEvent.mouseLocation) else { return }
-                guard !dropTargeting else { return }
 
                 guard let direction = swipeResolver.feed(
                     deltaX: delta.deltaX,
@@ -116,7 +111,6 @@ struct NotchView: View {
                 guard vm.status == .opened else { return }
                 guard NSApp.keyWindow is NotchWindow else { return }
                 guard vm.notchOpenedRect.contains(NSEvent.mouseLocation) else { return }
-                guard !dropTargeting else { return }
                 GearHapticFeedback.shared.triggerPageDetent()
                 vm.handleArrowKey(direction)
             }
@@ -126,7 +120,6 @@ struct NotchView: View {
                 .scale(scale: 0.92, anchor: .top).combined(with: .opacity)
             )
         }
-        .background(dragDetector)
         // 右键菜单挂根层级：外壳带 .disabled(true) 会把菜单按钮全置灰，根层级无禁用
         .contextMenu {
             Button(LocalizedStringKey("Settings")) {
@@ -154,7 +147,7 @@ struct NotchView: View {
             // frame 瞬时跳终值：所有形变动画由内部 islandSize 驱动，外层不再追弹簧
             .frame(width: islandSize.width + islandCornerRadius * 2, height: islandSize.height)
             .overlay(alignment: .bottom) {
-                if (vm.hoverGhosting || vm.ghostFading), usage.summary != TokenSummary.empty {
+                if vm.hoverGhosting || vm.ghostFading {
                     peekHint
                         .padding(.bottom, 8)
                         .transition(.opacity)
@@ -162,13 +155,12 @@ struct NotchView: View {
             }
     }
 
-    /// 岛体圆角（照抄原版数值：收起 8 / popping 10 / 展开 32；虚影态取 peek 底圆角）
+    /// 岛体圆角（照抄原版数值：收起 8 / 展开 32；虚影态取 peek 底圆角）
     var islandCornerRadius: CGFloat {
         let isGhost = vm.hoverGhosting || vm.ghostFading
         switch vm.status {
         case .closed: return isGhost ? IslandMetrics.peekBottomRadius(for: vm.deviceNotchRect.size) : 8
         case .opened: return IslandMetrics.openCornerRadius
-        case .popping: return 10
         }
     }
 
@@ -192,15 +184,15 @@ struct NotchView: View {
         .animation(reduceMotion ? nil : (vm.transitionActive ? (isOpening ? vm.openAnimation : vm.closeAnimation) : nil), value: islandSize)
     }
 
-    /// 悬停 peek 提示：双模态胶囊（左侧当前主力模型身份，右侧 AI 用量与缓存命中率，纯正原生字阶无杂乱图标）
+    /// 悬停 peek 提示：双模态胶囊（左侧状态点+身份，右侧今日净 Token 与缓存命中率）
     private var peekHint: some View {
         HStack(spacing: 8) {
-            // 左区：当前主力模型身份微胶囊
+            // 左区：状态点 + 最近提供商 · 模型短名
             HStack(spacing: 5) {
                 Circle()
-                    .fill(StudioColor.emerald)
+                    .fill(peekStatusColor)
                     .frame(width: 4.5, height: 4.5)
-                Text(topModelName)
+                Text(peekLeftText)
                     .font(.system(size: 10.5, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.92))
                     .lineLimit(1)
@@ -214,21 +206,31 @@ struct NotchView: View {
                 .fill(Color.white.opacity(0.16))
                 .frame(width: 1, height: 9)
 
-            // 右区：Token 用量与缓存命中率（纯净排版，等宽数字）
+            // 右区：今日净 Token 与缓存命中率（纯净排版，等宽数字）
             HStack(spacing: 5) {
-                Text(TokenFormatUtils.formatCompactTokens(usage.todayTotalTokens))
+                Text(TokenFormatUtils.formatCompactTokens(magpie.snapshot.todayNetTokens))
                     .font(.system(size: 11, weight: .semibold))
                     .monospacedDigit()
                     .foregroundStyle(Color.white.opacity(0.92))
 
-                if usage.cacheRateFraction > 0 {
+                if let rate = magpie.snapshot.todayCacheRate {
                     Text("·")
                         .font(.system(size: 10))
                         .foregroundStyle(Color.white.opacity(0.35))
-                    Text(formattedCacheRateText)
+                    Text(String(format: "%.1f%%", rate * 100))
                         .font(.system(size: 11, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(StudioColor.cyan)
+                }
+
+                if magpie.snapshot.activeAlertCount > 0 {
+                    Text("⚠")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(StudioColor.amber)
+                    Text("\(magpie.snapshot.activeAlertCount)")
+                        .font(.system(size: 10, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(StudioColor.amber)
                 }
             }
         }
@@ -238,55 +240,27 @@ struct NotchView: View {
         .frame(maxWidth: islandSize.width - 8, alignment: .center)
     }
 
-    private var topModelName: String {
-        if let top = usage.modelUsages.first?.model, !top.isEmpty {
-            return TokenFormatUtils.friendlyModelName(top)
-        }
-        if let recent = usage.recentRequests.first?.model, !recent.isEmpty {
-            return TokenFormatUtils.friendlyModelName(recent)
-        }
-        if let provider = usage.providerName, !provider.isEmpty {
-            return provider
-        }
-        return "本地代理"
+    /// Peek 左区状态点：活跃告警 → 琥珀，否则翠绿。
+    private var peekStatusColor: Color {
+        magpie.snapshot.activeAlertCount > 0 ? StudioColor.amber : StudioColor.emerald
     }
 
-    private var formattedCallsText: String {
-        let clean = usage.summary.calls.replacingOccurrences(of: "次", with: "").replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
-        if let count = Int(clean) {
-            return "\(TokenFormatUtils.formatCount(count)) 次"
+    /// Peek 左区文案：空态归因，否则「最近提供商 · 模型短名」。
+    private var peekLeftText: String {
+        let snapshot = magpie.snapshot
+        if !snapshot.hasMagpieDirectory {
+            return "等待 Magpie 数据"
         }
-        if !usage.summary.calls.isEmpty {
-            return "\(clean) 次"
+        if snapshot.todayRequestCount == 0 {
+            return "Magpie 就绪 · 今日 0 请求"
         }
-        return "0 次"
-    }
-
-    private var formattedCacheRateText: String {
-        String(format: "%.1f%%", usage.cacheRateFraction * 100)
-    }
-
-    @ViewBuilder
-    var dragDetector: some View {
-        RoundedRectangle(cornerRadius: islandBottomRadius)
-            .foregroundStyle(Color.black.opacity(0.001)) // 近乎透明的命中区：SwiftUI 最小可用不透明度
-            .contentShape(Rectangle())
-            .frame(width: islandSize.width + vm.dropDetectorRange, height: islandSize.height + vm.dropDetectorRange)
-            .onDrop(of: [.data], isTargeted: $dropTargeting) { _ in true }
-            .onChange(of: dropTargeting) { isTargeted in
-                if isTargeted, vm.status == .closed {
-                    // Open the notch when a file is dragged over it
-                    vm.notchOpen(.drag)
-                    vm.hapticSender.send()
-                } else if !isTargeted {
-                    // Close the notch when the dragged item leaves the area
-                    let mouseLocation: NSPoint = NSEvent.mouseLocation
-                    if !vm.notchOpenedRect.insetBy(dx: vm.inset, dy: vm.inset).contains(mouseLocation) {
-                        vm.notchClose()
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        guard let first = snapshot.recentFlows.first else {
+            return "Magpie 就绪"
+        }
+        let model = TokenFormatUtils.friendlyModelName(first.model)
+        if model.isEmpty {
+            return first.provider
+        }
+        return "\(first.provider) · \(model)"
     }
 }
-

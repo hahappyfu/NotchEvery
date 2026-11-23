@@ -161,12 +161,10 @@ class NotchViewModel: NSObject, ObservableObject {
     var notchSafeAreaTop: CGFloat {
         deviceNotchRect.height + 8
     }
-    let dropDetectorRange: CGFloat = 32
 
     enum Status: String, Codable, Hashable, Equatable {
         case closed
         case opened
-        case popping
     }
 
     enum OpenReason: String, Codable, Hashable, Equatable {
@@ -254,8 +252,6 @@ class NotchViewModel: NSObject, ObservableObject {
 
     /// 参与分页的区序：三页（概览 ｜ Token ｜ 供应商额度）。
     static let baseZoneOrder: [ContentType] = [.overview, .token, .providers]
-
-    let hapticSender = PassthroughSubject<Void, Never>()
 
     /// hover 展开后的延迟收起任务（防刘海→面板路径单帧误判闪烁）
     private var hoverCloseWorkItem: DispatchWorkItem?
@@ -436,10 +432,5 @@ class NotchViewModel: NSObject, ObservableObject {
 
     func markSwipeHintSeen() {
         hasSeenSwipeHint = true
-    }
-
-    func notchPop() {
-        openReason = .unknown
-        status = .popping
     }
 }

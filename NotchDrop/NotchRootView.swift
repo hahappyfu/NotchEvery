@@ -7,7 +7,7 @@ import SwiftUI
 /// 两页外壳：滑动切页 + dots + 耳区（设置走右键菜单 Popover，挂根，右上齿轮已删）。
 struct NotchRootView: View {
     @StateObject var vm: NotchViewModel
-    @StateObject private var usage = UsageStore.shared
+    @ObservedObject private var magpie = MagpieStore.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// 中央禁放区两侧边距（ADR-0009）：禁放区总宽 = 挖槽宽 + 2×margin，只画背景
     private let deadZoneMargin: CGFloat = 8
@@ -32,28 +32,26 @@ struct NotchRootView: View {
         // 宽度不再自钉 zone 宽：那会让外壳留白失效、内容永远贴边
         // （2026-09-11 探针坐实 box=704 / zone=640 / inner=640）；改由外壳给「面板宽−留白」的提案，内容按提案填充
         .zoneSizeReporter(active: true)
-        // 用量轮询随面板开合（与额度卡同节奏）；Magpie 三页共用实时快照，开即启、关即停
+        // Magpie 三页共用实时快照，开即启、关即停
         .onAppear {
-            UsageStore.shared.start()
-            AntigravityStore.shared.start()
             MagpieStore.shared.start()
         }
         .onChange(of: vm.status) { status in
             if status == .closed {
-                UsageStore.shared.stop()
-                AntigravityStore.shared.stop()
                 MagpieStore.shared.stop()
             } else {
-                UsageStore.shared.start()
-                AntigravityStore.shared.start()
                 MagpieStore.shared.start()
+            }
+        }
+        // 悬停虚影态：立即追平一次，Peek 呈现最新数据
+        .onChange(of: vm.hoverGhosting) { ghosting in
+            if ghosting {
+                MagpieStore.shared.catchUp()
             }
         }
         // 收起兜底：NotchView 用 `if vm.status == .opened` 条件渲染摘掉整棵子树，
         // 视图被移除时上面的 onChange 收不到 .closed，停轮询只能靠 onDisappear。
         .onDisappear {
-            UsageStore.shared.stop()
-            AntigravityStore.shared.stop()
             MagpieStore.shared.stop()
         }
     }
@@ -76,36 +74,122 @@ struct NotchRootView: View {
 
     @ViewBuilder
     private var leftEarPill: some View {
-        // 左耳：当前 cc-switch 供应商（claude-desktop 槽）；查无则整只隐藏
-        if vm.contentType == .token, let provider = usage.providerName {
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(Color.green)
-                    .frame(width: 6, height: 6)
-                Text(provider)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.primary)
+        let snapshot = MagpieStore.shared.snapshot
+        switch vm.contentType {
+        case .overview:
+            if let text = EarSummary.overviewLeft(dimension: MagpieStore.shared.distributionDimension, snapshot: snapshot) {
+                earTextPill(statusDot: StudioColor.emerald, text: text)
             }
-            .monospacedDigit()
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .minimumScaleFactor(0.75)
+        case .token:
+            if let text = EarSummary.flowLeft(snapshot: snapshot) {
+                let provider = snapshot.recentFlows.first?.provider ?? ""
+                let icon = snapshot.providerGroups.first(where: { $0.id == provider || $0.name == provider })?.icon
+                HStack(spacing: 4) {
+                    ProviderIconView(icon: icon, providerID: provider, size: 11)
+                    Text(text)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+                .monospacedDigit()
+                .truncationMode(.tail)
+            }
+        case .providers:
+            let r = EarSummary.providersLeft(snapshot: snapshot)
+            earTextPill(statusDot: r.hasAlert ? StudioColor.amber : StudioColor.emerald, text: r.text)
         }
     }
 
     @ViewBuilder
     private var rightEarPill: some View {
-        // 右耳：今日调用次数（图标+数字紧凑呈现，防 16 寸真机 54.5pt 耳区截断）
-        if vm.contentType == .token {
+        let snapshot = MagpieStore.shared.snapshot
+        switch vm.contentType {
+        case .overview:
+            let r = EarSummary.overviewRight(snapshot: snapshot)
+            if r.time != nil || r.alerts > 0 {
+                HStack(spacing: 3) {
+                    if let time = r.time {
+                        Image(systemName: "clock")
+                            .font(.system(size: 8.5, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        Text(time)
+                            .font(.system(size: 11, weight: .medium))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    if r.alerts > 0 {
+                        alertBadge(count: r.alerts)
+                    }
+                }
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.75)
+            }
+        case .token:
+            let r = EarSummary.flowRight(snapshot: snapshot)
             HStack(spacing: 3) {
                 Image(systemName: "arrow.up.arrow.down")
                     .font(.system(size: 8.5, weight: .semibold))
                     .foregroundStyle(.secondary)
-                RollupText(text: usage.summary.calls, font: .system(size: 11, weight: .medium), color: .secondary)
+                RollupText(text: r.requests, font: .system(size: 11, weight: .medium), color: .secondary)
+                if r.alerts > 0 {
+                    alertBadge(count: r.alerts)
+                }
             }
             .lineLimit(1)
             .truncationMode(.tail)
             .minimumScaleFactor(0.75)
+        case .providers:
+            let r = EarSummary.providersRight(snapshot: snapshot)
+            if r.checkin != nil || r.alerts > 0 {
+                HStack(spacing: 3) {
+                    if let checkin = r.checkin {
+                        Text(checkin)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    if r.alerts > 0 {
+                        alertBadge(count: r.alerts)
+                    }
+                }
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.75)
+            }
+        }
+    }
+
+    /// 状态点 + 单行文案胶囊（P1/P3 左耳共用）。
+    private func earTextPill(statusDot: Color, text: String) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(statusDot)
+                .frame(width: 6, height: 6)
+            Text(text)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .monospacedDigit()
+        .truncationMode(.tail)
+    }
+
+    /// 黄色告警角标：可点击，直跳 P3 供应商额度页。
+    private func alertBadge(count: Int) -> some View {
+        HStack(spacing: 2) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(StudioColor.amber)
+            Text("\(count)")
+                .font(.system(size: 10, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(StudioColor.amber)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            vm.jumpToZone(.providers)
         }
     }
 

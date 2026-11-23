@@ -172,7 +172,23 @@ struct GeneralSettingsTab: View {
                             Text("反代数据源")
                                 .font(.system(size: 13))
                             Spacer()
-                            Text("Antigravity Tools")
+                            Text("Magpie (~/.config/magpie)")
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+
+                        Divider().padding(.leading, 16)
+
+                        HStack(spacing: 6) {
+                            Text("网关")
+                                .font(.system(size: 13))
+                            Spacer()
+                            Circle()
+                                .fill(gatewayOnline ? StudioColor.emerald : .gray)
+                                .frame(width: 6, height: 6)
+                            Text(gatewayText)
                                 .font(.system(size: 13))
                                 .foregroundStyle(.secondary)
                         }
@@ -190,5 +206,15 @@ struct GeneralSettingsTab: View {
                 }
             }
         }
+    }
+
+    /// 网关在线态：绿点在线 / 灰点未运行。
+    private var gatewayOnline: Bool {
+        if case .online = MagpieStore.shared.snapshot.gateway { return true }
+        return false
+    }
+
+    private var gatewayText: String {
+        ProviderQuotaFormat.gatewayText(MagpieStore.shared.snapshot.gateway)
     }
 }

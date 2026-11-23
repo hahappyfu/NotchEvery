@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AD5BBD0F2FF01317103B81DE /* EarSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD29208824A7A4AC76E534BA /* EarSummary.swift */; };
+		AD5E58AEAA7F1BC27CF2B816 /* EarSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD376E5794662BDF61AB95E3 /* EarSummaryTests.swift */; };
 		ADCBEA9DC42962367F8F52A4 /* ProviderQuotaZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBCECC8A8A8BC669868A971 /* ProviderQuotaZoneView.swift */; };
 		AD6113C887B50EFAD24DA5D7 /* ProviderQuotaFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADFD2C8460327F2213C7B038 /* ProviderQuotaFormat.swift */; };
 		ADA7995FD6AD8FE83EA144F9 /* ProviderQuotaFormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBF5B8E5F662A4429D784C2 /* ProviderQuotaFormatTests.swift */; };
@@ -31,7 +33,6 @@
 		AD9C7B9E11DEA7FE0C94EC2D /* MagpieUsageReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADB4441411E69C6B5B5C6305 /* MagpieUsageReaderTests.swift */; };
 		ADDB21B255F6A66664CD179F /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADFDC8346F81347405A0C429 /* LoginItem.swift */; };
 		ADA80C77A6D2C2382B1F7F3C /* LoginItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD7DB047455C019B00EFE7B9 /* LoginItemTests.swift */; };
-		ADACB2EEBB907D6E4F116A55 /* UsageMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD001802C09CB45D4544976F /* UsageMetricsTests.swift */; };
 		AD623CB6163DBEA68623E727 /* GearHapticFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */; };
 		7AE10C0220260AB0000000E2 /* AnimationMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */; };
 		7B01000120260CD000000006 /* PreferencesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000005 /* PreferencesWindow.swift */; };
@@ -59,8 +60,6 @@
 		50CB767E2C3BC8880070D5E6 /* NotchViewModel+Events.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50CB767D2C3BC8880070D5E6 /* NotchViewModel+Events.swift */; };
 		50EFDB522C3BF7B4002D3E0F /* Ext+NSImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50EFDB512C3BF7B4002D3E0F /* Ext+NSImage.swift */; };
 		B1C2D3E4F506172839404153 /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F506172839404152 /* AppPaths.swift */; };
-		C1D2E3F4A506172839404155 /* AntigravityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404154 /* AntigravityStore.swift */; };
-		C1D2E3F4A506172839404201 /* UsageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404200 /* UsageStore.swift */; };
 		D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */; };
 		F1E2D3C4B5A6071829304101 /* TokenZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */; };
 		B7C8D3E4F5A6071829304101 /* iOSPageIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */; };
@@ -69,12 +68,10 @@
 		7AE10C0220260AB000000D1 /* AppPathsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C1 /* AppPathsTests.swift */; };
 		7AE10C0220260AB000000D2 /* ContentZoneSwitcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */; };
 		7AE10C0220260AB000000DA1 /* ArrowKeyZoneSwitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000CA1 /* ArrowKeyZoneSwitchTests.swift */; };
-		7AE10C0220260AB000000D3 /* AntigravityStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C3 /* AntigravityStoreTests.swift */; };
 		7AE10C0220260AB000000D4 /* ScrollSwipeResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */; };
 		7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C5 /* TabMetricsTests.swift */; };
 		7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */; };
 		7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */; };
-		7AE10C0220260AB000000DA /* AntigravityProxyStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */; };
 		F101CE000000000000000009 /* ConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000000A /* ConfigStore.swift */; };
 		F101CE000000000000000015 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE000000000000000016 /* Log.swift */; };
 		F101CE00000000000000002B /* ConfigStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F101CE00000000000000002C /* ConfigStoreTests.swift */; };
@@ -100,6 +97,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AD29208824A7A4AC76E534BA /* EarSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarSummary.swift; sourceTree = "<group>"; };
+		AD376E5794662BDF61AB95E3 /* EarSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarSummaryTests.swift; sourceTree = "<group>"; };
 		ADBCECC8A8A8BC669868A971 /* ProviderQuotaZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderQuotaZoneView.swift; sourceTree = "<group>"; };
 		ADFD2C8460327F2213C7B038 /* ProviderQuotaFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderQuotaFormat.swift; sourceTree = "<group>"; };
 		ADBF5B8E5F662A4429D784C2 /* ProviderQuotaFormatTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderQuotaFormatTests.swift; sourceTree = "<group>"; };
@@ -124,7 +123,6 @@
 		ADB4441411E69C6B5B5C6305 /* MagpieUsageReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieUsageReaderTests.swift; sourceTree = "<group>"; };
 		ADFDC8346F81347405A0C429 /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 		AD7DB047455C019B00EFE7B9 /* LoginItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemTests.swift; sourceTree = "<group>"; };
-		AD001802C09CB45D4544976F /* UsageMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageMetricsTests.swift; sourceTree = "<group>"; };
 		AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GearHapticFeedback.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000005 /* PreferencesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindow.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000007 /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
@@ -154,8 +152,6 @@
 		50D7EFF22C3E484C005AC04E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		50EFDB512C3BF7B4002D3E0F /* Ext+NSImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Ext+NSImage.swift"; sourceTree = "<group>"; };
 		B1C2D3E4F506172839404152 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
-		C1D2E3F4A506172839404154 /* AntigravityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityStore.swift; sourceTree = "<group>"; };
-		C1D2E3F4A506172839404200 /* UsageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStore.swift; sourceTree = "<group>"; };
 		D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSwipeResolver.swift; sourceTree = "<group>"; };
 		F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenZoneView.swift; sourceTree = "<group>"; };
 		B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSPageIndicator.swift; sourceTree = "<group>"; };
@@ -165,12 +161,10 @@
 			7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationMetricsTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentZoneSwitcherTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000CA1 /* ArrowKeyZoneSwitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrowKeyZoneSwitchTests.swift; sourceTree = "<group>"; };
-		7AE10C0220260AB000000C3 /* AntigravityStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityStoreTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSwipeResolverTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C5 /* TabMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabMetricsTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneSizeGuardTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMetricsTests.swift; sourceTree = "<group>"; };
-		7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntigravityProxyStoreTests.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB0000000A7 /* NotchEveryTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotchEveryTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F101CE00000000000000000A /* ConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStore.swift; sourceTree = "<group>"; };
 		F101CE000000000000000016 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
@@ -219,6 +213,7 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				AD29208824A7A4AC76E534BA /* EarSummary.swift */,
 				ADBCECC8A8A8BC669868A971 /* ProviderQuotaZoneView.swift */,
 				ADFD2C8460327F2213C7B038 /* ProviderQuotaFormat.swift */,
 				AD531122F38ADA579B21ED71 /* FlowPauseController.swift */,
@@ -249,8 +244,6 @@
 				7B01000120260CD000000005 /* PreferencesWindow.swift */,
 				7B01000120260CD000000007 /* PreferencesWindowController.swift */,
 				7B01000120260CD000000009 /* DesignSystem.swift */,
-				C1D2E3F4A506172839404154 /* AntigravityStore.swift */,
-				C1D2E3F4A506172839404200 /* UsageStore.swift */,
 				F101CE00000000000000005B /* TokenFormatUtils.swift */,
 				B1C2D3E4F506172839404152 /* AppPaths.swift */,
 				B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */,
@@ -288,6 +281,7 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				AD376E5794662BDF61AB95E3 /* EarSummaryTests.swift */,
 				ADBF5B8E5F662A4429D784C2 /* ProviderQuotaFormatTests.swift */,
 				ADCF80CA7223BFBF1F6F4BC1 /* TokenZoneViewFormatTests.swift */,
 				AD510A01DA6E5E2B73695109 /* FlowPauseControllerTests.swift */,
@@ -298,15 +292,12 @@
 				ADF7E5F72AE30D8C253FBB2A /* MagpieFilesTests.swift */,
 				ADB4441411E69C6B5B5C6305 /* MagpieUsageReaderTests.swift */,
 				AD7DB047455C019B00EFE7B9 /* LoginItemTests.swift */,
-				AD001802C09CB45D4544976F /* UsageMetricsTests.swift */,
 				7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */,
 				7AE10C0220260AB000000C1 /* AppPathsTests.swift */,
 				7AE10C0220260AB000000C2 /* ContentZoneSwitcherTests.swift */,
 				7AE10C0220260AB000000CA1 /* ArrowKeyZoneSwitchTests.swift */,
-				7AE10C0220260AB000000C3 /* AntigravityStoreTests.swift */,
 				7AE10C0220260AB000000C4 /* ScrollSwipeResolverTests.swift */,
 				7AE10C0220260AB000000C5 /* TabMetricsTests.swift */,
-				7AE10C0220260AB000000CA /* AntigravityProxyStoreTests.swift */,
 				7AE10C0220260AB000000C9 /* IslandMetricsTests.swift */,
 				7AE10C0220260AB000000C7 /* ZoneSizeGuardTests.swift */,
 				F101CE00000000000000002C /* ConfigStoreTests.swift */,
@@ -428,6 +419,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD5BBD0F2FF01317103B81DE /* EarSummary.swift in Sources */,
 				ADCBEA9DC42962367F8F52A4 /* ProviderQuotaZoneView.swift in Sources */,
 				AD6113C887B50EFAD24DA5D7 /* ProviderQuotaFormat.swift in Sources */,
 				ADA6C17D67E5409D64817215 /* FlowPauseController.swift in Sources */,
@@ -470,8 +462,6 @@
 				7B01000120260CD000000006 /* PreferencesWindow.swift in Sources */,
 				7B01000120260CD000000008 /* PreferencesWindowController.swift in Sources */,
 				7B01000120260CD00000000A /* DesignSystem.swift in Sources */,
-				C1D2E3F4A506172839404155 /* AntigravityStore.swift in Sources */,
-				C1D2E3F4A506172839404201 /* UsageStore.swift in Sources */,
 				F101CE00000000000000005C /* TokenFormatUtils.swift in Sources */,
 				B1C2D3E4F506172839404153 /* AppPaths.swift in Sources */,
 				D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */,
@@ -485,6 +475,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD5E58AEAA7F1BC27CF2B816 /* EarSummaryTests.swift in Sources */,
 				ADA7995FD6AD8FE83EA144F9 /* ProviderQuotaFormatTests.swift in Sources */,
 				AD1EB9D6F7C8A88D66D01FDE /* TokenZoneViewFormatTests.swift in Sources */,
 				AD99D3EF1697192AA2A2F105 /* FlowPauseControllerTests.swift in Sources */,
@@ -495,15 +486,12 @@
 				AD1DCFB6824F87FB5A5C869F /* MagpieFilesTests.swift in Sources */,
 				AD9C7B9E11DEA7FE0C94EC2D /* MagpieUsageReaderTests.swift in Sources */,
 				ADA80C77A6D2C2382B1F7F3C /* LoginItemTests.swift in Sources */,
-				ADACB2EEBB907D6E4F116A55 /* UsageMetricsTests.swift in Sources */,
 				7AE10C0220260AB0000000E2 /* AnimationMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D1 /* AppPathsTests.swift in Sources */,
 				7AE10C0220260AB000000D2 /* ContentZoneSwitcherTests.swift in Sources */,
 				7AE10C0220260AB000000DA1 /* ArrowKeyZoneSwitchTests.swift in Sources */,
-				7AE10C0220260AB000000D3 /* AntigravityStoreTests.swift in Sources */,
 				7AE10C0220260AB000000D4 /* ScrollSwipeResolverTests.swift in Sources */,
 				7AE10C0220260AB000000D5 /* TabMetricsTests.swift in Sources */,
-				7AE10C0220260AB000000DA /* AntigravityProxyStoreTests.swift in Sources */,
 				7AE10C0220260AB000000D9 /* IslandMetricsTests.swift in Sources */,
 				7AE10C0220260AB000000D7 /* ZoneSizeGuardTests.swift in Sources */,
 				F101CE00000000000000002B /* ConfigStoreTests.swift in Sources */,

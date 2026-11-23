@@ -28,7 +28,7 @@ extension NotchViewModel {
                         // for the same height as device notch, open the url of project
                     }
                     // 顶栏点击切区已移除（两页只走滑动/分页指示器），这里不再处理
-                case .closed, .popping:
+                case .closed:
                     // touch inside, open
                     if hoverActiveRect.contains(mouseLocation) {
                         notchTimingMark("clickDown")
@@ -63,7 +63,6 @@ extension NotchViewModel {
                 } else if hoverGhosting, isHoveringActive {
                     cancelHoverClose()
                 }
-                if status == .popping, !isHoveringActive { notchClose() }
                 // hover 展开态：离开面板区延迟收起，移回取消
                 if status == .opened, openReason == .hover {
                     if notchOpenedRect.contains(mouseLocation) {
@@ -72,26 +71,6 @@ extension NotchViewModel {
                         scheduleHoverClose()
                     }
                 }
-            }
-            .store(in: &cancellables)
-
-        $status
-            .filter { $0 == .popping }
-            .throttle(for: .seconds(0.5), scheduler: DispatchQueue.main, latest: false)
-            .sink { [weak self] _ in
-                guard NSEvent.pressedMouseButtons == 0 else { return }
-                self?.hapticSender.send()
-            }
-            .store(in: &cancellables)
-
-        hapticSender
-            .throttle(for: .seconds(0.5), scheduler: DispatchQueue.main, latest: false)
-            .sink { [weak self] _ in
-                guard self?.hapticFeedback ?? false else { return }
-                NSHapticFeedbackManager.defaultPerformer.perform(
-                    .levelChange,
-                    performanceTime: .now
-                )
             }
             .store(in: &cancellables)
 
