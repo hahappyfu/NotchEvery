@@ -17,7 +17,7 @@ final class MagpieStore: ObservableObject {
     private(set) var isRunning = false
 
     private let paths: MagpiePaths
-    private let iconResolver: MagpieIconResolver
+    let iconResolver: MagpieIconResolver
     private let calendar: Calendar
     private let now: () -> Date
     private let ioQueue = DispatchQueue(label: "MagpieStore.io")
@@ -46,10 +46,10 @@ final class MagpieStore: ObservableObject {
         paths: MagpiePaths = .init(),
         calendar: Calendar = .current,
         now: @escaping () -> Date = Date.init,
-        iconResolver: MagpieIconResolver? = nil
+        iconResolver: MagpieIconResolver = .shared
     ) {
         self.paths = paths
-        self.iconResolver = iconResolver ?? MagpieIconResolver(paths: paths)
+        self.iconResolver = iconResolver
         self.calendar = calendar
         self.now = now
     }

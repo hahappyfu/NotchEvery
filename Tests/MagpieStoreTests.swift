@@ -195,6 +195,12 @@ final class MagpieStoreTests: XCTestCase {
         XCTAssertFalse(MagpieStore.shouldRun(status: .closed, hoverGhosting: false, ghostFading: false))
     }
 
+    // 防回归：生产路径默认 resolver 必须是 UI 共享实例，否则图标热重载对 UI 不可见。
+    func testDefaultIconResolverIsShared() {
+        let store = MagpieStore(paths: MagpiePaths(root: root))
+        XCTAssertTrue(store.iconResolver === MagpieIconResolver.shared)
+    }
+
     // A7: store 每次刷新都热重载其路径下的 plugin-icons 映射，证明 refresh 真的触发了 resolver。
     func testRefreshReloadsPluginIcons() throws {
         let iconsFile = root.appendingPathComponent("plugin-icons.json")
