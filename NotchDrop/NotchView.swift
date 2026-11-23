@@ -137,6 +137,20 @@ struct NotchView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // 窗口压过菜单栏，安全区会把内容顶下去导致顶部留缝，直接无视（纯自绘 chrome，无系统控件要避让）
         .ignoresSafeArea()
+        // Magpie 生命周期统一裁决（常驻视图）：开合/悬停/虚影清态变化时启停。
+        // 悬停即 start()（幂等、立即 refresh），1.5s Timer 提供去抖刷新，满足「悬停立即追平」。
+        .onAppear { syncMagpieLifecycle() }
+        .onChange(of: vm.status) { _ in syncMagpieLifecycle() }
+        .onChange(of: vm.hoverGhosting) { _ in syncMagpieLifecycle() }
+        .onChange(of: vm.ghostFading) { _ in syncMagpieLifecycle() }
+    }
+
+    private func syncMagpieLifecycle() {
+        if MagpieStore.shouldRun(status: vm.status, hoverGhosting: vm.hoverGhosting, ghostFading: vm.ghostFading) {
+            MagpieStore.shared.start()
+        } else {
+            MagpieStore.shared.stop()
+        }
     }
 
     var island: some View {
@@ -201,36 +215,38 @@ struct NotchView: View {
             .padding(.vertical, 2)
             .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
 
-            // 中区：极细半透明分割线
-            Rectangle()
-                .fill(Color.white.opacity(0.16))
-                .frame(width: 1, height: 9)
+            // 中区：极细半透明分割线（仅数据态显示）
+            if peekHasData {
+                Rectangle()
+                    .fill(Color.white.opacity(0.16))
+                    .frame(width: 1, height: 9)
 
-            // 右区：今日净 Token 与缓存命中率（纯净排版，等宽数字）
-            HStack(spacing: 5) {
-                Text(TokenFormatUtils.formatCompactTokens(magpie.snapshot.todayNetTokens))
-                    .font(.system(size: 11, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(Color.white.opacity(0.92))
-
-                if let rate = magpie.snapshot.todayCacheRate {
-                    Text("·")
-                        .font(.system(size: 10))
-                        .foregroundStyle(Color.white.opacity(0.35))
-                    Text(String(format: "%.1f%%", rate * 100))
-                        .font(.system(size: 11, weight: .medium))
+                // 右区：今日净 Token 与缓存命中率（纯净排版，等宽数字；空态整块隐藏）
+                HStack(spacing: 5) {
+                    Text(TokenFormatUtils.formatCompactTokens(magpie.snapshot.todayNetTokens))
+                        .font(.system(size: 11, weight: .semibold))
                         .monospacedDigit()
-                        .foregroundStyle(StudioColor.cyan)
-                }
+                        .foregroundStyle(Color.white.opacity(0.92))
 
-                if magpie.snapshot.activeAlertCount > 0 {
-                    Text("⚠")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(StudioColor.amber)
-                    Text("\(magpie.snapshot.activeAlertCount)")
-                        .font(.system(size: 10, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(StudioColor.amber)
+                    if let rate = magpie.snapshot.todayCacheRate {
+                        Text("·")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color.white.opacity(0.35))
+                        Text(String(format: "%.1f%%", rate * 100))
+                            .font(.system(size: 11, weight: .medium))
+                            .monospacedDigit()
+                            .foregroundStyle(StudioColor.cyan)
+                    }
+
+                    if magpie.snapshot.activeAlertCount > 0 {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(StudioColor.amber)
+                        Text("\(magpie.snapshot.activeAlertCount)")
+                            .font(.system(size: 10, weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(StudioColor.amber)
+                    }
                 }
             }
         }
@@ -238,6 +254,12 @@ struct NotchView: View {
         .minimumScaleFactor(0.75)
         .padding(.horizontal, 6)
         .frame(maxWidth: islandSize.width - 8, alignment: .center)
+    }
+
+    /// Peek 数据态：有 Magpie 目录且今日已有请求（非空态文案时显示右侧数字块）。
+    private var peekHasData: Bool {
+        let s = magpie.snapshot
+        return s.hasMagpieDirectory && s.todayRequestCount > 0
     }
 
     /// Peek 左区状态点：活跃告警 → 琥珀，否则翠绿。

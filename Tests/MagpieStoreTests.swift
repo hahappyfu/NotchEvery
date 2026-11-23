@@ -172,4 +172,18 @@ final class MagpieStoreTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { drained.fulfill() }
         wait(for: [noExtra, drained], timeout: 3)
     }
+
+    // 9. shouldRun：开合 + 悬停生命周期裁决（5 组组合）
+    func testShouldRunLifecycleMatrix() {
+        // 展开态运行
+        XCTAssertTrue(MagpieStore.shouldRun(status: .opened, hoverGhosting: false, ghostFading: false))
+        // 悬停虚影态运行（悬停即启，Timer 提供 1.5s 去抖刷新）
+        XCTAssertTrue(MagpieStore.shouldRun(status: .closed, hoverGhosting: true, ghostFading: false))
+        // 虚影清态 200ms 窗口仍运行（保持数据连贯）
+        XCTAssertTrue(MagpieStore.shouldRun(status: .closed, hoverGhosting: false, ghostFading: true))
+        // 悬停中展开运行
+        XCTAssertTrue(MagpieStore.shouldRun(status: .opened, hoverGhosting: true, ghostFading: false))
+        // 全关停：仅 closed 且非虚影
+        XCTAssertFalse(MagpieStore.shouldRun(status: .closed, hoverGhosting: false, ghostFading: false))
+    }
 }

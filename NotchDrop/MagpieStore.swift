@@ -90,6 +90,12 @@ final class MagpieStore: ObservableObject {
         }
     }
 
+    /// 生命周期裁决：展开态或虚影态（悬停/清态窗口）运行，否则停止。
+    /// 常驻视图 NotchView 据此在 status/hoverGhosting/ghostFading 变化时启停。
+    static func shouldRun(status: NotchViewModel.Status, hoverGhosting: Bool, ghostFading: Bool) -> Bool {
+        status == .opened || hoverGhosting || ghostFading
+    }
+
     // MARK: - 读盘 + 聚合（ioQueue）
 
     private func refresh() {

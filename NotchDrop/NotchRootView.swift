@@ -32,28 +32,8 @@ struct NotchRootView: View {
         // 宽度不再自钉 zone 宽：那会让外壳留白失效、内容永远贴边
         // （2026-09-11 探针坐实 box=704 / zone=640 / inner=640）；改由外壳给「面板宽−留白」的提案，内容按提案填充
         .zoneSizeReporter(active: true)
-        // Magpie 三页共用实时快照，开即启、关即停
-        .onAppear {
-            MagpieStore.shared.start()
-        }
-        .onChange(of: vm.status) { status in
-            if status == .closed {
-                MagpieStore.shared.stop()
-            } else {
-                MagpieStore.shared.start()
-            }
-        }
-        // 悬停虚影态：立即追平一次，Peek 呈现最新数据
-        .onChange(of: vm.hoverGhosting) { ghosting in
-            if ghosting {
-                MagpieStore.shared.catchUp()
-            }
-        }
-        // 收起兜底：NotchView 用 `if vm.status == .opened` 条件渲染摘掉整棵子树，
-        // 视图被移除时上面的 onChange 收不到 .closed，停轮询只能靠 onDisappear。
-        .onDisappear {
-            MagpieStore.shared.stop()
-        }
+        // Magpie 生命周期由常驻 NotchView 统一裁决（悬停/开合/清态启停），
+        // NotchRootView 只读已发布快照；本视图会随面板开合挂载/卸载，不适合挂生命周期。
     }
 
     private var earsRow: some View {
