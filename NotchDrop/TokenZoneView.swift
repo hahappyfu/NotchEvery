@@ -52,6 +52,17 @@ private let flowTimeFormatter: DateFormatter = {
     return f
 }()
 
+extension TokenZoneView {
+    static func cacheText(for row: MagpieFlowRow) -> String {
+        let fraction = TokenFormatUtils.cacheRateFraction(cached: row.cacheRead, input: row.inputTokens)
+        return fraction > 0 ? "缓存 \(Int(fraction * 100))%" : "无缓存"
+    }
+
+    static func copySummary(for row: MagpieFlowRow, time: String) -> String {
+        "\(time) \(row.provider)@\(row.account) \(row.model) status=\(row.status ?? -1) \(row.durationMs ?? -1)ms ttft=\(row.ttftMs ?? -1)ms rid=\(row.id)"
+    }
+}
+
 private struct FlowRowView: View {
     let row: MagpieFlowRow
     let icon: String?
@@ -114,9 +125,9 @@ private struct FlowRowView: View {
                         .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
                         .foregroundStyle(.white)
                     Spacer()
-                    Text("缓存 \(Int(cacheFraction * 100))%")
+                    Text(TokenZoneView.cacheText(for: row))
                         .font(.system(size: 9.5, weight: .medium).monospacedDigit())
-                        .foregroundStyle(cacheColor)
+                        .foregroundStyle(cacheFraction > 0 ? cacheColor : Color.secondary)
                 }
                 ZStack(alignment: .leading) {
                     Capsule()
@@ -285,7 +296,10 @@ struct TokenZoneView: View {
     }
 
     private func copyRow(_ row: MagpieFlowRow) {
-        let summary = "\(flowTimeFormatter.string(from: row.time)) \(row.provider)@\(row.account) \(row.model) status=\(row.status ?? -1) \(row.durationMs ?? -1)ms ttft=\(row.ttftMs ?? -1)ms rid=\(row.id)"
+        let summary = TokenZoneView.copySummary(
+            for: row,
+            time: flowTimeFormatter.string(from: row.time)
+        )
         copyFeedback.copy(summary, id: row.id)
     }
 

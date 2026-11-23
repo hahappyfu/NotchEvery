@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AD1EB9D6F7C8A88D66D01FDE /* TokenZoneViewFormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCF80CA7223BFBF1F6F4BC1 /* TokenZoneViewFormatTests.swift */; };
 		ADA6C17D67E5409D64817215 /* FlowPauseController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD531122F38ADA579B21ED71 /* FlowPauseController.swift */; };
 		AD99D3EF1697192AA2A2F105 /* FlowPauseControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD510A01DA6E5E2B73695109 /* FlowPauseControllerTests.swift */; };
 		AD879541D685E264311352FF /* CopyFeedbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0D0A606C9AD4B982B54391 /* CopyFeedbackTests.swift */; };
@@ -96,6 +97,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		ADCF80CA7223BFBF1F6F4BC1 /* TokenZoneViewFormatTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenZoneViewFormatTests.swift; sourceTree = "<group>"; };
 		AD531122F38ADA579B21ED71 /* FlowPauseController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowPauseController.swift; sourceTree = "<group>"; };
 		AD510A01DA6E5E2B73695109 /* FlowPauseControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowPauseControllerTests.swift; sourceTree = "<group>"; };
 		AD0D0A606C9AD4B982B54391 /* CopyFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyFeedbackTests.swift; sourceTree = "<group>"; };
@@ -278,6 +280,7 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				ADCF80CA7223BFBF1F6F4BC1 /* TokenZoneViewFormatTests.swift */,
 				AD510A01DA6E5E2B73695109 /* FlowPauseControllerTests.swift */,
 				AD0D0A606C9AD4B982B54391 /* CopyFeedbackTests.swift */,
 				AD9021B5401EDA52BF81D4F4 /* MagpieIconResolverTests.swift */,
@@ -471,6 +474,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD1EB9D6F7C8A88D66D01FDE /* TokenZoneViewFormatTests.swift in Sources */,
 				AD99D3EF1697192AA2A2F105 /* FlowPauseControllerTests.swift in Sources */,
 				AD879541D685E264311352FF /* CopyFeedbackTests.swift in Sources */,
 				AD4E4AB7A83D57AE3A2AF079 /* MagpieIconResolverTests.swift in Sources */,
