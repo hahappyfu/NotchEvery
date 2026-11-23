@@ -363,6 +363,19 @@ final class MagpieAggregatorTests: XCTestCase {
         XCTAssertEqual(group.exhaustedAccounts, 1)
     }
 
+    // 12. 余量未知不按 0 求和：总量/比例保持 nil，排序归为无刻度档
+    func testGroupUnknownRemainingIsNotTreatedAsZero() {
+        let quotas = [
+            quota("p", account: "a1", windows: [window(used: 20, amount: 20, limit: 100)]),
+            quota("p", account: "a2", windows: [window(limit: 100)])
+        ]
+        let group = snapshot(quotas: quotas).providerGroups.first!
+        XCTAssertEqual(group.totalLimit ?? -1, 200, accuracy: 0.0001)
+        XCTAssertNil(group.totalRemaining)
+        XCTAssertNil(group.fraction)
+        XCTAssertEqual(group.accounts.count, 2)
+    }
+
     // 12. 排序权重：正常 < 有告警 < 耗尽 < 无刻度，同档按名
     func testProviderSortingWeights() {
         let quotas = [

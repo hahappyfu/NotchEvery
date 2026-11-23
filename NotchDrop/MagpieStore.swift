@@ -142,7 +142,10 @@ final class MagpieStore: ObservableObject {
         )
 
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.snapshot != newSnapshot else { return }
+            guard let self else { return }
+            var comparable = newSnapshot
+            comparable.refreshedAt = self.snapshot.refreshedAt
+            guard comparable != self.snapshot else { return }
             self.snapshot = newSnapshot
         }
     }

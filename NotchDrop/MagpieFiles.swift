@@ -12,6 +12,7 @@ enum MagpieFiles {
     // MARK: - quotas.json
 
     static func parseQuotas(_ data: Data) -> [MagpieQuotaFileEntry]? {
+        if data.isEmpty { return [] }
         guard let raw = try? JSONDecoder().decode([String: QuotaEnvelope].self, from: data) else { return nil }
         return raw.map { key, value -> MagpieQuotaFileEntry in
             let provider = nonEmpty(value.quota?.provider)
@@ -50,6 +51,7 @@ enum MagpieFiles {
     // MARK: - limit-notices.json
 
     static func parseLimitNotices(_ data: Data) -> [String: MagpieLimitNotice]? {
+        if data.isEmpty { return [:] }
         guard let raw = try? JSONDecoder().decode([String: NoticeEnvelope].self, from: data) else { return nil }
         var notices: [String: MagpieLimitNotice] = [:]
         for (key, value) in raw {
@@ -71,6 +73,7 @@ enum MagpieFiles {
     // MARK: - plugin-checkin.json
 
     static func parseCheckins(_ data: Data) -> [MagpieCheckinFileEntry]? {
+        if data.isEmpty { return [] }
         guard let raw = try? JSONDecoder().decode([String: CheckinEnvelope].self, from: data) else { return nil }
         return raw.map { key, value in
             let parts = key.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false)
@@ -90,6 +93,7 @@ enum MagpieFiles {
     // MARK: - providers.json / plugin-providers.json / plugin-icons.json
 
     static func parseProviders(_ data: Data) -> MagpieProviderCatalog.ProviderPart? {
+        if data.isEmpty { return .init(entries: [:], groupNameByProviderRef: [:]) }
         guard let raw = try? JSONDecoder().decode(ProvidersEnvelope.self, from: data) else { return nil }
         var entries: [String: MagpieProviderCatalog.Entry] = [:]
         for provider in raw.providers ?? [] {
@@ -113,6 +117,7 @@ enum MagpieFiles {
     }
 
     static func parsePluginProviders(_ data: Data) -> [MagpieProviderCatalog.PluginPart]? {
+        if data.isEmpty { return [] }
         guard let raw = try? JSONDecoder().decode([PluginProviderEnvelope].self, from: data) else { return nil }
         return raw.compactMap { plugin in
             guard let id = nonEmpty(plugin.id) else { return nil }
@@ -126,12 +131,14 @@ enum MagpieFiles {
     }
 
     static func parsePluginIcons(_ data: Data) -> [String: String]? {
-        try? JSONDecoder().decode([String: String].self, from: data)
+        if data.isEmpty { return [:] }
+        return try? JSONDecoder().decode([String: String].self, from: data)
     }
 
     // MARK: - quota-history.json
 
     static func parseQuotaHistory(_ data: Data) -> [String: [String: [MagpieQuotaPoint]]]? {
+        if data.isEmpty { return [:] }
         guard let raw = try? JSONDecoder().decode([String: [String: [QuotaPointEnvelope]]].self, from: data) else { return nil }
         return raw.mapValues { windows in
             windows.mapValues { points in

@@ -366,7 +366,10 @@ enum MagpieAggregator {
             let accounts = (accountsByProvider[provider] ?? []).sorted { $0.id < $1.id }
             let limited = accounts.filter { ($0.limit ?? 0) > 0 }
             let totalLimit: Double? = limited.isEmpty ? nil : limited.reduce(0) { $0 + ($1.limit ?? 0) }
-            let totalRemaining: Double? = limited.isEmpty ? nil : limited.reduce(0) { $0 + ($1.remaining ?? 0) }
+            let totalRemaining: Double? = limited.isEmpty ? nil :
+                limited.allSatisfy { $0.remaining != nil }
+                    ? limited.reduce(0) { $0 + ($1.remaining ?? 0) }
+                    : nil
             let fraction: Double? = {
                 guard let totalLimit, totalLimit > 0, let totalRemaining else { return nil }
                 return totalRemaining / totalLimit

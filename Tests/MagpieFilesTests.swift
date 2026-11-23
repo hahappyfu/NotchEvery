@@ -193,13 +193,12 @@ final class MagpieFilesTests: XCTestCase {
 
     // 8. 损坏 JSON → nil；空对象/空数组 → 空值
     func testCorruptJSONReturnsNilAndEmptyJSONReturnsEmpty() {
-        XCTAssertNil(MagpieFiles.parseQuotas(Data()))
+        XCTAssertNil(MagpieFiles.parseGateway(Data()))
         XCTAssertNil(MagpieFiles.parseQuotas(data("not json")))
         XCTAssertNil(MagpieFiles.parseLimitNotices(data("{")))
         XCTAssertNil(MagpieFiles.parseCheckins(data("[]")))
         XCTAssertNil(MagpieFiles.parseProviders(data("[]")))
         XCTAssertNil(MagpieFiles.parsePluginProviders(data("{}")))
-        XCTAssertNil(MagpieFiles.parseGateway(Data()))
         XCTAssertNil(MagpieFiles.parseQuotaHistory(data("null")))
 
         XCTAssertEqual(MagpieFiles.parseQuotas(data("{}")), [])
@@ -209,5 +208,14 @@ final class MagpieFilesTests: XCTestCase {
         XCTAssertEqual(MagpieFiles.parseProviders(data("{}"))?.entries.isEmpty, true)
         XCTAssertEqual(MagpieFiles.parseQuotaHistory(data("{}"))?.isEmpty, true)
         XCTAssertEqual(MagpieFiles.parseQuotaHistory(data("[]")), nil)
+
+        // 空文件是合法的空集合，不是解码失败。
+        XCTAssertEqual(MagpieFiles.parseQuotas(Data()), [])
+        XCTAssertTrue(MagpieFiles.parseLimitNotices(Data())?.isEmpty == true)
+        XCTAssertTrue(MagpieFiles.parseCheckins(Data())?.isEmpty == true)
+        XCTAssertTrue(MagpieFiles.parseProviders(Data())?.entries.isEmpty == true)
+        XCTAssertTrue(MagpieFiles.parsePluginProviders(Data())?.isEmpty == true)
+        XCTAssertTrue(MagpieFiles.parsePluginIcons(Data())?.isEmpty == true)
+        XCTAssertTrue(MagpieFiles.parseQuotaHistory(Data())?.isEmpty == true)
     }
 }
