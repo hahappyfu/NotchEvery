@@ -48,12 +48,14 @@ final class TabMetricsTests: XCTestCase {
     }
 
     func testPageZoneMapping() {
-        // 双分区映射：概览、Token
-        XCTAssertEqual(NotchViewModel.zoneOrder, [.overview, .token])
+        // 三分区映射：概览、Token、供应商额度
+        XCTAssertEqual(NotchViewModel.zoneOrder, [.overview, .token, .providers])
         XCTAssertEqual(NotchViewModel.pageIndex(for: .overview), 0)
         XCTAssertEqual(NotchViewModel.pageIndex(for: .token), 1)
+        XCTAssertEqual(NotchViewModel.pageIndex(for: .providers), 2)
         XCTAssertEqual(NotchViewModel.zone(for: 0), .overview)
         XCTAssertEqual(NotchViewModel.zone(for: 1), .token)
+        XCTAssertEqual(NotchViewModel.zone(for: 2), .providers)
         XCTAssertEqual(NotchViewModel.zone(for: -1), .overview)
         XCTAssertEqual(NotchViewModel.zone(for: 99), .overview)
     }
@@ -67,6 +69,17 @@ final class TabMetricsTests: XCTestCase {
 
         let store = MagpieStore(paths: MagpiePaths(root: root))
         let view = OverviewDistributionView(store: store)
+        XCTAssertNotNil(view)
+    }
+
+    func testProviderQuotaZoneViewInstantiates() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("TabMetrics-PQ-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let store = MagpieStore(paths: MagpiePaths(root: root))
+        let view = ProviderQuotaZoneView(store: store)
         XCTAssertNotNil(view)
     }
 

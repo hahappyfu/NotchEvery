@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		ADCBEA9DC42962367F8F52A4 /* ProviderQuotaZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBCECC8A8A8BC669868A971 /* ProviderQuotaZoneView.swift */; };
+		AD6113C887B50EFAD24DA5D7 /* ProviderQuotaFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADFD2C8460327F2213C7B038 /* ProviderQuotaFormat.swift */; };
+		ADA7995FD6AD8FE83EA144F9 /* ProviderQuotaFormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBF5B8E5F662A4429D784C2 /* ProviderQuotaFormatTests.swift */; };
 		AD1EB9D6F7C8A88D66D01FDE /* TokenZoneViewFormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCF80CA7223BFBF1F6F4BC1 /* TokenZoneViewFormatTests.swift */; };
 		ADA6C17D67E5409D64817215 /* FlowPauseController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD531122F38ADA579B21ED71 /* FlowPauseController.swift */; };
 		AD99D3EF1697192AA2A2F105 /* FlowPauseControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD510A01DA6E5E2B73695109 /* FlowPauseControllerTests.swift */; };
@@ -97,6 +100,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		ADBCECC8A8A8BC669868A971 /* ProviderQuotaZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderQuotaZoneView.swift; sourceTree = "<group>"; };
+		ADFD2C8460327F2213C7B038 /* ProviderQuotaFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderQuotaFormat.swift; sourceTree = "<group>"; };
+		ADBF5B8E5F662A4429D784C2 /* ProviderQuotaFormatTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderQuotaFormatTests.swift; sourceTree = "<group>"; };
 		ADCF80CA7223BFBF1F6F4BC1 /* TokenZoneViewFormatTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenZoneViewFormatTests.swift; sourceTree = "<group>"; };
 		AD531122F38ADA579B21ED71 /* FlowPauseController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowPauseController.swift; sourceTree = "<group>"; };
 		AD510A01DA6E5E2B73695109 /* FlowPauseControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowPauseControllerTests.swift; sourceTree = "<group>"; };
@@ -213,6 +219,8 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				ADBCECC8A8A8BC669868A971 /* ProviderQuotaZoneView.swift */,
+				ADFD2C8460327F2213C7B038 /* ProviderQuotaFormat.swift */,
 				AD531122F38ADA579B21ED71 /* FlowPauseController.swift */,
 				AD896BCF34010AA4FD902D0D /* CopyFeedback.swift */,
 				AD2FF1D3FFCA01E12350D2AA /* ProviderIconView.swift */,
@@ -280,6 +288,7 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				ADBF5B8E5F662A4429D784C2 /* ProviderQuotaFormatTests.swift */,
 				ADCF80CA7223BFBF1F6F4BC1 /* TokenZoneViewFormatTests.swift */,
 				AD510A01DA6E5E2B73695109 /* FlowPauseControllerTests.swift */,
 				AD0D0A606C9AD4B982B54391 /* CopyFeedbackTests.swift */,
@@ -419,6 +428,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ADCBEA9DC42962367F8F52A4 /* ProviderQuotaZoneView.swift in Sources */,
+				AD6113C887B50EFAD24DA5D7 /* ProviderQuotaFormat.swift in Sources */,
 				ADA6C17D67E5409D64817215 /* FlowPauseController.swift in Sources */,
 				ADFB780D9B19D39BE0BF1650 /* CopyFeedback.swift in Sources */,
 				AD1E65947277B121F0FDFE72 /* ProviderIconView.swift in Sources */,
@@ -474,6 +485,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ADA7995FD6AD8FE83EA144F9 /* ProviderQuotaFormatTests.swift in Sources */,
 				AD1EB9D6F7C8A88D66D01FDE /* TokenZoneViewFormatTests.swift in Sources */,
 				AD99D3EF1697192AA2A2F105 /* FlowPauseControllerTests.swift in Sources */,
 				AD879541D685E264311352FF /* CopyFeedbackTests.swift in Sources */,

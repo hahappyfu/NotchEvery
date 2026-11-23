@@ -3,46 +3,46 @@ import XCTest
 
 final class ContentZoneSwitcherTests: XCTestCase {
     func testNextZoneWrapsAround() {
-        // 分区循环：末区（Token 第 2 页）之后回到概览
         let vm = NotchViewModel(events: MockEventMonitors())
-        vm.jumpToZone(.token)
+        vm.jumpToZone(.providers)
         vm.nextZone()
         XCTAssertEqual(vm.contentType, .overview)
     }
 
     func testPreviousZoneWrapsAround() {
-        // 分区循环：概览之前是末区（Token）
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.overview)
         vm.previousZone()
-        XCTAssertEqual(vm.contentType, .token)
+        XCTAssertEqual(vm.contentType, .providers)
     }
 
     func testNextZoneAdvancesInOrder() {
-        // 概览 → Token，逐段推进后回绕
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.overview)
         vm.nextZone()
         XCTAssertEqual(vm.contentType, .token)
+        vm.nextZone()
+        XCTAssertEqual(vm.contentType, .providers)
         vm.nextZone()
         XCTAssertEqual(vm.contentType, .overview)
     }
 
     func testPreviousZoneRewindsInOrder() {
-        // 概览 ← Token，反向推进后回绕
         let vm = NotchViewModel(events: MockEventMonitors())
-        vm.jumpToZone(.token)
+        vm.jumpToZone(.providers)
+        vm.previousZone()
+        XCTAssertEqual(vm.contentType, .token)
         vm.previousZone()
         XCTAssertEqual(vm.contentType, .overview)
         vm.previousZone()
-        XCTAssertEqual(vm.contentType, .token)
+        XCTAssertEqual(vm.contentType, .providers)
     }
 
-    func testZoneOrderIsTwoPages() {
-        // 双分区：概览与 Token
-        XCTAssertEqual(NotchViewModel.zoneOrder, [.overview, .token])
+    func testZoneOrderIsThreePages() {
+        XCTAssertEqual(NotchViewModel.zoneOrder, [.overview, .token, .providers])
         XCTAssertEqual(NotchViewModel.pageIndex(for: .overview), 0)
         XCTAssertEqual(NotchViewModel.pageIndex(for: .token), 1)
+        XCTAssertEqual(NotchViewModel.pageIndex(for: .providers), 2)
     }
 
     func testMarkSwipeHintSeenSetsFlag() {

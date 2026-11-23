@@ -23,6 +23,9 @@ final class ArrowKeyZoneSwitchTests: XCTestCase {
         XCTAssertTrue(vm.hasSeenSwipeHint)
 
         mocks.arrowKey.send(.rightForward)
+        XCTAssertEqual(vm.contentType, .providers)
+
+        mocks.arrowKey.send(.rightForward)
         XCTAssertEqual(vm.contentType, .overview)
     }
 
@@ -35,8 +38,11 @@ final class ArrowKeyZoneSwitchTests: XCTestCase {
 
         vm.jumpToZone(.overview)
         mocks.arrowKey.send(.leftBackward)
-        XCTAssertEqual(vm.contentType, .token)
+        XCTAssertEqual(vm.contentType, .providers)
         XCTAssertTrue(vm.hasSeenSwipeHint)
+
+        mocks.arrowKey.send(.leftBackward)
+        XCTAssertEqual(vm.contentType, .token)
 
         mocks.arrowKey.send(.leftBackward)
         XCTAssertEqual(vm.contentType, .overview)

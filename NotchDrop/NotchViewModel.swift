@@ -180,6 +180,7 @@ class NotchViewModel: NSObject, ObservableObject {
     enum ContentType: Int, Codable, Hashable, Equatable {
         case overview
         case token
+        case providers
     }
 
     // ——— 几何经由 NotchGeometry 计算，Published 仍在门面以保持绑定 ———
@@ -251,8 +252,8 @@ class NotchViewModel: NSObject, ObservableObject {
     @PublishedPersist(key: "hapticFeedback", defaultValue: true)
     var hapticFeedback: Bool
 
-    /// 参与分页的区序：两页（概览 ｜ Token）。
-    static let baseZoneOrder: [ContentType] = [.overview, .token]
+    /// 参与分页的区序：三页（概览 ｜ Token ｜ 供应商额度）。
+    static let baseZoneOrder: [ContentType] = [.overview, .token, .providers]
 
     let hapticSender = PassthroughSubject<Void, Never>()
 
@@ -365,7 +366,7 @@ class NotchViewModel: NSObject, ObservableObject {
         }
     }
 
-    /// 功能区固定顺序：左右滑按此循环（概览｜Token）。
+    /// 功能区固定顺序：左右滑按此循环（概览｜Token｜供应商额度）。
     static var zoneOrder: [ContentType] {
         baseZoneOrder
     }

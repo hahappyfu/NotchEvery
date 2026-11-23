@@ -144,6 +144,9 @@ private struct PageTransitionWrapper: View, Equatable {
             case .token:
                 TokenZoneView()
                     .frame(maxWidth: .infinity, alignment: .top)
+            case .providers:
+                ProviderQuotaZoneView()
+                    .frame(maxWidth: .infinity, alignment: .top)
             }
         }
         .transition(reduceMotion ? .opacity : (direction == .next ? .zoneSlideNext : .zoneSlidePrevious))
