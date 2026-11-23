@@ -663,7 +663,7 @@ enum MagpieAggregator {
     }
 
     private static func historyValues(_ points: [MagpieQuotaPoint]?) -> [Double] {
-        Array((points ?? []).compactMap(\.left).suffix(20))
+        Array((points ?? []).compactMap(\.left).suffix(24))
     }
 
     // MARK: - 签到与网关

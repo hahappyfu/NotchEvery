@@ -93,11 +93,11 @@ struct NotchRootView: View {
                     if let time = r.time {
                         Image(systemName: "clock")
                             .font(.system(size: 8.5, weight: .semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(StudioInk.secondary)
                         Text(time)
                             .font(.system(size: 11, weight: .medium))
                             .monospacedDigit()
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(StudioInk.secondary)
                     }
                     if r.alerts > 0 {
                         alertBadge(count: r.alerts)
@@ -112,8 +112,8 @@ struct NotchRootView: View {
             HStack(spacing: 3) {
                 Image(systemName: "arrow.up.arrow.down")
                     .font(.system(size: 8.5, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                RollupText(text: r.requests, font: .system(size: 11, weight: .medium), color: .secondary)
+                    .foregroundStyle(StudioInk.secondary)
+                RollupText(text: r.requests, font: .system(size: 11, weight: .medium), color: StudioInk.secondary)
                 if r.alerts > 0 {
                     alertBadge(count: r.alerts)
                 }
@@ -128,7 +128,7 @@ struct NotchRootView: View {
                     if let checkin = r.checkin {
                         Text(checkin)
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(StudioInk.secondary)
                     }
                     if r.alerts > 0 {
                         alertBadge(count: r.alerts)

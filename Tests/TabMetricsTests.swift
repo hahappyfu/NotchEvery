@@ -62,24 +62,17 @@ final class TabMetricsTests: XCTestCase {
 
     func testOverviewSummaryTextOmitsUnavailableSegments() {
         XCTAssertEqual(
-            OverviewDistributionView.summaryText(
-                netTokens: 12_345,
-                cacheRate: nil,
-                maskedValues: 0,
-                errorCount: 0,
-                retriedSuccessCount: 0
-            ),
+            OverviewDistributionView.baseSummaryText(netTokens: 12_345, cacheRate: nil),
             "12.3k"
         )
         XCTAssertEqual(
-            OverviewDistributionView.summaryText(
-                netTokens: 100,
-                cacheRate: 0.625,
-                maskedValues: 3,
-                errorCount: 2,
-                retriedSuccessCount: 1
-            ),
-            "100 · 缓存 62.5% · 3 · E 2 · 重试 1"
+            OverviewDistributionView.baseSummaryText(netTokens: 100, cacheRate: 0.625),
+            "100 · 缓存 62.5%"
+        )
+        XCTAssertNil(OverviewDistributionView.alertSummaryText(errorCount: 0, retriedSuccessCount: 0))
+        XCTAssertEqual(
+            OverviewDistributionView.alertSummaryText(errorCount: 2, retriedSuccessCount: 1),
+            "E 2 · 重试 1"
         )
     }
 

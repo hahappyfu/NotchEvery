@@ -14,6 +14,7 @@ final class MagpieIconResolver {
 
     private let paths: MagpiePaths
     private let cacheDirectory: URL
+    private let iconsLock = NSLock()
     private var icons: [String: String]
     private var loadedIconSignature: IconSignature?
     private let tracksFileChanges: Bool
@@ -38,15 +39,26 @@ final class MagpieIconResolver {
         }
     }
 
-    /// plugin-icons.json 的 mtime + size 变化时才重读，避免每次刷新都解析。
+    /// plugin-icons.json 的 mtime + size 变化时才重读，避免每次刷新都解析；用锁隔离后台写入与主线程读取。
     func reloadIconsIfNeeded() {
         guard tracksFileChanges else { return }
-        let signature = iconFileSignature()
-        guard signature != loadedIconSignature, let signature else { return }
+        guard let signature = iconFileSignature() else { return }
+        iconsLock.lock()
+        let unchanged = signature == loadedIconSignature
+        iconsLock.unlock()
+        guard !unchanged else { return }
         guard let data = try? Data(contentsOf: paths.pluginIconsFile),
               let parsed = MagpieFiles.parsePluginIcons(data) else { return }
+        iconsLock.lock()
         loadedIconSignature = signature
         icons = parsed
+        iconsLock.unlock()
+    }
+
+    private func mappedIcon(for key: String) -> String? {
+        iconsLock.lock()
+        defer { iconsLock.unlock() }
+        return icons[key]
     }
 
     private struct IconSignature: Equatable {
@@ -69,7 +81,7 @@ final class MagpieIconResolver {
         let fileName: String
         if raw.hasPrefix("file:") {
             fileName = String(raw.dropFirst("file:".count))
-        } else if let mapped = icons[raw], mapped.hasPrefix("file:") {
+        } else if let mapped = mappedIcon(for: raw), mapped.hasPrefix("file:") {
             fileName = String(mapped.dropFirst("file:".count))
         } else {
             return []

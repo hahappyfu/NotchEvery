@@ -73,4 +73,36 @@ final class MagpieIconResolverTests: XCTestCase {
         resolver.reloadIconsIfNeeded()
         XCTAssertEqual(resolver.candidateURLs(for: "alias").first?.lastPathComponent, "new.svg.png")
     }
+
+    func testConcurrentReloadAndLookupIsThreadSafe() throws {
+        let iconsFile = root.appendingPathComponent("plugin-icons.json")
+        try Data(#"{"alias":"file:init.svg"}"#.utf8).write(to: iconsFile)
+        let resolver = MagpieIconResolver(
+            paths: MagpiePaths(root: root),
+            cacheDirectory: cacheDirectory,
+            tracksFileChanges: true
+        )
+
+        let group = DispatchGroup()
+        let writeQueue = DispatchQueue(label: "icon-writer")
+        let readQueue = DispatchQueue(label: "icon-reader", attributes: .concurrent)
+
+        for iteration in 0..<40 {
+            group.enter()
+            writeQueue.async {
+                let payload = #"{"alias":"file:v\#(iteration).svg"}"#
+                try? Data(payload.utf8).write(to: iconsFile)
+                let stamp = Date().addingTimeInterval(TimeInterval(iteration + 1))
+                try? FileManager.default.setAttributes([.modificationDate: stamp], ofItemAtPath: iconsFile.path)
+                resolver.reloadIconsIfNeeded()
+                group.leave()
+            }
+            group.enter()
+            readQueue.async {
+                _ = resolver.candidateURLs(for: "alias")
+                group.leave()
+            }
+        }
+        XCTAssertEqual(group.wait(timeout: .now() + 5), .success)
+    }
 }

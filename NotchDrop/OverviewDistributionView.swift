@@ -70,27 +70,19 @@ struct OverviewDistributionView: View {
         return formatted + " · \(name)"
     }
 
-    static func summaryText(
-        netTokens: Int,
-        cacheRate: Double?,
-        maskedValues: Int,
-        errorCount: Int,
-        retriedSuccessCount: Int
-    ) -> String {
+    static func baseSummaryText(netTokens: Int, cacheRate: Double?) -> String {
         var parts = [TokenFormatUtils.formatCompactTokens(netTokens)]
         if let cacheRate {
             parts.append("缓存 \(String(format: "%.1f%%", cacheRate * 100))")
         }
-        if maskedValues > 0 {
-            parts.append("\(maskedValues)")
-        }
-        if errorCount > 0 {
-            parts.append("E \(errorCount)")
-        }
-        if retriedSuccessCount > 0 {
-            parts.append("重试 \(retriedSuccessCount)")
-        }
         return parts.joined(separator: " · ")
+    }
+
+    static func alertSummaryText(errorCount: Int, retriedSuccessCount: Int) -> String? {
+        var parts: [String] = []
+        if errorCount > 0 { parts.append("E \(errorCount)") }
+        if retriedSuccessCount > 0 { parts.append("重试 \(retriedSuccessCount)") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     static func barHeight(tokens: Int, peak: Int) -> CGFloat {
@@ -109,18 +101,24 @@ struct OverviewDistributionView: View {
                 .font(.system(size: 11.5, weight: .medium))
                 .foregroundStyle(StudioInk.primary)
 
-            if store.snapshot.todayMaskedValues > 0 {
-                Image(systemName: "lock.shield.fill")
-                    .font(.system(size: 9))
-                    .foregroundStyle(StudioInk.secondary)
+            HStack(spacing: 4) {
+                Text(Self.baseSummaryText(
+                    netTokens: store.snapshot.todayNetTokens,
+                    cacheRate: store.snapshot.todayCacheRate
+                ))
+                if store.snapshot.todayMaskedValues > 0 {
+                    Text("·")
+                    Image(systemName: "lock.shield.fill")
+                        .font(.system(size: 9))
+                    Text("\(store.snapshot.todayMaskedValues)")
+                }
+                if let alert = Self.alertSummaryText(
+                    errorCount: store.snapshot.todayErrorCount,
+                    retriedSuccessCount: store.snapshot.todayRetriedSuccessCount
+                ) {
+                    Text("· \(alert)")
+                }
             }
-            Text(Self.summaryText(
-                netTokens: store.snapshot.todayNetTokens,
-                cacheRate: store.snapshot.todayCacheRate,
-                maskedValues: store.snapshot.todayMaskedValues,
-                errorCount: store.snapshot.todayErrorCount,
-                retriedSuccessCount: store.snapshot.todayRetriedSuccessCount
-            ))
             .font(.system(size: 11).monospacedDigit())
             .foregroundStyle(StudioInk.secondary)
             .lineLimit(1)

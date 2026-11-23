@@ -441,15 +441,15 @@ final class MagpieAggregatorTests: XCTestCase {
         XCTAssertEqual(result.recentFlows.first?.maskedCount, 5)
     }
 
-    // 16. quota-history 按 <provider>|<account> + 窗口名接入，取最近 20 点
+    // 16. quota-history 按 <provider>|<account> + 窗口名接入，取最近 24 点
     func testQuotaHistoryJoinsWindowSparkline() {
-        let points = (1...25).map { MagpieQuotaPoint(at: nil, left: Double($0)) }
+        let points = (1...30).map { MagpieQuotaPoint(at: nil, left: Double($0)) }
         let quotas = [quota("p", windows: [window("总积分", used: 30, amount: 30, limit: 100)])]
         let result = snapshot(quotas: quotas, quotaHistory: ["p|a": ["总积分": points]])
         let window = result.providerGroups.first?.accounts.first?.windows.first
-        XCTAssertEqual(window?.history.count, 20)
-        XCTAssertEqual(window?.history.first, 6)
-        XCTAssertEqual(window?.history.last, 25)
+        XCTAssertEqual(window?.history.count, 24)
+        XCTAssertEqual(window?.history.first, 7)
+        XCTAssertEqual(window?.history.last, 30)
     }
 
     // 17. 流水行字段：provider 显示名、账号、requestedModel、状态与耗时
