@@ -36,21 +36,29 @@ struct NotchRootView: View {
         .onAppear {
             UsageStore.shared.start()
             AntigravityStore.shared.start()
+            if vm.contentType == .overview { MagpieStore.shared.start() }
         }
         .onChange(of: vm.status) { status in
             if status == .closed {
                 UsageStore.shared.stop()
                 AntigravityStore.shared.stop()
+                MagpieStore.shared.stop()
             } else {
                 UsageStore.shared.start()
                 AntigravityStore.shared.start()
+                if vm.contentType == .overview { MagpieStore.shared.start() }
             }
+        }
+        .onChange(of: vm.contentType) { zone in
+            // Magpie 只服务第 1 页：切走停、切回启
+            if zone == .overview { MagpieStore.shared.start() } else { MagpieStore.shared.stop() }
         }
         // 收起兜底：NotchView 用 `if vm.status == .opened` 条件渲染摘掉整棵子树，
         // 视图被移除时上面的 onChange 收不到 .closed，停轮询只能靠 onDisappear。
         .onDisappear {
             UsageStore.shared.stop()
             AntigravityStore.shared.stop()
+            MagpieStore.shared.stop()
         }
     }
 
@@ -135,8 +143,8 @@ private struct PageTransitionWrapper: View, Equatable {
     var body: some View {
         Group {
             switch contentType {
-            case .normal:
-                OverviewPageView(vm: vm)
+            case .overview:
+                OverviewDistributionView()
             case .token:
                 TokenZoneView()
                     .frame(maxWidth: .infinity, alignment: .top)

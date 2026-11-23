@@ -7,13 +7,13 @@ final class ContentZoneSwitcherTests: XCTestCase {
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.token)
         vm.nextZone()
-        XCTAssertEqual(vm.contentType, .normal)
+        XCTAssertEqual(vm.contentType, .overview)
     }
 
     func testPreviousZoneWrapsAround() {
         // 分区循环：概览之前是末区（Token）
         let vm = NotchViewModel(events: MockEventMonitors())
-        vm.jumpToZone(.normal)
+        vm.jumpToZone(.overview)
         vm.previousZone()
         XCTAssertEqual(vm.contentType, .token)
     }
@@ -21,11 +21,11 @@ final class ContentZoneSwitcherTests: XCTestCase {
     func testNextZoneAdvancesInOrder() {
         // 概览 → Token，逐段推进后回绕
         let vm = NotchViewModel(events: MockEventMonitors())
-        vm.jumpToZone(.normal)
+        vm.jumpToZone(.overview)
         vm.nextZone()
         XCTAssertEqual(vm.contentType, .token)
         vm.nextZone()
-        XCTAssertEqual(vm.contentType, .normal)
+        XCTAssertEqual(vm.contentType, .overview)
     }
 
     func testPreviousZoneRewindsInOrder() {
@@ -33,15 +33,15 @@ final class ContentZoneSwitcherTests: XCTestCase {
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.jumpToZone(.token)
         vm.previousZone()
-        XCTAssertEqual(vm.contentType, .normal)
+        XCTAssertEqual(vm.contentType, .overview)
         vm.previousZone()
         XCTAssertEqual(vm.contentType, .token)
     }
 
     func testZoneOrderIsTwoPages() {
         // 双分区：概览与 Token
-        XCTAssertEqual(NotchViewModel.zoneOrder, [.normal, .token])
-        XCTAssertEqual(NotchViewModel.pageIndex(for: .normal), 0)
+        XCTAssertEqual(NotchViewModel.zoneOrder, [.overview, .token])
+        XCTAssertEqual(NotchViewModel.pageIndex(for: .overview), 0)
         XCTAssertEqual(NotchViewModel.pageIndex(for: .token), 1)
     }
 

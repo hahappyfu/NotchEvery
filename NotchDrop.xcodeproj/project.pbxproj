@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AD879541D685E264311352FF /* CopyFeedbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0D0A606C9AD4B982B54391 /* CopyFeedbackTests.swift */; };
+		ADFB780D9B19D39BE0BF1650 /* CopyFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD896BCF34010AA4FD902D0D /* CopyFeedback.swift */; };
+		AD1E65947277B121F0FDFE72 /* ProviderIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2FF1D3FFCA01E12350D2AA /* ProviderIconView.swift */; };
+		ADC2E41C6451DFD2639F9AD8 /* OverviewDistributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD3E60C9C5FCDB49973E76D8 /* OverviewDistributionView.swift */; };
 		ADFA6380D5E2350C1FB0A4A7 /* MagpieIconResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADB238895E7C919678135A5C /* MagpieIconResolver.swift */; };
 		AD67D15ED57877749DFC44D6 /* MagpieStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD53BD265E999E8FA7F1AB11 /* MagpieStore.swift */; };
 		AD740D17A8102ABB7FFDE948 /* MagpieAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBA1437E76B94BE3D71560E /* MagpieAggregator.swift */; };
@@ -22,7 +26,6 @@
 		ADDB21B255F6A66664CD179F /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADFDC8346F81347405A0C429 /* LoginItem.swift */; };
 		ADA80C77A6D2C2382B1F7F3C /* LoginItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD7DB047455C019B00EFE7B9 /* LoginItemTests.swift */; };
 		ADACB2EEBB907D6E4F116A55 /* UsageMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD001802C09CB45D4544976F /* UsageMetricsTests.swift */; };
-		AD278622E22CEAA86F3CE928 /* ModelDistributionCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5DBC24BF6910457FC4AB97 /* ModelDistributionCardView.swift */; };
 		AD623CB6163DBEA68623E727 /* GearHapticFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */; };
 		7AE10C0220260AB0000000E2 /* AnimationMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */; };
 		7B01000120260CD000000006 /* PreferencesWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B01000120260CD000000005 /* PreferencesWindow.swift */; };
@@ -55,7 +58,6 @@
 		D4E5F6071839404152000002 /* ScrollSwipeResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */; };
 		F1E2D3C4B5A6071829304101 /* TokenZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */; };
 		B7C8D3E4F5A6071829304101 /* iOSPageIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */; };
-		D0E1F2A3B4C5071829304101 /* OverviewPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */; };
 		C9D0E1F2A3B4071829304101 /* NotchRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D0E1F2A3B4071829304100 /* NotchRootView.swift */; };
 		C1D2E3F4A506172839404303 /* IslandMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A506172839404302 /* IslandMetrics.swift */; };
 		7AE10C0220260AB000000D1 /* AppPathsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE10C0220260AB000000C1 /* AppPathsTests.swift */; };
@@ -92,6 +94,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AD0D0A606C9AD4B982B54391 /* CopyFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyFeedbackTests.swift; sourceTree = "<group>"; };
+		AD896BCF34010AA4FD902D0D /* CopyFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyFeedback.swift; sourceTree = "<group>"; };
+		AD2FF1D3FFCA01E12350D2AA /* ProviderIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderIconView.swift; sourceTree = "<group>"; };
+		AD3E60C9C5FCDB49973E76D8 /* OverviewDistributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewDistributionView.swift; sourceTree = "<group>"; };
 		ADB238895E7C919678135A5C /* MagpieIconResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieIconResolver.swift; sourceTree = "<group>"; };
 		AD53BD265E999E8FA7F1AB11 /* MagpieStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieStore.swift; sourceTree = "<group>"; };
 		ADBA1437E76B94BE3D71560E /* MagpieAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieAggregator.swift; sourceTree = "<group>"; };
@@ -107,7 +113,6 @@
 		ADFDC8346F81347405A0C429 /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 		AD7DB047455C019B00EFE7B9 /* LoginItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemTests.swift; sourceTree = "<group>"; };
 		AD001802C09CB45D4544976F /* UsageMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageMetricsTests.swift; sourceTree = "<group>"; };
-		AD5DBC24BF6910457FC4AB97 /* ModelDistributionCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDistributionCardView.swift; sourceTree = "<group>"; };
 		AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GearHapticFeedback.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000005 /* PreferencesWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindow.swift; sourceTree = "<group>"; };
 		7B01000120260CD000000007 /* PreferencesWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesWindowController.swift; sourceTree = "<group>"; };
@@ -142,7 +147,6 @@
 		D4E5F6071839404152000001 /* ScrollSwipeResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollSwipeResolver.swift; sourceTree = "<group>"; };
 		F1E2D3C4B5A6071829304100 /* TokenZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenZoneView.swift; sourceTree = "<group>"; };
 		B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSPageIndicator.swift; sourceTree = "<group>"; };
-		D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewPageView.swift; sourceTree = "<group>"; };
 		C9D0E1F2A3B4071829304100 /* NotchRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotchRootView.swift; sourceTree = "<group>"; };
 		C1D2E3F4A506172839404302 /* IslandMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandMetrics.swift; sourceTree = "<group>"; };
 		7AE10C0220260AB000000C1 /* AppPathsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPathsTests.swift; sourceTree = "<group>"; };
@@ -203,6 +207,9 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				AD896BCF34010AA4FD902D0D /* CopyFeedback.swift */,
+				AD2FF1D3FFCA01E12350D2AA /* ProviderIconView.swift */,
+				AD3E60C9C5FCDB49973E76D8 /* OverviewDistributionView.swift */,
 				ADB238895E7C919678135A5C /* MagpieIconResolver.swift */,
 				AD53BD265E999E8FA7F1AB11 /* MagpieStore.swift */,
 				ADBA1437E76B94BE3D71560E /* MagpieAggregator.swift */,
@@ -211,7 +218,6 @@
 				ADEC4B90B1A8AD9117A11288 /* MagpieModels.swift */,
 				AD7B0D093C70352E5E695915 /* MagpiePaths.swift */,
 				ADFDC8346F81347405A0C429 /* LoginItem.swift */,
-				AD5DBC24BF6910457FC4AB97 /* ModelDistributionCardView.swift */,
 				AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */,
 				50D7EFF22C3E484C005AC04E /* Info.plist */,
 				5043818C2C3A86EC000ED325 /* NotchDrop.entitlements */,
@@ -233,7 +239,6 @@
 				F101CE00000000000000005B /* TokenFormatUtils.swift */,
 				B1C2D3E4F506172839404152 /* AppPaths.swift */,
 				B7C8D3E4F5A6071829304100 /* iOSPageIndicator.swift */,
-				D0E1F2A3B4C5071829304100 /* OverviewPageView.swift */,
 				C9D0E1F2A3B4071829304100 /* NotchRootView.swift */,
 				C1D2E3F4A506172839404302 /* IslandMetrics.swift */,
 				504381AE2C3ADFF2000ED325 /* NotchContentView.swift */,
@@ -268,6 +273,7 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				AD0D0A606C9AD4B982B54391 /* CopyFeedbackTests.swift */,
 				AD9021B5401EDA52BF81D4F4 /* MagpieIconResolverTests.swift */,
 				AD6A74A8A762D50BE39EDF69 /* MagpieStoreTests.swift */,
 				ADA612364C8B082F84CDFA69 /* MagpieAggregatorTests.swift */,
@@ -404,6 +410,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ADFB780D9B19D39BE0BF1650 /* CopyFeedback.swift in Sources */,
+				AD1E65947277B121F0FDFE72 /* ProviderIconView.swift in Sources */,
+				ADC2E41C6451DFD2639F9AD8 /* OverviewDistributionView.swift in Sources */,
 				ADFA6380D5E2350C1FB0A4A7 /* MagpieIconResolver.swift in Sources */,
 				AD67D15ED57877749DFC44D6 /* MagpieStore.swift in Sources */,
 				AD740D17A8102ABB7FFDE948 /* MagpieAggregator.swift in Sources */,
@@ -412,14 +421,12 @@
 				AD577F6CF5DE77933CE9F451 /* MagpieModels.swift in Sources */,
 				AD3389D3EA60E59A2FFEC6F1 /* MagpiePaths.swift in Sources */,
 				ADDB21B255F6A66664CD179F /* LoginItem.swift in Sources */,
-				AD278622E22CEAA86F3CE928 /* ModelDistributionCardView.swift in Sources */,
 				AD623CB6163DBEA68623E727 /* GearHapticFeedback.swift in Sources */,
 				504381992C3A8893000ED325 /* NotchWindow.swift in Sources */,
 				504381AF2C3ADFF2000ED325 /* NotchContentView.swift in Sources */,
 				7AE10C0220260AB000000001 /* ZoneSizeGuard.swift in Sources */,
 				F1E2D3C4B5A6071829304101 /* TokenZoneView.swift in Sources */,
 				B7C8D3E4F5A6071829304101 /* iOSPageIndicator.swift in Sources */,
-				D0E1F2A3B4C5071829304101 /* OverviewPageView.swift in Sources */,
 				C9D0E1F2A3B4071829304101 /* NotchRootView.swift in Sources */,
 				C1D2E3F4A506172839404303 /* IslandMetrics.swift in Sources */,
 				504381A02C3A8BA1000ED325 /* NotchView.swift in Sources */,
@@ -457,6 +464,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD879541D685E264311352FF /* CopyFeedbackTests.swift in Sources */,
 				AD4E4AB7A83D57AE3A2AF079 /* MagpieIconResolverTests.swift in Sources */,
 				AD163A2531529AFE6BEFB865 /* MagpieStoreTests.swift in Sources */,
 				AD8CF73B25B5C5728AA634B0 /* MagpieAggregatorTests.swift in Sources */,

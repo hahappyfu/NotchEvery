@@ -82,7 +82,7 @@ final class ZoneSizeGuardTests: XCTestCase {
         vm.measuredNaturalSize = CGSize(width: 500, height: 200)
         vm.jumpToZone(.token)
         vm.measuredNaturalSize = CGSize(width: 420, height: 200)
-        vm.jumpToZone(.normal)
+        vm.jumpToZone(.overview)
         XCTAssertEqual(vm.measuredNaturalSize.width, 500)
     }
 }

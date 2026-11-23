@@ -17,13 +17,13 @@ final class ArrowKeyZoneSwitchTests: XCTestCase {
             vm?.handleArrowKey(direction)
         }.store(in: &cancellables)
 
-        vm.jumpToZone(.normal)
+        vm.jumpToZone(.overview)
         mocks.arrowKey.send(.rightForward)
         XCTAssertEqual(vm.contentType, .token)
         XCTAssertTrue(vm.hasSeenSwipeHint)
 
         mocks.arrowKey.send(.rightForward)
-        XCTAssertEqual(vm.contentType, .normal)
+        XCTAssertEqual(vm.contentType, .overview)
     }
 
     func testArrowKeyPreviousRewindsAndWraps() {
@@ -33,12 +33,12 @@ final class ArrowKeyZoneSwitchTests: XCTestCase {
             vm?.handleArrowKey(direction)
         }.store(in: &cancellables)
 
-        vm.jumpToZone(.normal)
+        vm.jumpToZone(.overview)
         mocks.arrowKey.send(.leftBackward)
         XCTAssertEqual(vm.contentType, .token)
         XCTAssertTrue(vm.hasSeenSwipeHint)
 
         mocks.arrowKey.send(.leftBackward)
-        XCTAssertEqual(vm.contentType, .normal)
+        XCTAssertEqual(vm.contentType, .overview)
     }
 }

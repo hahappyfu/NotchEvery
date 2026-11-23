@@ -178,7 +178,7 @@ class NotchViewModel: NSObject, ObservableObject {
     }
 
     enum ContentType: Int, Codable, Hashable, Equatable {
-        case normal
+        case overview
         case token
     }
 
@@ -211,7 +211,7 @@ class NotchViewModel: NSObject, ObservableObject {
         }
     }
     @Published var openReason: OpenReason = .unknown
-    @Published var contentType: ContentType = .normal {
+    @Published var contentType: ContentType = .overview {
         didSet {
             // 切页恢复目标区自己的完整尺寸：各区独立记忆，宽高都不串
             measuredNaturalSize = lastZoneSize[contentType] ?? .zero
@@ -252,7 +252,7 @@ class NotchViewModel: NSObject, ObservableObject {
     var hapticFeedback: Bool
 
     /// 参与分页的区序：两页（概览 ｜ Token）。
-    static let baseZoneOrder: [ContentType] = [.normal, .token]
+    static let baseZoneOrder: [ContentType] = [.overview, .token]
 
     let hapticSender = PassthroughSubject<Void, Never>()
 
@@ -377,7 +377,7 @@ class NotchViewModel: NSObject, ObservableObject {
 
     static func zone(for page: Int) -> ContentType {
         let order = Self.zoneOrder
-        guard order.indices.contains(page) else { return .normal }
+        guard order.indices.contains(page) else { return .overview }
         return order[page]
     }
 

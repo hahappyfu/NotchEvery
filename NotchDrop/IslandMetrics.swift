@@ -42,7 +42,10 @@ enum IslandMetrics {
     /// 任务 3 调整为 1.15，支持更紧凑的内容自适应。
     static let panelAspectFloor: CGFloat = 1.15
     /// 面板内容与岛体边缘的留白：内容不贴边界（对齐原版 600/664 的 32pt 比例，2026-09-11 用户验收要求）
-    static let panelContentInset: CGFloat = 32
+    static let panelContentInset: CGFloat = 18
+
+    /// 第 1 页固定宽度（内容按此 frame，容器居中）
+    static let pageWidth: CGFloat = 420
 
     /// 面板最小高度与外接屏幕/无刘海保底宽度
     static let minPanelHeight: CGFloat = 60

@@ -49,27 +49,33 @@ final class TabMetricsTests: XCTestCase {
 
     func testPageZoneMapping() {
         // 双分区映射：概览、Token
-        XCTAssertEqual(NotchViewModel.zoneOrder, [.normal, .token])
-        XCTAssertEqual(NotchViewModel.pageIndex(for: .normal), 0)
+        XCTAssertEqual(NotchViewModel.zoneOrder, [.overview, .token])
+        XCTAssertEqual(NotchViewModel.pageIndex(for: .overview), 0)
         XCTAssertEqual(NotchViewModel.pageIndex(for: .token), 1)
-        XCTAssertEqual(NotchViewModel.zone(for: 0), .normal)
+        XCTAssertEqual(NotchViewModel.zone(for: 0), .overview)
         XCTAssertEqual(NotchViewModel.zone(for: 1), .token)
-        XCTAssertEqual(NotchViewModel.zone(for: -1), .normal)
-        XCTAssertEqual(NotchViewModel.zone(for: 99), .normal)
+        XCTAssertEqual(NotchViewModel.zone(for: -1), .overview)
+        XCTAssertEqual(NotchViewModel.zone(for: 99), .overview)
     }
 
-    func testOverviewPageSpacingAndPadding() {
-        // 验证 OverviewPageView 使用紧凑间距 8pt 且两张卡片存在
-        let overview = OverviewPageView(vm: NotchViewModel())
-        XCTAssertNotNil(overview)
+    func testOverviewDistributionViewInstantiates() throws {
+        // 临时空 Magpie 目录 → 建视图不崩（hasMagpieDirectory=false 走空态）
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("TabMetrics-OV-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let store = MagpieStore(paths: MagpiePaths(root: root))
+        let view = OverviewDistributionView(store: store)
+        XCTAssertNotNil(view)
     }
 
     func testZoneSizeMemoryRestoresFullCGSizeIndependently() {
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.deviceNotchRect = CGRect(x: 570, y: 866, width: 300, height: 34)
 
-        // 1. 在 A 区（.normal）测量自然尺寸 400×334
-        vm.contentType = .normal
+        // 1. 在 A 区（.overview）测量自然尺寸 400×334
+        vm.contentType = .overview
         vm.measuredNaturalSize = CGSize(width: 400, height: 334)
         XCTAssertEqual(vm.measuredNaturalSize, CGSize(width: 400, height: 334))
         XCTAssertEqual(vm.zoneOpenedSize.height, 334)
@@ -81,8 +87,8 @@ final class TabMetricsTests: XCTestCase {
         XCTAssertEqual(vm.measuredNaturalSize, CGSize(width: 250, height: 120))
         XCTAssertEqual(vm.zoneOpenedSize.height, 120, "低页高度不得被高页污染锁定")
 
-        // 3. 切回 A 区（.normal），必须恢复 400×334，而不是保留 B 区的 120 高度
-        vm.contentType = .normal
+        // 3. 切回 A 区（.overview），必须恢复 400×334，而不是保留 B 区的 120 高度
+        vm.contentType = .overview
         XCTAssertEqual(vm.measuredNaturalSize, CGSize(width: 400, height: 334), "切回 A 区应恢复 A 区独立记忆的高宽")
         XCTAssertEqual(vm.zoneOpenedSize.height, 334)
 
@@ -95,7 +101,7 @@ final class TabMetricsTests: XCTestCase {
     func testReopenRestoresCurrentZoneFullSize() {
         let vm = NotchViewModel(events: MockEventMonitors())
         vm.deviceNotchRect = CGRect(x: 570, y: 866, width: 300, height: 34)
-        vm.contentType = .normal
+        vm.contentType = .overview
         vm.measuredNaturalSize = CGSize(width: 450, height: 280)
 
         // 关闭
