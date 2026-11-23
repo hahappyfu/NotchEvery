@@ -14,7 +14,8 @@ final class TokenZoneViewFormatTests: XCTestCase {
         MagpieFlowRow(
             id: id,
             agent: "claude",
-            provider: "p",
+            providerID: "p",
+            providerName: "P",
             account: "a",
             model: "m",
             requestedModel: "m",
@@ -51,5 +52,18 @@ final class TokenZoneViewFormatTests: XCTestCase {
             time: "00:00:00"
         )
         XCTAssertEqual(summary, "00:00:00 p@a m status=-1 -1ms ttft=-1ms rid=r-1")
+    }
+
+    // A1: 复制摘要打印稳定 providerID，而不是仅用于展示的 providerName。
+    func testCopySummaryUsesProviderIDNotDisplayName() {
+        let flow = MagpieFlowRow(
+            id: "r-1", agent: "claude", providerID: "stable-id", providerName: "展示名",
+            account: "a", model: "m", requestedModel: "m", groupName: nil,
+            inputTokens: 10, outputTokens: 20, cacheRead: 0, durationMs: 1234,
+            ttftMs: 56, maskingMs: nil, status: 499, handedOn: false,
+            maskedCount: 0, time: Date(timeIntervalSince1970: 1000)
+        )
+        XCTAssertEqual(TokenZoneView.copySummary(for: flow, time: "12:34:56"),
+                       "12:34:56 stable-id@a m status=499 1234ms ttft=56ms rid=r-1")
     }
 }

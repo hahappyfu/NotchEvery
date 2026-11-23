@@ -32,15 +32,13 @@ enum EarSummary {
         return (time, snapshot.activeAlertCount)
     }
 
-    /// P2 左耳：最近一笔的提供商显示名（providerGroups 里同 id/name 的 name，找不到用原值）；无流水 → nil。
-    /// recentFlows.first.provider 已是聚合器解析后的显示名（names[raw] ?? raw），
-    /// 匹配 group 用 id == 显示名（raw 兜底时）或 name == 显示名（已解析时）都覆盖。
+    /// P2 左耳：最近一笔的提供商显示名（按稳定 providerID 查组名，找不到用展示名）；无流水 → nil。
     static func flowLeft(snapshot: MagpieSnapshot) -> String? {
         guard let first = snapshot.recentFlows.first else { return nil }
-        if let name = snapshot.providerGroups.first(where: { $0.id == first.provider || $0.name == first.provider })?.name, !name.isEmpty {
+        if let name = snapshot.providerGroups.first(where: { $0.id == first.providerID })?.name, !name.isEmpty {
             return name
         }
-        return first.provider
+        return first.providerName
     }
 
     /// P2 右耳：今日总请求（紧凑格式 + " 次"）+ 活跃告警数。

@@ -59,7 +59,7 @@ extension TokenZoneView {
     }
 
     static func copySummary(for row: MagpieFlowRow, time: String) -> String {
-        "\(time) \(row.provider)@\(row.account) \(row.model) status=\(row.status ?? -1) \(row.durationMs ?? -1)ms ttft=\(row.ttftMs ?? -1)ms rid=\(row.id)"
+        "\(time) \(row.providerID)@\(row.account) \(row.model) status=\(row.status ?? -1) \(row.durationMs ?? -1)ms ttft=\(row.ttftMs ?? -1)ms rid=\(row.id)"
     }
 }
 
@@ -103,7 +103,7 @@ private struct FlowRowView: View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 5) {
-                    ProviderIconView(icon: icon, providerID: row.provider, size: 12)
+                    ProviderIconView(icon: icon, providerID: row.providerID, size: 12)
                     Text(TokenFormatUtils.friendlyModelName(row.model))
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(.white)
@@ -112,7 +112,7 @@ private struct FlowRowView: View {
                         .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
                         .lineLimit(1)
                 }
-                Text("\(row.provider) · \(row.groupName ?? "直连") · \(row.agent)")
+                Text("\(row.providerName) · \(row.groupName ?? "直连") · \(row.agent)")
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -222,7 +222,7 @@ struct TokenZoneView: View {
         self.store = store
     }
 
-    private var liveRows: [MagpieFlowRow] { store.snapshot.recentFlows }
+    private var liveRows: [MagpieFlowRow] { Array(store.snapshot.recentFlows.prefix(5)) }
     private var displayedRows: [MagpieFlowRow] {
         pauseController.isPaused ? pauseController.frozenRows : liveRows
     }
@@ -259,7 +259,7 @@ struct TokenZoneView: View {
                     ForEach(displayedRows) { row in
                         FlowRowView(
                             row: row,
-                            icon: store.snapshot.providerGroups.first { $0.name == row.provider }?.icon,
+                            icon: store.snapshot.providerGroups.first { $0.id == row.providerID }?.icon,
                             copied: copyFeedback.copiedID == row.id,
                             isNew: !pauseController.isPaused
                                 && lastFirstID != nil
@@ -288,7 +288,7 @@ struct TokenZoneView: View {
         .padding(.vertical, 4)
         .onChange(of: liveRows) { rows in
             if pauseController.isPaused {
-                pauseController.receive(liveRows: rows)
+                pauseController.receive(liveRows: store.snapshot.recentFlows)
             } else if let first = rows.first, first.id != lastFirstID {
                 lastFirstID = first.id
             }

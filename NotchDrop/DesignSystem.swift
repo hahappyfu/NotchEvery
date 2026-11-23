@@ -15,6 +15,12 @@ public enum StudioColor {
     public static let cyan    = Color(red: 6/255, green: 182/255, blue: 212/255)   // #06B6D4
 }
 
+public enum StudioInk {
+    public static let primary = Color.white.opacity(0.94)
+    public static let secondary = Color.white.opacity(0.68)
+    public static let axis = Color.white.opacity(0.55)
+}
+
 public enum StudioMaterial {
     public static let cardBackground = Color.white.opacity(0.05)
     public static let cardHoverBackground = Color.white.opacity(0.09)

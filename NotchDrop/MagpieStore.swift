@@ -17,6 +17,7 @@ final class MagpieStore: ObservableObject {
     private(set) var isRunning = false
 
     private let paths: MagpiePaths
+    private let iconResolver: MagpieIconResolver
     private let calendar: Calendar
     private let now: () -> Date
     private let ioQueue = DispatchQueue(label: "MagpieStore.io")
@@ -47,6 +48,7 @@ final class MagpieStore: ObservableObject {
         now: @escaping () -> Date = Date.init
     ) {
         self.paths = paths
+        self.iconResolver = paths == MagpiePaths() ? .shared : MagpieIconResolver(paths: paths)
         self.calendar = calendar
         self.now = now
     }
@@ -111,6 +113,7 @@ final class MagpieStore: ObservableObject {
         }
 
         usageRecords.append(contentsOf: MagpieUsageReader.readNewRecords(file: paths.usageFile, state: &usageTail))
+        iconResolver.reloadIconsIfNeeded()
         let startOfDay = calendar.startOfDay(for: date)
         usageRecords.removeAll { $0.time < startOfDay }
 
@@ -175,8 +178,8 @@ final class MagpieStore: ObservableObject {
         for (ref, name) in batch.groupNameByRef {
             routeIndex.groupNameByRef[ref] = name
         }
-        for (provider, snapshot) in batch.orderSnapshotsByProvider {
-            routeIndex.orderSnapshotsByProvider[provider] = snapshot
+        for (id, snapshot) in batch.orderSnapshotsByAccount {
+            routeIndex.orderSnapshotsByAccount[id] = snapshot
         }
     }
 

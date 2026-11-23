@@ -104,7 +104,8 @@ enum MagpieFiles {
                 icon: provider.icon,
                 hidden: provider.hidden ?? false,
                 disabled: provider.disabled ?? false,
-                signedIn: true
+                signedIn: true,
+                accountNames: provider.accountNames ?? [:]
             )
         }
         var groups: [String: String] = [:]
@@ -187,8 +188,8 @@ enum MagpieFiles {
                 }
             }
             for order in entry.order ?? [] {
-                guard let provider = nonEmpty(order.provider) else { continue }
-                index.orderSnapshotsByProvider[provider] = MagpieProviderOrderSnapshot(
+                guard let provider = nonEmpty(order.provider), let id = nonEmpty(order.id) else { continue }
+                index.orderSnapshotsByAccount[id] = MagpieProviderOrderSnapshot(
                     provider: provider,
                     name: order.name,
                     icon: order.icon,
@@ -274,6 +275,7 @@ enum MagpieFiles {
             let icon: String?
             let disabled: Bool?
             let hidden: Bool?
+            let accountNames: [String: String]?
         }
 
         struct Group: Decodable {
@@ -313,6 +315,7 @@ enum MagpieFiles {
         }
 
         struct Order: Decodable {
+            let id: String?
             let provider: String?
             let name: String?
             let icon: String?

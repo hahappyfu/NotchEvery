@@ -25,7 +25,9 @@ public struct MagpieUsageRecord: Equatable {
     public let reasoning: Int
     public let durationMs: Int?
     public let ttftMs: Int?
+    public let flowMs: Int?
     public let maskingMs: Int?
+    public let tries: Int
     public let status: Int?
     public let handedOn: Bool
 
@@ -48,7 +50,9 @@ public struct MagpieUsageRecord: Equatable {
         ttftMs: Int?,
         maskingMs: Int?,
         status: Int?,
-        handedOn: Bool
+        handedOn: Bool,
+        flowMs: Int? = nil,
+        tries: Int = 1
     ) {
         self.id = id
         self.routeID = routeID
@@ -66,7 +70,9 @@ public struct MagpieUsageRecord: Equatable {
         self.reasoning = reasoning
         self.durationMs = durationMs
         self.ttftMs = ttftMs
+        self.flowMs = flowMs
         self.maskingMs = maskingMs
+        self.tries = tries
         self.status = status
         self.handedOn = handedOn
     }
@@ -276,7 +282,7 @@ struct MagpieProviderOrderSnapshot: Equatable {
 struct MagpieRouteIndex: Equatable {
     var groupNameByRouteID: [Int64: String] = [:]
     var groupNameByRef: [String: String] = [:]
-    var orderSnapshotsByProvider: [String: MagpieProviderOrderSnapshot] = [:]
+    var orderSnapshotsByAccount: [String: MagpieProviderOrderSnapshot] = [:]
 }
 
 // MARK: - 供应商目录
@@ -289,6 +295,25 @@ struct MagpieProviderCatalog: Equatable {
         let hidden: Bool
         let disabled: Bool
         let signedIn: Bool
+        let accountNames: [String: String]
+
+        init(
+            id: String,
+            name: String,
+            icon: String?,
+            hidden: Bool,
+            disabled: Bool,
+            signedIn: Bool,
+            accountNames: [String: String] = [:]
+        ) {
+            self.id = id
+            self.name = name
+            self.icon = icon
+            self.hidden = hidden
+            self.disabled = disabled
+            self.signedIn = signedIn
+            self.accountNames = accountNames
+        }
     }
 
     struct ProviderPart: Equatable {
@@ -323,7 +348,8 @@ struct MagpieProviderCatalog: Equatable {
                 icon: providerIcon.isEmpty ? plugin.icon : base?.icon,
                 hidden: base?.hidden ?? false,
                 disabled: base?.disabled ?? false,
-                signedIn: (base?.signedIn ?? false) || plugin.signedIn
+                signedIn: (base?.signedIn ?? false) || plugin.signedIn,
+                accountNames: base?.accountNames ?? [:]
             )
         }
         return catalog
@@ -363,7 +389,8 @@ struct DistributionItem: Equatable, Identifiable {
 struct MagpieFlowRow: Equatable, Identifiable {
     let id: String
     let agent: String
-    let provider: String
+    let providerID: String
+    let providerName: String
     let account: String
     let model: String
     let requestedModel: String
@@ -374,10 +401,53 @@ struct MagpieFlowRow: Equatable, Identifiable {
     let durationMs: Int?
     let ttftMs: Int?
     let maskingMs: Int?
+    let tokensPerSecond: Double?
     let status: Int?
     let handedOn: Bool
     let maskedCount: Int
     let time: Date
+
+    init(
+        id: String,
+        agent: String,
+        providerID: String,
+        providerName: String,
+        account: String,
+        model: String,
+        requestedModel: String,
+        groupName: String?,
+        inputTokens: Int,
+        outputTokens: Int,
+        cacheRead: Int,
+        durationMs: Int?,
+        ttftMs: Int?,
+        maskingMs: Int?,
+        tokensPerSecond: Double? = nil,
+        status: Int?,
+        handedOn: Bool,
+        maskedCount: Int,
+        time: Date
+    ) {
+        self.id = id
+        self.agent = agent
+        self.providerID = providerID
+        self.providerName = providerName
+        self.account = account
+        self.model = model
+        self.requestedModel = requestedModel
+        self.groupName = groupName
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.cacheRead = cacheRead
+        self.durationMs = durationMs
+        self.ttftMs = ttftMs
+        self.maskingMs = maskingMs
+        self.tokensPerSecond = tokensPerSecond
+        self.status = status
+        self.handedOn = handedOn
+        self.maskedCount = maskedCount
+        self.time = time
+    }
 }
 
 enum ProviderLimitState: Equatable {
@@ -465,6 +535,13 @@ enum MagpieGatewayState: Equatable {
     case offline
 }
 
+struct MagpieHourBucket: Equatable {
+    let hour: Int
+    let netTokens: Int
+    let topProviderID: String?
+    let topProviderName: String?
+}
+
 struct MagpieSnapshot: Equatable {
     var hasMagpieDirectory: Bool
     var todayNetTokens: Int
@@ -473,6 +550,8 @@ struct MagpieSnapshot: Equatable {
     var todayRequestCount: Int
     var todayErrorCount: Int
     var todayAverageMs: Double?
+    var todayRetriedSuccessCount: Int
+    var hourlyBuckets: [MagpieHourBucket]
     var lastRequestAt: Date?
     var recentFlows: [MagpieFlowRow]
     var distributions: [DistributionDimension: [DistributionItem]]
@@ -492,6 +571,8 @@ struct MagpieSnapshot: Equatable {
         todayRequestCount: 0,
         todayErrorCount: 0,
         todayAverageMs: nil,
+        todayRetriedSuccessCount: 0,
+        hourlyBuckets: [],
         lastRequestAt: nil,
         recentFlows: [],
         distributions: [.combo: [], .provider: [], .group: []],

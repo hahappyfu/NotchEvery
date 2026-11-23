@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct MagpiePaths {
+struct MagpiePaths: Equatable {
     let root: URL
 
     static var defaultRoot: URL {

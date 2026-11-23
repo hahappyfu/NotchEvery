@@ -145,3 +145,14 @@ final class MagpieUsageReaderTests: XCTestCase {
         XCTAssertTrue(records.map(\.routeID).compactMap { $0 } == Array(9 - (records.count - 1)...9).map(Int64.init))
     }
 }
+
+    // A3: 解码 flow_ms / tries，缺省 tries 为 1。
+    func testDecodeThroughputAndTriesFields() throws {
+        let line = #"{"t":"2026-11-23T10:00:00+08:00","provider":"p","in":10,"out":20,"flow_ms":150,"tries":3,"status":200}"#
+        let record = try XCTUnwrap(MagpieUsageReader.decodeLine(Data(line.utf8), offset: 0))
+        XCTAssertEqual(record.flowMs, 150)
+        XCTAssertEqual(record.tries, 3)
+        let plain = try XCTUnwrap(MagpieUsageReader.decodeLine(Data(#"{"t":"2026-11-23T10:00:00+08:00"}"#.utf8), offset: 0))
+        XCTAssertNil(plain.flowMs)
+        XCTAssertEqual(plain.tries, 1)
+    }

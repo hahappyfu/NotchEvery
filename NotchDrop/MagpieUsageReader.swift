@@ -88,7 +88,9 @@ enum MagpieUsageReader {
             ttftMs: line.ttftMs,
             maskingMs: line.maskingMs,
             status: line.status,
-            handedOn: line.handedOn ?? false
+            handedOn: line.handedOn ?? false,
+            flowMs: line.flowMs,
+            tries: line.tries ?? 1
         )
     }
 
@@ -160,7 +162,9 @@ enum MagpieUsageReader {
         let reasoning: Int?
         let ms: Int?
         let ttftMs: Int?
+        let flowMs: Int?
         let maskingMs: Int?
+        let tries: Int?
         let status: Int?
         let rid: String?
         let handedOn: Bool?
@@ -174,7 +178,9 @@ enum MagpieUsageReader {
             case cacheRead = "cache_read"
             case cacheWrite = "cache_write"
             case ttftMs = "ttft_ms"
+            case flowMs = "flow_ms"
             case maskingMs = "masking_ms"
+            case tries
             case handedOn = "handed_on"
         }
     }

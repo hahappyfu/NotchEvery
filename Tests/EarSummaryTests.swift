@@ -21,7 +21,7 @@ final class EarSummaryTests: XCTestCase {
 
     private func flow(provider: String, model: String = "claude-sonnet-4-5") -> MagpieFlowRow {
         MagpieFlowRow(
-            id: "r1", agent: "claude", provider: provider, account: "a***",
+            id: "r1", agent: "claude", providerID: provider, providerName: provider + " 展示", account: "a***",
             model: model, requestedModel: model, groupName: nil,
             inputTokens: 10, outputTokens: 5, cacheRead: 2,
             durationMs: 100, ttftMs: nil, maskingMs: nil,
@@ -109,7 +109,7 @@ final class EarSummaryTests: XCTestCase {
 
     func testFlowLeftFallsBackToProviderID() {
         let s = snapshot(flows: [flow(provider: "p1")], groups: [])
-        XCTAssertEqual(EarSummary.flowLeft(snapshot: s), "p1")
+        XCTAssertEqual(EarSummary.flowLeft(snapshot: s), "p1 展示")
     }
 
     func testFlowLeftNoFlowsIsNil() {

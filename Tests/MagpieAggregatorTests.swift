@@ -30,8 +30,11 @@ final class MagpieAggregatorTests: XCTestCase {
         output: Int = 5,
         cacheRead: Int = 0,
         ms: Int? = 100,
+        ttftMs: Int? = nil,
         status: Int? = 200,
-        handedOn: Bool = false
+        handedOn: Bool = false,
+        flowMs: Int? = nil,
+        tries: Int? = nil
     ) -> MagpieUsageRecord {
         MagpieUsageRecord(
             id: id,
@@ -49,10 +52,12 @@ final class MagpieAggregatorTests: XCTestCase {
             cacheWrite: 0,
             reasoning: 0,
             durationMs: ms,
-            ttftMs: nil,
+            ttftMs: ttftMs,
             maskingMs: nil,
             status: status,
-            handedOn: handedOn
+            handedOn: handedOn,
+            flowMs: flowMs,
+            tries: tries ?? 1
         )
     }
 
@@ -99,8 +104,14 @@ final class MagpieAggregatorTests: XCTestCase {
         )
     }
 
-    private func entry(_ provider: String, name: String?, signedIn: Bool = true) -> MagpieProviderCatalog.Entry {
-        .init(id: provider, name: name ?? "", icon: nil, hidden: false, disabled: false, signedIn: signedIn)
+    private func entry(
+        _ provider: String,
+        name: String?,
+        signedIn: Bool = true,
+        accountNames: [String: String] = [:]
+    ) -> MagpieProviderCatalog.Entry {
+        .init(id: provider, name: name ?? "", icon: nil, hidden: false, disabled: false,
+              signedIn: signedIn, accountNames: accountNames)
     }
 
     private func snapshot(
@@ -288,8 +299,8 @@ final class MagpieAggregatorTests: XCTestCase {
             ]
         )
         let routes = MagpieRouteIndex(
-            orderSnapshotsByProvider: [
-                "routingOnly": MagpieProviderOrderSnapshot(
+            orderSnapshotsByAccount: [
+                "account-order": MagpieProviderOrderSnapshot(
                     provider: "routingOnly", name: "Routing Only", who: "who1",
                     unit: "credits", used: 10, amount: 10, limit: 100
                 )
@@ -449,11 +460,115 @@ final class MagpieAggregatorTests: XCTestCase {
             record("r1", time: todayMorning, provider: "p", account: "acct", model: "requested", served: "served", routeID: 7, ms: 250)
         ], routes: routes, catalog: catalog)
         let flow = result.recentFlows.first
-        XCTAssertEqual(flow?.provider, "Provider Display")
+        XCTAssertEqual(flow?.providerID, "p")
+        XCTAssertEqual(flow?.providerName, "Provider Display")
         XCTAssertEqual(flow?.account, "acct")
         XCTAssertEqual(flow?.model, "served")
         XCTAssertEqual(flow?.requestedModel, "requested")
         XCTAssertEqual(flow?.groupName, "Group Name")
         XCTAssertEqual(flow?.durationMs, 250)
+    }
+
+    // A1: 展示名变化时 providerID 仍是稳定原始 ID，名称只走 providerName。
+    func testFlowIdentitySeparatesStableIDFromDisplayName() {
+        let catalog = MagpieProviderCatalog(entries: ["p": entry("p", name: "展示名 A")], groupNameByProviderRef: [:])
+        let result = snapshot(usage: [record(provider: "p", account: "acct")], catalog: catalog)
+        XCTAssertEqual(result.recentFlows.first?.providerID, "p")
+        XCTAssertEqual(result.recentFlows.first?.providerName, "展示名 A")
+
+        let renamed = MagpieProviderCatalog(entries: ["p": entry("p", name: "展示名 B")], groupNameByProviderRef: [:])
+        let other = snapshot(usage: [record(provider: "p", account: "acct")], catalog: renamed)
+        XCTAssertEqual(other.recentFlows.first?.providerID, "p")
+        XCTAssertEqual(other.recentFlows.first?.providerName, "展示名 B")
+    }
+
+    // A2: P2 流水与 P3 账号卡片按 accountNames > user > 截断 accountKey 共用同一别名。
+    func testAccountLabelPrioritySharedByFlowAndQuotaAccount() throws {
+        let catalog = MagpieProviderCatalog(
+            entries: ["p": entry("p", name: "P", accountNames: ["nick-key": "手机主号", "user-key": "显式别名"])],
+            groupNameByProviderRef: [:]
+        )
+        let quotas = [
+            quota("p", account: "nick-key", user: "masked-user"),
+            quota("p", account: "user-key", user: "masked-user"),
+            quota("p", account: "fallback-user", user: "masked-user"),
+            quota("p", account: "12345678901234567890")
+        ]
+        let usage = [
+            record("r1", provider: "p", account: "nick-key"),
+            record("r2", provider: "p", account: "user-key"),
+            record("r3", provider: "p", account: "fallback-user"),
+            record("r4", provider: "p", account: "12345678901234567890")
+        ]
+        let result = snapshot(usage: usage, quotas: quotas, catalog: catalog)
+        let flowAliases = Dictionary(uniqueKeysWithValues: result.recentFlows.map { ($0.id, $0.account) })
+        XCTAssertEqual(flowAliases["r1"], "手机主号")
+        XCTAssertEqual(flowAliases["r2"], "显式别名")
+        XCTAssertEqual(flowAliases["r3"], "masked-user")
+        XCTAssertEqual(flowAliases["r4"], "123456789012…")
+        let quotaLabels = try XCTUnwrap(result.providerGroups.first).accounts.map(\.label)
+        XCTAssertEqual(Set(quotaLabels), Set(["手机主号", "显式别名", "masked-user", "123456789012…"]))
+    }
+
+    // A3: 吞吐优先 flow_ms，回退 ms - ttft_ms，零输出/零生成时长为 nil；重试成功按 tries > 1 计。
+    func testThroughputAndRetriedSuccessMetrics() {
+        let records = [
+            record("flow", input: 10, output: 200, ms: 1000, ttftMs: 999, flowMs: 100),
+            record("fallback", input: 10, output: 100, ms: 1000, ttftMs: 200),
+            record("zero-out", input: 10, output: 0, ms: 1000, ttftMs: 200),
+            record("zero-gen", input: 10, output: 100, ms: 200, ttftMs: 200),
+            record("retry", tries: 2),
+            record("first-try", tries: nil)
+        ]
+        let result = snapshot(usage: records)
+        let byID: [String: MagpieFlowRow] = Dictionary(
+            uniqueKeysWithValues: result.recentFlows.map { ($0.id, $0) }
+        )
+        XCTAssertEqual(byID["flow"]?.tokensPerSecond ?? -1, 2000, accuracy: 0.0001)
+        XCTAssertEqual(byID["fallback"]?.tokensPerSecond ?? -1, 125, accuracy: 0.0001)
+        XCTAssertNil(byID["zero-out"]?.tokensPerSecond)
+        XCTAssertNil(byID["zero-gen"]?.tokensPerSecond)
+        XCTAssertEqual(result.todayRetriedSuccessCount, 1)
+    }
+
+    // A4: 今日跨小时净 Token 分桶固定 24 项，空小时为 0，主力 ID 按净 Token 与字典序确定。
+    func testHourlyBucketsAreFixed24AndChooseTopProviderDeterministically() throws {
+        let result = snapshot(usage: [
+            record("a", time: "2026-11-23T09:10:00+08:00", provider: "zz", input: 3, output: 2),
+            record("b", time: "2026-11-23T09:50:00+08:00", provider: "aa", input: 4, output: 1),
+            record("c", time: "2026-11-23T09:55:00+08:00", provider: "aa", input: 1, output: 1),
+            record("d", time: "2026-11-23T16:05:00+08:00", provider: "mm", input: 7, output: 3),
+            record("old", time: yesterday, provider: "zz", input: 100, output: 100)
+        ], catalog: MagpieProviderCatalog(
+            entries: ["zz": entry("zz", name: "Zed"), "aa": entry("aa", name: "Aye"), "mm": entry("mm", name: "Em")],
+            groupNameByProviderRef: [:]
+        ))
+        XCTAssertEqual(result.hourlyBuckets.count, 24)
+        XCTAssertEqual(result.hourlyBuckets.map(\.hour), Array(0...23))
+        XCTAssertEqual(result.hourlyBuckets[9].netTokens, 12)
+        XCTAssertEqual(result.hourlyBuckets[9].topProviderID, "aa")
+        XCTAssertEqual(result.hourlyBuckets[9].topProviderName, "Aye")
+        XCTAssertEqual(result.hourlyBuckets[16].netTokens, 10)
+        XCTAssertEqual(result.hourlyBuckets[12].netTokens, 0)
+        XCTAssertNil(result.hourlyBuckets[12].topProviderID)
+    }
+
+    // A5: 同 provider 不同 order 账号 + quotas 账号三个并存；同账号两处出现只留 quotas 版本。
+    func testProviderGroupsMergeOrderAccountsByAccountID() throws {
+        let routes = MagpieRouteIndex(orderSnapshotsByAccount: [
+            "acct-order-1": MagpieProviderOrderSnapshot(provider: "p", who: "order-user-1", limit: 100),
+            "acct-order-2": MagpieProviderOrderSnapshot(provider: "p", who: "order-user-2", limit: 100),
+            "acct-shared": MagpieProviderOrderSnapshot(provider: "p", who: "should-not-win", limit: 100)
+        ])
+        let quotas = [
+            quota("p", account: "acct-shared", user: "quota-user"),
+            quota("p", account: "acct-quota", user: "quota-only")
+        ]
+        let group = try XCTUnwrap(snapshot(routes: routes, quotas: quotas).providerGroups.first)
+        XCTAssertEqual(group.accounts.map(\.id).sorted(),
+                       ["acct-order-1", "acct-order-2", "p/acct-quota", "p/acct-shared"])
+        let shared = try XCTUnwrap(group.accounts.first { $0.id == "p/acct-shared" })
+        XCTAssertEqual(shared.label, "quota-user")
+        XCTAssertTrue(group.accounts.contains { $0.label == "order-user-1" })
     }
 }

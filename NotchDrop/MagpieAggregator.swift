@@ -8,6 +8,8 @@
 import Foundation
 
 enum MagpieAggregator {
+    static let recentFlowBufferLimit = 205
+
     static func buildSnapshot(
         usage: [MagpieUsageRecord],
         routes: MagpieRouteIndex,
@@ -29,6 +31,7 @@ enum MagpieAggregator {
         let cacheDenominator = inputTokens + cacheRead
         let durations = today.compactMap(\.durationMs)
         let names = displayNames(catalog: catalog, quotas: quotas, routes: routes)
+        let accountAliases = accountAliases(catalog: catalog, quotas: quotas, routes: routes)
         let maskedByRoute = masking.reduce(into: [Int64: Int]()) { $0[$1.route, default: 0] += $1.n }
         let eligible = today.filter(countsForDistribution)
 
@@ -44,18 +47,20 @@ enum MagpieAggregator {
             routes: routes,
             quotaHistory: quotaHistory,
             now: now,
-            names: names
+            names: names,
+            aliases: accountAliases
         )
 
         let recentFlows = today
             .sorted { $0.time != $1.time ? $0.time > $1.time : $0.id < $1.id }
-            .prefix(5)
+            .prefix(Self.recentFlowBufferLimit)
             .map { record in
                 MagpieFlowRow(
                     id: record.id,
                     agent: record.agent,
-                    provider: names[record.provider] ?? record.provider,
-                    account: record.providerAccount,
+                    providerID: record.provider,
+                    providerName: names[record.provider] ?? record.provider,
+                    account: accountLabel(provider: record.provider, key: record.providerAccount, aliases: accountAliases),
                     model: record.served ?? record.model,
                     requestedModel: record.model,
                     groupName: groupName(for: record, routes: routes, catalog: catalog),
@@ -65,6 +70,7 @@ enum MagpieAggregator {
                     durationMs: record.durationMs,
                     ttftMs: record.ttftMs,
                     maskingMs: record.maskingMs,
+                    tokensPerSecond: throughput(record),
                     status: record.status,
                     handedOn: record.handedOn,
                     maskedCount: record.routeID.map { maskedByRoute[$0] ?? 0 } ?? 0,
@@ -80,6 +86,8 @@ enum MagpieAggregator {
             todayRequestCount: today.count,
             todayErrorCount: today.filter(isUpstreamError).count,
             todayAverageMs: durations.isEmpty ? nil : Double(durations.reduce(0, +)) / Double(durations.count),
+            todayRetriedSuccessCount: today.filter { $0.status == 200 && $0.tries > 1 }.count,
+            hourlyBuckets: hourlyBuckets(today, names: names, calendar: calendar),
             lastRequestAt: today.map(\.time).max(),
             recentFlows: recentFlows,
             distributions: distributions,
@@ -108,6 +116,77 @@ enum MagpieAggregator {
         return status >= 400 && status != 499
     }
 
+    private static func throughput(_ record: MagpieUsageRecord) -> Double? {
+        let genMs = record.flowMs ?? record.durationMs.flatMap { duration in
+            record.ttftMs.map { ttft in max(0, duration - ttft) }
+        }
+        guard record.outputTokens > 0, let genMs, genMs > 0 else { return nil }
+        return Double(record.outputTokens) / (Double(genMs) / 1000.0)
+    }
+
+    private static func hourlyBuckets(
+        _ records: [MagpieUsageRecord],
+        names: [String: String],
+        calendar: Calendar
+    ) -> [MagpieHourBucket] {
+        var tokensByHour = Array(repeating: 0, count: 24)
+        var providerTokens: [[String: Int]] = Array(repeating: [:], count: 24)
+        for record in records {
+            let hour = calendar.component(.hour, from: record.time)
+            guard (0..<24).contains(hour) else { continue }
+            let tokens = record.inputTokens + record.outputTokens
+            tokensByHour[hour] += tokens
+            providerTokens[hour][record.provider, default: 0] += tokens
+        }
+        return (0..<24).map { hour in
+            let top = providerTokens[hour].max { left, right in
+                left.value != right.value ? left.value < right.value : left.key > right.key
+            }?.key
+            return MagpieHourBucket(
+                hour: hour,
+                netTokens: tokensByHour[hour],
+                topProviderID: top,
+                topProviderName: top.map { names[$0] ?? $0 }
+            )
+        }
+    }
+
+    private static func accountAliases(
+        catalog: MagpieProviderCatalog,
+        quotas: [MagpieQuotaFileEntry],
+        routes: MagpieRouteIndex
+    ) -> [String: String] {
+        var aliases: [String: String] = [:]
+        for (provider, entry) in catalog.entries {
+            for (key, alias) in entry.accountNames where !alias.isEmpty {
+                aliases[aliasKey(provider: provider, key: key)] = alias
+            }
+        }
+        for quota in quotas {
+            let key = aliasKey(provider: quota.provider, key: quota.account)
+            if let user = quota.user, !user.isEmpty, aliases[key] == nil { aliases[key] = user }
+        }
+        for (accountID, snapshot) in routes.orderSnapshotsByAccount {
+            guard let provider = snapshot.provider, let who = snapshot.who, !who.isEmpty else { continue }
+            let key = aliasKey(provider: provider, key: accountID)
+            if aliases[key] == nil { aliases[key] = who }
+        }
+        return aliases
+    }
+
+    private static func aliasKey(provider: String, key: String) -> String {
+        provider + "\u{1}" + key
+    }
+
+    private static func accountLabel(provider: String, key: String, aliases: [String: String]) -> String {
+        guard !key.isEmpty else { return "" }
+        return aliases[aliasKey(provider: provider, key: key)] ?? truncatedAccountKey(key)
+    }
+
+    private static func truncatedAccountKey(_ key: String) -> String {
+        key.count > 12 ? String(key.prefix(12)) + "…" : key
+    }
+
     // MARK: - 名称解析
 
     private static func displayNames(
@@ -122,7 +201,8 @@ enum MagpieAggregator {
         for quota in quotas where names[quota.provider] == nil {
             if let name = quota.name, !name.isEmpty { names[quota.provider] = name }
         }
-        for (provider, snapshot) in routes.orderSnapshotsByProvider where names[provider] == nil {
+        for snapshot in routes.orderSnapshotsByAccount.values {
+            guard let provider = snapshot.provider, names[provider] == nil else { continue }
             if let name = snapshot.name, !name.isEmpty { names[provider] = name }
         }
         return names
@@ -327,7 +407,8 @@ enum MagpieAggregator {
         routes: MagpieRouteIndex,
         quotaHistory: [String: [String: [MagpieQuotaPoint]]],
         now: Date,
-        names: [String: String]
+        names: [String: String],
+        aliases: [String: String]
     ) -> [MagpieProviderGroup] {
         var accountsByProvider: [String: [MagpieQuotaAccount]] = [:]
         var quotaProviders: Set<String> = []
@@ -338,18 +419,24 @@ enum MagpieAggregator {
                     quota: quota,
                     notice: notice(for: quota.provider, account: quota.account, notices: notices),
                     quotaHistory: quotaHistory,
-                    now: now
+                    now: now,
+                    aliases: aliases
                 )
             )
         }
-        for (provider, snapshot) in routes.orderSnapshotsByProvider where !quotaProviders.contains(provider) {
-            let account = preferredLabel(user: snapshot.who, account: provider)
+        for (accountID, snapshot) in routes.orderSnapshotsByAccount {
+            guard let provider = snapshot.provider else { continue }
+            let exists = accountsByProvider[provider]?.contains { account in
+                account.id == accountID || account.id == "\(provider)/\(accountID)" || account.label == accountID
+            } ?? false
+            guard !exists else { continue }
             accountsByProvider[provider, default: []].append(
                 makeAccount(
                     provider: provider,
+                    accountID: accountID,
                     snapshot: snapshot,
-                    accountLabel: account,
-                    notice: notice(for: provider, account: account, notices: notices),
+                    accountLabel: accountLabel(provider: provider, key: accountID, aliases: aliases),
+                    notice: notice(for: provider, account: accountID, notices: notices),
                     now: now
                 )
             )
@@ -375,7 +462,7 @@ enum MagpieAggregator {
                 return totalRemaining / totalLimit
             }()
             let quotaIcon = quotas.first(where: { $0.provider == provider })?.icon
-            let orderIcon = routes.orderSnapshotsByProvider[provider]?.icon
+            let orderIcon = routes.orderSnapshotsByAccount.values.first { $0.provider == provider }?.icon
             return MagpieProviderGroup(
                 id: provider,
                 name: names[provider] ?? provider,
@@ -405,7 +492,8 @@ enum MagpieAggregator {
         quota: MagpieQuotaFileEntry,
         notice: MagpieLimitNotice?,
         quotaHistory: [String: [String: [MagpieQuotaPoint]]],
-        now: Date
+        now: Date,
+        aliases: [String: String]
     ) -> MagpieQuotaAccount {
         let history = quotaHistory["\(quota.provider)|\(quota.account)"]
         let windows = quota.windows.enumerated().map { index, window in
@@ -428,7 +516,7 @@ enum MagpieAggregator {
         return MagpieQuotaAccount(
             id: quota.accountKey,
             provider: quota.provider,
-            label: preferredLabel(user: quota.user, account: quota.account),
+            label: accountLabel(provider: quota.provider, key: quota.account, aliases: aliases),
             plan: quota.plan,
             windows: windows,
             limitState: ProviderLimitState.resolve(notice, now: now),
@@ -441,6 +529,7 @@ enum MagpieAggregator {
 
     private static func makeAccount(
         provider: String,
+        accountID: String,
         snapshot: MagpieProviderOrderSnapshot,
         accountLabel: String,
         notice: MagpieLimitNotice?,
@@ -448,7 +537,7 @@ enum MagpieAggregator {
     ) -> MagpieQuotaAccount {
         let amounts = remainingAmounts(limit: snapshot.limit, usedPercent: snapshot.used, amount: snapshot.amount)
         return MagpieQuotaAccount(
-            id: "\(provider)|\(accountLabel)",
+            id: accountID,
             provider: provider,
             label: accountLabel,
             plan: snapshot.plan,
@@ -547,7 +636,7 @@ enum MagpieAggregator {
 
     private static func preferredLabel(user: String?, account: String) -> String {
         if let user, !user.isEmpty { return user }
-        return account
+        return truncatedAccountKey(account)
     }
 
     private static func firstNonEmpty(_ values: String?...) -> String? {

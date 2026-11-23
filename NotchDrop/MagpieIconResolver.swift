@@ -14,26 +14,58 @@ final class MagpieIconResolver {
 
     private let paths: MagpiePaths
     private let cacheDirectory: URL
-    private let icons: [String: String]
+    private var icons: [String: String]
+    private var loadedIconSignature: IconSignature?
+    private let tracksFileChanges: Bool
     private let cache = NSCache<NSString, NSImage>()
+
+    /// 供 UI 共享实例的便捷入口；测试自建实例直接调用同一方法。
+    static func reloadSharedIconsIfNeeded() {
+        shared.reloadIconsIfNeeded()
+    }
 
     init(
         paths: MagpiePaths = .init(),
         cacheDirectory: URL? = nil,
-        icons: [String: String]? = nil
+        icons: [String: String]? = nil,
+        tracksFileChanges: Bool = true
     ) {
         self.paths = paths
+        self.tracksFileChanges = tracksFileChanges
         self.cacheDirectory = cacheDirectory ?? FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".cache/magpie/icons-small")
-        // shortcut: plugin-icons 只在构造时读一次，运行中新增图标需重启；升级时机：UI 需要热更新图标时改为按 mtime 重读
         if let icons {
             self.icons = icons
-        } else if let data = try? Data(contentsOf: paths.pluginIconsFile),
-                  let parsed = MagpieFiles.parsePluginIcons(data) {
-            self.icons = parsed
+            self.loadedIconSignature = iconFileSignature()
         } else {
             self.icons = [:]
+            reloadIconsIfNeeded()
         }
+    }
+
+    /// plugin-icons.json 的 mtime + size 变化时才重读，避免每次刷新都解析。
+    func reloadIconsIfNeeded() {
+        guard tracksFileChanges else { return }
+        let signature = iconFileSignature()
+        guard signature != loadedIconSignature, let signature else { return }
+        guard let data = try? Data(contentsOf: paths.pluginIconsFile),
+              let parsed = MagpieFiles.parsePluginIcons(data) else { return }
+        loadedIconSignature = signature
+        icons = parsed
+    }
+
+    private struct IconSignature: Equatable {
+        let mtime: Date
+        let size: Int
+    }
+
+    private func iconFileSignature() -> IconSignature? {
+        var info = stat()
+        guard stat(paths.pluginIconsFile.path, &info) == 0 else { return nil }
+        let size = Int(info.st_size)
+        let mtime = Date(timeIntervalSince1970: TimeInterval(info.st_mtimespec.tv_sec)
+                         + TimeInterval(info.st_mtimespec.tv_nsec) / 1_000_000_000)
+        return IconSignature(mtime: mtime, size: size)
     }
 
     /// cache 优先、config icons 后备；非 file: 标识先经 plugin-icons 映射。

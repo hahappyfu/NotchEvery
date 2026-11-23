@@ -21,7 +21,8 @@ final class MagpieIconResolverTests: XCTestCase {
         MagpieIconResolver(
             paths: MagpiePaths(root: root),
             cacheDirectory: cacheDirectory,
-            icons: icons
+            icons: icons,
+            tracksFileChanges: false
         )
     }
 
@@ -51,5 +52,25 @@ final class MagpieIconResolverTests: XCTestCase {
         XCTAssertEqual(resolver.initial(for: "codearts"), "C")
         XCTAssertEqual(resolver.initial(for: "Zeta"), "Z")
         XCTAssertEqual(resolver.initial(for: ""), "?")
+    }
+
+    // A7: plugin-icons.json 内容或 mtime 变化后，显式 reload 换用新映射。
+    func testReloadIconsIfNeededPicksUpChangedFile() throws {
+        let iconsFile = root.appendingPathComponent("plugin-icons.json")
+        let resolver = MagpieIconResolver(
+            paths: MagpiePaths(root: root),
+            cacheDirectory: cacheDirectory,
+            icons: [:],
+            tracksFileChanges: true
+        )
+        try Data(#"{"alias":"file:old.svg"}"#.utf8).write(to: iconsFile)
+        resolver.reloadIconsIfNeeded()
+        XCTAssertEqual(resolver.candidateURLs(for: "alias").first?.lastPathComponent, "old.svg.png")
+
+        try Data(#"{"alias":"file:new.svg"}"#.utf8).write(to: iconsFile)
+        let future = Date().addingTimeInterval(60)
+        try FileManager.default.setAttributes([.modificationDate: future], ofItemAtPath: iconsFile.path)
+        resolver.reloadIconsIfNeeded()
+        XCTAssertEqual(resolver.candidateURLs(for: "alias").first?.lastPathComponent, "new.svg.png")
     }
 }

@@ -4,7 +4,7 @@
 //
 import SwiftUI
 
-/// 两页外壳：滑动切页 + dots + 耳区（设置走右键菜单 Popover，挂根，右上齿轮已删）。
+/// 三页外壳：滑动切页 + dots + 耳区（设置走右键菜单 Popover，挂根，右上齿轮已删）。
 struct NotchRootView: View {
     @StateObject var vm: NotchViewModel
     @ObservedObject private var magpie = MagpieStore.shared
@@ -62,8 +62,8 @@ struct NotchRootView: View {
             }
         case .token:
             if let text = EarSummary.flowLeft(snapshot: snapshot) {
-                let provider = snapshot.recentFlows.first?.provider ?? ""
-                let icon = snapshot.providerGroups.first(where: { $0.id == provider || $0.name == provider })?.icon
+                let provider = snapshot.recentFlows.first?.providerID ?? ""
+                let icon = snapshot.providerGroups.first(where: { $0.id == provider })?.icon
                 HStack(spacing: 4) {
                     ProviderIconView(icon: icon, providerID: provider, size: 11)
                     Text(text)

@@ -145,7 +145,7 @@ final class MagpieFilesTests: XCTestCase {
     }
 
     // 5. routeIndex：group.name、同 routeID 覆盖、order 快照按 provider 取最新
-    func testRouteIndexLatestWinsPerRouteAndProvider() {
+    func testRouteIndexLatestWinsPerRouteAndAccount() {
         let lines = [
             #"{"id":1,"group":{"id":"g1","ref":"ref1","name":"First"},"order":[{"id":"o1","provider":"p1","name":"P One","used":10,"amount":10,"limit":100,"unit":"credits"}]}"#,
             #"{"id":1,"group":{"id":"g1","ref":"ref1","name":"Second"}}"#,
@@ -156,7 +156,8 @@ final class MagpieFilesTests: XCTestCase {
         XCTAssertEqual(index.groupNameByRouteID[2], "Other")
         XCTAssertEqual(index.groupNameByRef["ref2"], "Other")
         XCTAssertEqual(index.groupNameByRef["group/ref2"], "Other")
-        XCTAssertEqual(index.orderSnapshotsByProvider["p1"]?.used ?? -1, 20, accuracy: 0.0001)
+        XCTAssertEqual(index.orderSnapshotsByAccount["o1"]?.used ?? -1, 20, accuracy: 0.0001)
+        XCTAssertEqual(index.orderSnapshotsByAccount["o1"]?.provider, "p1")
     }
 
     // 6. routeIndex >200 条裁剪保最近
@@ -217,5 +218,32 @@ final class MagpieFilesTests: XCTestCase {
         XCTAssertTrue(MagpieFiles.parsePluginProviders(Data())?.isEmpty == true)
         XCTAssertTrue(MagpieFiles.parsePluginIcons(Data())?.isEmpty == true)
         XCTAssertTrue(MagpieFiles.parseQuotaHistory(Data())?.isEmpty == true)
+    }
+
+    // A2: providers.json 的 accountNames 解码并保留在目录中。
+    func testParseProvidersAccountNames() throws {
+        let providersData = data(#"{"providers":[{"id":"p","name":"P","accountNames":{"a1":"手机主号"}}]}"#)
+        let parsed = try XCTUnwrap(MagpieFiles.parseProviders(providersData))
+        XCTAssertEqual(parsed.entries["p"]?.accountNames["a1"], "手机主号")
+
+        let catalog = MagpieProviderCatalog.merged(providers: parsed, plugins: [
+            .init(id: "p", name: "Plugin P", icon: nil, signedIn: true),
+            .init(id: "plugin", name: "Plugin", icon: nil, signedIn: true)
+        ])
+        XCTAssertEqual(catalog.entries["p"]?.accountNames["a1"], "手机主号")
+        XCTAssertEqual(catalog.entries["plugin"]?.accountNames, [:])
+    }
+
+    // A5: order 快照按账号 id 存储，同 id 后写覆盖先写。
+    func testRouteIndexKeepsEveryOrderAccountAndLatestWins() {
+        let lines = [
+            #"{"id":1,"order":[{"id":"a1","provider":"p","who":"old","used":10}]}"#,
+            #"{"id":2,"order":[{"id":"a2","provider":"p","who":"second","used":20}]}"#,
+            #"{"id":3,"order":[{"id":"a1","provider":"p","who":"new","used":30}]}"#
+        ].map { Data($0.utf8) }
+        let index = MagpieFiles.parseRouteIndex(lines: lines)
+        XCTAssertEqual(Set(index.orderSnapshotsByAccount.keys), ["a1", "a2"])
+        XCTAssertEqual(index.orderSnapshotsByAccount["a1"]?.who, "new")
+        XCTAssertEqual(index.orderSnapshotsByAccount["a2"]?.who, "second")
     }
 }

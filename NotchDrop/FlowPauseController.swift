@@ -27,6 +27,7 @@ struct FlowPauseController: Equatable {
         frozenRows = Array(liveRows.prefix(5))
         pendingRows = []
         missedCount = 0
+        gapCount = 0
         seenIDs = frozenRows.map(\.id)
     }
 

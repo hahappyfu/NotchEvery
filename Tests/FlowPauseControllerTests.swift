@@ -7,7 +7,8 @@ final class FlowPauseControllerTests: XCTestCase {
         MagpieFlowRow(
             id: id,
             agent: "claude",
-            provider: "p",
+            providerID: "p",
+            providerName: "P",
             account: "a",
             model: "m",
             requestedModel: "m",
@@ -67,5 +68,27 @@ final class FlowPauseControllerTests: XCTestCase {
         controller.receive(liveRows: [row("new")])
         XCTAssertEqual(controller.missedCount, 0)
         XCTAssertFalse(controller.isPaused)
+    }
+
+    // A6: 两次刷新间 >5 条新行（50 条）全数计入未读，不受旧 5 条展示窗口限制。
+    func testReceiveFiftyNewRowsCountsAllMissed() {
+        var controller = FlowPauseController()
+        controller.pause(liveRows: [])
+        controller.receive(liveRows: (0..<50).map { row("burst-\($0)") })
+        XCTAssertEqual(controller.missedCount, 50)
+        XCTAssertEqual(controller.gapCount, 0)
+    }
+
+    // A6: 再次 pause 清空缺口与待读，resume 仍返回上次 pause 周期的旧缺口。
+    func testRepauseResetsGapButResumeReturnsOldValue() {
+        var controller = FlowPauseController()
+        controller.pause(liveRows: [])
+        controller.receive(liveRows: (0..<250).map { row("old-\($0)") })
+        XCTAssertEqual(controller.gapCount, 50)
+        controller.pause(liveRows: [row("fresh")])
+        XCTAssertEqual(controller.gapCount, 0)
+        XCTAssertEqual(controller.missedCount, 0)
+        XCTAssertEqual(controller.pendingRowCount, 0)
+        XCTAssertEqual(controller.resume(liveRows: []), 0)
     }
 }

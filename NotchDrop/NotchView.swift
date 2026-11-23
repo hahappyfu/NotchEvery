@@ -281,8 +281,8 @@ struct NotchView: View {
         }
         let model = TokenFormatUtils.friendlyModelName(first.model)
         if model.isEmpty {
-            return first.provider
+            return first.providerName
         }
-        return "\(first.provider) · \(model)"
+        return "\(first.providerName) · \(model)"
     }
 }
