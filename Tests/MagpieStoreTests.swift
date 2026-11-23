@@ -17,6 +17,7 @@ final class MagpieStoreTests: XCTestCase {
     private var calendar: Calendar!
     private var clock: Clock!
     private var store: MagpieStore!
+    private var iconResolver: MagpieIconResolver!
 
     override func setUpWithError() throws {
         root = FileManager.default.temporaryDirectory.appendingPathComponent("MagpieStoreTests-\(UUID().uuidString)")
@@ -30,12 +31,19 @@ final class MagpieStoreTests: XCTestCase {
     override func tearDown() {
         store?.stop()
         store = nil
+        iconResolver = nil
         try? FileManager.default.removeItem(at: root)
         root = nil
     }
 
     private func makeStore() -> MagpieStore {
-        let store = MagpieStore(paths: MagpiePaths(root: root), calendar: calendar, now: clock.now)
+        iconResolver = MagpieIconResolver(paths: MagpiePaths(root: root), cacheDirectory: root)
+        let store = MagpieStore(
+            paths: MagpiePaths(root: root),
+            calendar: calendar,
+            now: clock.now,
+            iconResolver: iconResolver
+        )
         self.store = store
         return store
     }
@@ -187,26 +195,24 @@ final class MagpieStoreTests: XCTestCase {
         XCTAssertFalse(MagpieStore.shouldRun(status: .closed, hoverGhosting: false, ghostFading: false))
     }
 
-    // A7: store 每次刷新都尝试热重载 plugin-icons 映射。
+    // A7: store 每次刷新都热重载其路径下的 plugin-icons 映射，证明 refresh 真的触发了 resolver。
     func testRefreshReloadsPluginIcons() throws {
         let iconsFile = root.appendingPathComponent("plugin-icons.json")
-        try write(#"{"alias":"file:old.svg"}"#, to: "plugin-icons.json")
+        try write(#"{"oldAlias":"file:old.svg"}"#, to: "plugin-icons.json")
         let store = makeStore()
         waitFor(store, trigger: { store.catchUp() }) { $0.hasMagpieDirectory }
 
-        try write(#"{"alias":"file:new.svg"}"#, to: "plugin-icons.json")
+        XCTAssertEqual(iconResolver.candidateURLs(for: "oldAlias").first?.lastPathComponent, "old.svg.png")
+
+        try write(#"{"newAlias":"file:new.svg"}"#, to: "plugin-icons.json")
         let future = Date().addingTimeInterval(60)
         try FileManager.default.setAttributes([.modificationDate: future], ofItemAtPath: iconsFile.path)
         let refreshed = expectation(description: "refresh completed")
         store.catchUp()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { refreshed.fulfill() }
         wait(for: [refreshed], timeout: 3)
-        let mapped = try XCTUnwrap(MagpieFiles.parsePluginIcons(try Data(contentsOf: iconsFile)))
-        XCTAssertEqual(mapped["alias"], "file:new.svg")
-        XCTAssertEqual(
-            MagpieIconResolver(paths: MagpiePaths(root: root), icons: mapped)
-                .candidateURLs(for: "alias").first?.lastPathComponent,
-            "new.svg.png"
-        )
+
+        XCTAssertTrue(iconResolver.candidateURLs(for: "oldAlias").isEmpty)
+        XCTAssertEqual(iconResolver.candidateURLs(for: "newAlias").first?.lastPathComponent, "new.svg.png")
     }
 }

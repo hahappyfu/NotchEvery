@@ -411,9 +411,7 @@ enum MagpieAggregator {
         aliases: [String: String]
     ) -> [MagpieProviderGroup] {
         var accountsByProvider: [String: [MagpieQuotaAccount]] = [:]
-        var quotaProviders: Set<String> = []
         for quota in quotas {
-            quotaProviders.insert(quota.provider)
             accountsByProvider[quota.provider, default: []].append(
                 makeAccount(
                     quota: quota,
@@ -633,11 +631,6 @@ enum MagpieAggregator {
     }
 
     // MARK: - Helpers
-
-    private static func preferredLabel(user: String?, account: String) -> String {
-        if let user, !user.isEmpty { return user }
-        return truncatedAccountKey(account)
-    }
 
     private static func firstNonEmpty(_ values: String?...) -> String? {
         values.compactMap { $0 }.first { !$0.isEmpty }

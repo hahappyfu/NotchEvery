@@ -45,10 +45,11 @@ final class MagpieStore: ObservableObject {
     init(
         paths: MagpiePaths = .init(),
         calendar: Calendar = .current,
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        iconResolver: MagpieIconResolver? = nil
     ) {
         self.paths = paths
-        self.iconResolver = paths == MagpiePaths() ? .shared : MagpieIconResolver(paths: paths)
+        self.iconResolver = iconResolver ?? MagpieIconResolver(paths: paths)
         self.calendar = calendar
         self.now = now
     }

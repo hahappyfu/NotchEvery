@@ -144,7 +144,6 @@ final class MagpieUsageReaderTests: XCTestCase {
         // 必须是从完整行开始的尾部
         XCTAssertTrue(records.map(\.routeID).compactMap { $0 } == Array(9 - (records.count - 1)...9).map(Int64.init))
     }
-}
 
     // A3: 解码 flow_ms / tries，缺省 tries 为 1。
     func testDecodeThroughputAndTriesFields() throws {
@@ -156,3 +155,4 @@ final class MagpieUsageReaderTests: XCTestCase {
         XCTAssertNil(plain.flowMs)
         XCTAssertEqual(plain.tries, 1)
     }
+}

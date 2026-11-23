@@ -19,11 +19,6 @@ final class MagpieIconResolver {
     private let tracksFileChanges: Bool
     private let cache = NSCache<NSString, NSImage>()
 
-    /// 供 UI 共享实例的便捷入口；测试自建实例直接调用同一方法。
-    static func reloadSharedIconsIfNeeded() {
-        shared.reloadIconsIfNeeded()
-    }
-
     init(
         paths: MagpiePaths = .init(),
         cacheDirectory: URL? = nil,
