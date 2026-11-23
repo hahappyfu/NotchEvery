@@ -90,13 +90,16 @@ struct ProviderIconView: View {
 
     private func resolve() {
         let key = ProviderIconKey(icon: icon, providerID: providerID)
-        // 同步位图命中直接用
+        // 先 begin 作废旧 key 的异步回调，无论后续是同步命中还是异步补图
+        let started = gate.begin(key)
+
+        // 同步位图命中直接用；key 已在上面 begin，旧异步回调自然失效
         if let synced = MagpieIconResolver.shared.image(for: icon) {
             resolved = synced
             return
         }
-        // 闸门：同 key 重复请求跳过；新 key 清空旧 requested
-        guard gate.begin(key) else { return }
+        // 同 key 重复请求不重发
+        guard started else { return }
         MagpieIconResolver.shared.loadImage(for: icon) { [key] image in
             // 异步回调校验：仅当 key 仍是当前 key 时才写入 resolved（防止旧图残留）
             guard gate.isCurrent(key) else { return }

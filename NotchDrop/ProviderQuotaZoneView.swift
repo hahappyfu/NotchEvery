@@ -58,7 +58,7 @@ struct ProviderQuotaZoneView: View {
             Circle()
                 .fill(store.snapshot.activeAlertCount > 0 ? StudioColor.amber : StudioColor.emerald)
                 .frame(width: 6, height: 6)
-            Text("供应商额度与积分")
+            Text("供应商额度")
                 .font(.system(size: 11.5, weight: .medium))
                 .foregroundStyle(StudioInk.primary)
             Spacer(minLength: 4)

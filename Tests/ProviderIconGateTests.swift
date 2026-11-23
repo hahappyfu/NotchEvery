@@ -55,4 +55,16 @@ final class ProviderIconGateTests: XCTestCase {
         XCTAssertTrue(gate.begin(k))
         XCTAssertTrue(gate.isCurrent(k))
     }
+
+    /// 顺序契约：任何新请求（含同步命中路径）都必须先 begin，让旧厂商的异步回调失效。
+    func testSyncHitPathInvalidatesPreviousAsyncRequest() {
+        var gate = IconRequestGate()
+        let old = key(icon: "old.png", providerID: "p1")
+        let new = key(icon: "new.png", providerID: "p2")
+
+        XCTAssertTrue(gate.begin(old))       // 旧厂商发出异步 SVG 请求
+        _ = gate.begin(new)                  // 新厂商同步命中：resolve() 仍先 begin
+        XCTAssertFalse(gate.isCurrent(old))  // 旧回调回来必须被丢弃
+        XCTAssertTrue(gate.isCurrent(new))
+    }
 }

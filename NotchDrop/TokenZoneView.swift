@@ -61,6 +61,13 @@ extension TokenZoneView {
     static func copySummary(for row: MagpieFlowRow, time: String) -> String {
         "\(time) \(row.providerID)@\(row.account) \(row.model) status=\(row.status ?? -1) \(row.durationMs ?? -1)ms ttft=\(row.ttftMs ?? -1)ms rid=\(row.id)"
     }
+
+    /// 次行身份串：过滤空段，避免 account 为空时出现孤立 `·`。
+    static func identityText(for row: MagpieFlowRow) -> String {
+        [row.providerName, row.account, TokenFormatUtils.friendlyModelName(row.model)]
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+    }
 }
 
 private struct FlowRowView: View {
@@ -89,7 +96,7 @@ private struct FlowRowView: View {
             Text(secondsText(row.durationMs))
             if let tps = row.tokensPerSecond {
                 Text("·")
-                Text(String(format: "%.1f t/s", tps))
+                Text(String(format: "%.1f tok/s", tps))
             }
             if row.maskedCount > 0 {
                 Image(systemName: "lock.shield.fill")
@@ -134,7 +141,7 @@ private struct FlowRowView: View {
             // 次行：厂商图标 + 提供商 · 账号 · 模型 + 右侧指标
             HStack(spacing: 5) {
                 ProviderIconView(icon: icon, providerID: row.providerID, size: 14)
-                Text("\(row.providerName) · \(row.account) · \(TokenFormatUtils.friendlyModelName(row.model))")
+                Text(TokenZoneView.identityText(for: row))
                     .font(.system(size: 9.5))
                     .foregroundStyle(StudioInk.secondary)
                     .lineLimit(1)

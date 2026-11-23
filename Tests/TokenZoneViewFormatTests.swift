@@ -66,4 +66,20 @@ final class TokenZoneViewFormatTests: XCTestCase {
         XCTAssertEqual(TokenZoneView.copySummary(for: flow, time: "12:34:56"),
                        "12:34:56 stable-id@a m status=499 1234ms ttft=56ms rid=r-1")
     }
+
+    /// 次行身份串：空账号段被过滤，不留孤立 `·`。
+    func testIdentityTextSkipsEmptyAccount() {
+        let flow = MagpieFlowRow(
+            id: "r-1", agent: "claude", providerID: "p", providerName: "P",
+            account: "", model: "gemini-2.5-pro", requestedModel: "m", groupName: nil,
+            inputTokens: 10, outputTokens: 20, cacheRead: 0, durationMs: 1234,
+            ttftMs: 56, maskingMs: nil, status: 200, handedOn: false,
+            maskedCount: 0, time: Date(timeIntervalSince1970: 1000)
+        )
+        XCTAssertEqual(TokenZoneView.identityText(for: flow), "P · gemini-2.5-pro")
+    }
+
+    func testIdentityTextKeepsNonEmptySegments() {
+        XCTAssertEqual(TokenZoneView.identityText(for: row()), "P · a · m")
+    }
 }
