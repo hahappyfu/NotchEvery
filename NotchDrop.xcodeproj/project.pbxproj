@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		ADFA6380D5E2350C1FB0A4A7 /* MagpieIconResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADB238895E7C919678135A5C /* MagpieIconResolver.swift */; };
+		AD67D15ED57877749DFC44D6 /* MagpieStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD53BD265E999E8FA7F1AB11 /* MagpieStore.swift */; };
+		AD740D17A8102ABB7FFDE948 /* MagpieAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBA1437E76B94BE3D71560E /* MagpieAggregator.swift */; };
+		AD27CF69D0170301AE5E4699 /* MagpieFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCF4858E45E2FA049FEFF8D /* MagpieFiles.swift */; };
+		AD4E4AB7A83D57AE3A2AF079 /* MagpieIconResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD9021B5401EDA52BF81D4F4 /* MagpieIconResolverTests.swift */; };
+		AD163A2531529AFE6BEFB865 /* MagpieStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6A74A8A762D50BE39EDF69 /* MagpieStoreTests.swift */; };
+		AD8CF73B25B5C5728AA634B0 /* MagpieAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA612364C8B082F84CDFA69 /* MagpieAggregatorTests.swift */; };
+		AD1DCFB6824F87FB5A5C869F /* MagpieFilesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF7E5F72AE30D8C253FBB2A /* MagpieFilesTests.swift */; };
 		AD9B9447CC317C0D202F441A /* MagpieUsageReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCF8D39256FE35E7365802E /* MagpieUsageReader.swift */; };
 		AD577F6CF5DE77933CE9F451 /* MagpieModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADEC4B90B1A8AD9117A11288 /* MagpieModels.swift */; };
 		AD3389D3EA60E59A2FFEC6F1 /* MagpiePaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD7B0D093C70352E5E695915 /* MagpiePaths.swift */; };
@@ -84,6 +92,14 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		ADB238895E7C919678135A5C /* MagpieIconResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieIconResolver.swift; sourceTree = "<group>"; };
+		AD53BD265E999E8FA7F1AB11 /* MagpieStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieStore.swift; sourceTree = "<group>"; };
+		ADBA1437E76B94BE3D71560E /* MagpieAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieAggregator.swift; sourceTree = "<group>"; };
+		ADCF4858E45E2FA049FEFF8D /* MagpieFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieFiles.swift; sourceTree = "<group>"; };
+		AD9021B5401EDA52BF81D4F4 /* MagpieIconResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieIconResolverTests.swift; sourceTree = "<group>"; };
+		AD6A74A8A762D50BE39EDF69 /* MagpieStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieStoreTests.swift; sourceTree = "<group>"; };
+		ADA612364C8B082F84CDFA69 /* MagpieAggregatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieAggregatorTests.swift; sourceTree = "<group>"; };
+		ADF7E5F72AE30D8C253FBB2A /* MagpieFilesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieFilesTests.swift; sourceTree = "<group>"; };
 		ADCF8D39256FE35E7365802E /* MagpieUsageReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieUsageReader.swift; sourceTree = "<group>"; };
 		ADEC4B90B1A8AD9117A11288 /* MagpieModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieModels.swift; sourceTree = "<group>"; };
 		AD7B0D093C70352E5E695915 /* MagpiePaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpiePaths.swift; sourceTree = "<group>"; };
@@ -187,6 +203,10 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				ADB238895E7C919678135A5C /* MagpieIconResolver.swift */,
+				AD53BD265E999E8FA7F1AB11 /* MagpieStore.swift */,
+				ADBA1437E76B94BE3D71560E /* MagpieAggregator.swift */,
+				ADCF4858E45E2FA049FEFF8D /* MagpieFiles.swift */,
 				ADCF8D39256FE35E7365802E /* MagpieUsageReader.swift */,
 				ADEC4B90B1A8AD9117A11288 /* MagpieModels.swift */,
 				AD7B0D093C70352E5E695915 /* MagpiePaths.swift */,
@@ -248,6 +268,10 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				AD9021B5401EDA52BF81D4F4 /* MagpieIconResolverTests.swift */,
+				AD6A74A8A762D50BE39EDF69 /* MagpieStoreTests.swift */,
+				ADA612364C8B082F84CDFA69 /* MagpieAggregatorTests.swift */,
+				ADF7E5F72AE30D8C253FBB2A /* MagpieFilesTests.swift */,
 				ADB4441411E69C6B5B5C6305 /* MagpieUsageReaderTests.swift */,
 				AD7DB047455C019B00EFE7B9 /* LoginItemTests.swift */,
 				AD001802C09CB45D4544976F /* UsageMetricsTests.swift */,
@@ -380,6 +404,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ADFA6380D5E2350C1FB0A4A7 /* MagpieIconResolver.swift in Sources */,
+				AD67D15ED57877749DFC44D6 /* MagpieStore.swift in Sources */,
+				AD740D17A8102ABB7FFDE948 /* MagpieAggregator.swift in Sources */,
+				AD27CF69D0170301AE5E4699 /* MagpieFiles.swift in Sources */,
 				AD9B9447CC317C0D202F441A /* MagpieUsageReader.swift in Sources */,
 				AD577F6CF5DE77933CE9F451 /* MagpieModels.swift in Sources */,
 				AD3389D3EA60E59A2FFEC6F1 /* MagpiePaths.swift in Sources */,
@@ -429,6 +457,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD4E4AB7A83D57AE3A2AF079 /* MagpieIconResolverTests.swift in Sources */,
+				AD163A2531529AFE6BEFB865 /* MagpieStoreTests.swift in Sources */,
+				AD8CF73B25B5C5728AA634B0 /* MagpieAggregatorTests.swift in Sources */,
+				AD1DCFB6824F87FB5A5C869F /* MagpieFilesTests.swift in Sources */,
 				AD9C7B9E11DEA7FE0C94EC2D /* MagpieUsageReaderTests.swift in Sources */,
 				ADA80C77A6D2C2382B1F7F3C /* LoginItemTests.swift in Sources */,
 				ADACB2EEBB907D6E4F116A55 /* UsageMetricsTests.swift in Sources */,

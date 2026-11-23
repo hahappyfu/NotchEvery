@@ -1,0 +1,106 @@
+//
+//  MagpieIconResolver.swift
+//  NotchEvery
+//
+//  Magpie 动态图标：位图同步加载、SVG 走 QuickLook 异步缩略图，兜底由 UI 层绘制。
+//
+
+import AppKit
+import Foundation
+import QuickLookThumbnailing
+
+final class MagpieIconResolver {
+    static let shared = MagpieIconResolver()
+
+    private let paths: MagpiePaths
+    private let cacheDirectory: URL
+    private let icons: [String: String]
+    private let cache = NSCache<NSString, NSImage>()
+
+    init(
+        paths: MagpiePaths = .init(),
+        cacheDirectory: URL? = nil,
+        icons: [String: String]? = nil
+    ) {
+        self.paths = paths
+        self.cacheDirectory = cacheDirectory ?? FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".cache/magpie/icons-small")
+        // shortcut: plugin-icons 只在构造时读一次，运行中新增图标需重启；升级时机：UI 需要热更新图标时改为按 mtime 重读
+        if let icons {
+            self.icons = icons
+        } else if let data = try? Data(contentsOf: paths.pluginIconsFile),
+                  let parsed = MagpieFiles.parsePluginIcons(data) {
+            self.icons = parsed
+        } else {
+            self.icons = [:]
+        }
+    }
+
+    /// cache 优先、config icons 后备；非 file: 标识先经 plugin-icons 映射。
+    func candidateURLs(for icon: String?) -> [URL] {
+        guard let raw = icon, !raw.isEmpty else { return [] }
+        let fileName: String
+        if raw.hasPrefix("file:") {
+            fileName = String(raw.dropFirst("file:".count))
+        } else if let mapped = icons[raw], mapped.hasPrefix("file:") {
+            fileName = String(mapped.dropFirst("file:".count))
+        } else {
+            return []
+        }
+        guard !fileName.isEmpty else { return [] }
+        return [
+            cacheDirectory.appendingPathComponent(fileName + ".png"),
+            paths.root.appendingPathComponent("icons").appendingPathComponent(fileName)
+        ]
+    }
+
+    /// 同步取图：位图（PNG/WebP/JPG）与已缓存的 SVG。
+    func image(for icon: String?) -> NSImage? {
+        guard let url = existingURL(for: icon) else { return nil }
+        let key = url.path as NSString
+        if let cached = cache.object(forKey: key) { return cached }
+        guard url.pathExtension.lowercased() != "svg", let image = NSImage(contentsOf: url) else { return nil }
+        cache.setObject(image, forKey: key)
+        return image
+    }
+
+    /// 异步取图：SVG 生成 32×32 缩略图并缓存；回调在主线程。
+    func loadImage(for icon: String?, completion: @escaping (NSImage?) -> Void) {
+        guard let url = existingURL(for: icon) else { return completion(nil) }
+        let key = url.path as NSString
+        if let cached = cache.object(forKey: key) { return completion(cached) }
+        guard url.pathExtension.lowercased() == "svg" else { return completion(nil) }
+
+        let request = QLThumbnailGenerator.Request(
+            fileAt: url,
+            size: CGSize(width: 32, height: 32),
+            scale: 2,
+            representationTypes: .thumbnail
+        )
+        QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { [weak self] representation, _ in
+            let image = representation?.nsImage
+            if let image {
+                self?.cache.setObject(image, forKey: key)
+            }
+            DispatchQueue.main.async { completion(image) }
+        }
+    }
+
+    /// 稳定哈希色相（0..<1），供兜底渐变使用。
+    func fallbackHue(for providerID: String) -> Double {
+        var hash: UInt64 = 14_695_981_039_346_656_037
+        for byte in providerID.utf8 {
+            hash = (hash ^ UInt64(byte)) &* 1_099_511_628_211
+        }
+        return Double(hash % 360) / 360
+    }
+
+    func initial(for providerID: String) -> String {
+        guard let first = providerID.first else { return "?" }
+        return String(first).uppercased()
+    }
+
+    private func existingURL(for icon: String?) -> URL? {
+        candidateURLs(for: icon).first { FileManager.default.fileExists(atPath: $0.path) }
+    }
+}
