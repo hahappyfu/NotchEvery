@@ -1,7 +1,6 @@
 import Cocoa
 import Combine
 import Foundation
-import LaunchAtLogin
 import SwiftUI
 
 // MARK: - 首展耗时埋点（systematic-debugging 诊断用，NOTCH_TIMING=1 开启；关闭零开销）
@@ -198,10 +197,6 @@ class NotchViewModel: NSObject, ObservableObject {
 
     @Published private(set) var status: Status = .closed {
         didSet {
-            // 收起状态重置设置弹窗，杜绝幽灵弹窗（U-C5）
-            if status != .opened {
-                showSettings = false
-            }
             // 重开恢复本区上次完整尺寸（无记忆时回落归零，等内容测量）
             if status == .opened, oldValue != .opened {
                 measuredNaturalSize = lastZoneSize[contentType] ?? .zero
@@ -307,7 +302,6 @@ class NotchViewModel: NSObject, ObservableObject {
 
     /// 两段收起：先缩回虚影尺寸，再连贯平滑清态回刘海（消灭 200ms 半空生硬掐断）
     func closeToGhost() {
-        showSettings = false
         openReason = .unknown
         transitionActive = true
         // stage 1: 走 closeAnimation 平滑吸缩回虚影尺寸
@@ -358,7 +352,6 @@ class NotchViewModel: NSObject, ObservableObject {
 
     func notchClose() {
         cancelHoverClose()
-        showSettings = false
         ghostGeneration += 1
         transitionActive = true
         withAnimation(closeAnimation) {
@@ -371,9 +364,6 @@ class NotchViewModel: NSObject, ObservableObject {
             self?.transitionActive = false
         }
     }
-
-    /// 设置 Popover 弹出状态：根齿轮与右键菜单共用（设置走 Popover 定案，不占分页）
-    @Published var showSettings = false
 
     /// 功能区固定顺序：左右滑按此循环（概览｜Token）。
     static var zoneOrder: [ContentType] {

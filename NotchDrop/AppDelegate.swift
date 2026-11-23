@@ -7,7 +7,6 @@
 
 import AppKit
 import Cocoa
-import LaunchAtLogin
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var isFirstOpen = true
@@ -33,7 +32,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         NSApp.setActivationPolicy(.accessory)
 
-        isLaunchedAtLogin = LaunchAtLogin.wasLaunchedAtLogin
+        isLaunchedAtLogin = LoginItem.wasLaunchedAtLogin
 
         _ = EventMonitors.shared
         determineIfProcessIdentifierMatches()

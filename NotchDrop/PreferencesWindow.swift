@@ -7,7 +7,6 @@
 //
 
 import SwiftUI
-import LaunchAtLogin
 import AppKit
 
 struct PreferencesWindow: View {
@@ -97,19 +96,23 @@ struct GeneralSettingsTab: View {
         }
         return .system
     }()
+    @State private var launchAtLogin: Bool = LoginItem.isEnabled
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 SettingsSectionGroup("基本选项") {
                     VStack(spacing: 0) {
-                        LaunchAtLogin.Toggle {
+                        Toggle(isOn: $launchAtLogin) {
                             Text("开机自启动")
                                 .font(.system(size: 13))
                         }
                         .toggleStyle(.switch)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
+                        .onChange(of: launchAtLogin) { newValue in
+                            LoginItem.setEnabled(newValue)
+                        }
 
                         Divider().padding(.leading, 16)
 
