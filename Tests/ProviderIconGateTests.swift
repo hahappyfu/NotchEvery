@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import NotchEvery
 
@@ -56,15 +57,47 @@ final class ProviderIconGateTests: XCTestCase {
         XCTAssertTrue(gate.isCurrent(k))
     }
 
-    /// 顺序契约：任何新请求（含同步命中路径）都必须先 begin，让旧厂商的异步回调失效。
-    func testSyncHitPathInvalidatesPreviousAsyncRequest() {
+    /// 顺序契约：begin 必须发生在查同步图之前——闭包在查图时刻观察 gate，能抓住「先查图、后 begin」的回归。
+    func testPlanInvalidatesOldKeyBeforeSyncLookup() {
         var gate = IconRequestGate()
         let old = key(icon: "old.png", providerID: "p1")
         let new = key(icon: "new.png", providerID: "p2")
+        _ = gate.begin(old)
 
-        XCTAssertTrue(gate.begin(old))       // 旧厂商发出异步 SVG 请求
-        _ = gate.begin(new)                  // 新厂商同步命中：resolve() 仍先 begin
-        XCTAssertFalse(gate.isCurrent(old))  // 旧回调回来必须被丢弃
+        let image = NSImage()
+        let plan = planResolution(key: new, syncImage: { g in
+            // 查图这一时刻旧 key 必须已失效，否则旧异步回调会覆盖新图
+            XCTAssertFalse(g.isCurrent(old))
+            return image
+        }, gate: &gate)
+        XCTAssertNotNil(plan.synced)
+        XCTAssertEqual(plan.synced, image)
+        XCTAssertFalse(plan.shouldRequestAsync)
         XCTAssertTrue(gate.isCurrent(new))
+    }
+
+    /// 同 key 重入（begin 返回 false）仍要出同步图，不能误判成「需要异步」。
+    func testSameKeyReentryStillShowsSyncImage() {
+        var gate = IconRequestGate()
+        let k = key()
+        let image = NSImage()
+        let lookup = { (_ g: IconRequestGate) -> NSImage in image }
+
+        let first = planResolution(key: k, syncImage: lookup, gate: &gate)
+        let second = planResolution(key: k, syncImage: lookup, gate: &gate)
+
+        XCTAssertEqual(first.synced, image)
+        XCTAssertFalse(first.shouldRequestAsync)
+        XCTAssertEqual(second.synced, image)
+        XCTAssertFalse(second.shouldRequestAsync)
+        XCTAssertTrue(gate.isCurrent(k))
+    }
+
+    /// 异步路径：新 key 且无同步图 → 需要补异步请求。
+    func testPlanRequestsAsyncWhenNoSyncImage() {
+        var gate = IconRequestGate()
+        let plan = planResolution(key: key(icon: "a.svg"), syncImage: { _ in nil }, gate: &gate)
+        XCTAssertNil(plan.synced)
+        XCTAssertTrue(plan.shouldRequestAsync)
     }
 }
