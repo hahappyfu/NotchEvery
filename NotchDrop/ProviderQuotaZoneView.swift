@@ -271,12 +271,7 @@ struct ProviderQuotaZoneView: View {
     }
 
     private func windowText(_ window: MagpieWindow) -> String {
-        if let display = window.display, !display.isEmpty { return display }
-        if let amount = window.amount {
-            return "\(ProviderQuotaFormat.fmt(amount)) / \(window.limit.map(ProviderQuotaFormat.fmt) ?? "—")"
-        }
-        if let used = window.usedPercent { return "\(ProviderQuotaFormat.fmt(used))%" }
-        return "无刻度"
+        ProviderQuotaFormat.windowUsage(window)
     }
 
     private func resetText(_ window: MagpieWindow) -> String? {
@@ -298,7 +293,7 @@ private struct WaterLevelBar: View {
 
     var body: some View {
         GeometryReader { geo in
-            let value = min(max(fraction ?? 0, 0), 1)
+            let value = ProviderQuotaFormat.barFill(fraction)
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.10))
                 Capsule()

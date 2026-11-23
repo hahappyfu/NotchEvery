@@ -85,6 +85,26 @@ final class ProviderQuotaFormatTests: XCTestCase {
         XCTAssertEqual(ProviderQuotaFormat.checkinText(.empty), "今日暂无签到")
     }
 
+    func testWindowUsage() {
+        func window(amount: Double? = nil, limit: Double? = nil, usedPercent: Double? = nil) -> MagpieWindow {
+            MagpieWindow(
+                id: "w1", name: "W", usedPercent: usedPercent, amount: amount,
+                limit: limit, unit: nil, display: "源数据文案", resetsAt: nil,
+                runsOutAt: nil, isAside: false, history: []
+            )
+        }
+        XCTAssertEqual(ProviderQuotaFormat.windowUsage(window(amount: 88.02, limit: 4600, usedPercent: 1.9)), "88 / 4600")
+        XCTAssertEqual(ProviderQuotaFormat.windowUsage(window(usedPercent: 1.9)), "1.9%")
+        XCTAssertEqual(ProviderQuotaFormat.windowUsage(window()), "—")
+    }
+
+    func testBarFill() {
+        XCTAssertEqual(ProviderQuotaFormat.barFill(nil), 1)
+        XCTAssertEqual(ProviderQuotaFormat.barFill(0.4), 0.4)
+        XCTAssertEqual(ProviderQuotaFormat.barFill(-0.2), 0)
+        XCTAssertEqual(ProviderQuotaFormat.barFill(1.5), 1)
+    }
+
     func testGatewayText() {
         XCTAssertEqual(ProviderQuotaFormat.gatewayText(.online(version: "0.1.4692")), "Magpie :3425 在线 v0.1.4692")
         XCTAssertEqual(ProviderQuotaFormat.gatewayText(.online(version: "  ")), "Magpie :3425 在线")

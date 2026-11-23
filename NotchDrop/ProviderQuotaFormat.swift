@@ -76,8 +76,23 @@ enum ProviderQuotaFormat {
         }
     }
 
+    static func windowUsage(_ window: MagpieWindow) -> String {
+        if let amount = window.amount, let limit = window.limit {
+            return "\(fmt(amount)) / \(fmt(limit))"
+        }
+        if let used = window.usedPercent { return "\(fmt(used))%" }
+        return "—"
+    }
+
+    static func barFill(_ fraction: Double?) -> Double {
+        guard let fraction else { return 1 }
+        return min(max(fraction, 0), 1)
+    }
+
     static func fmt(_ value: Double) -> String {
-        let text = String(format: "%.1f", value)
+        // POSIX locale 锁定小数点字符；先四舍五入避免 printf 的 ties-to-even 改变 4.65 一类边界值。
+        let rounded = (value * 10).rounded() / 10
+        let text = String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), rounded)
         return text.hasSuffix(".0") ? String(text.dropLast(2)) : text
     }
 }
