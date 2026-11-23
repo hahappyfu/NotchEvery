@@ -15,7 +15,8 @@ final class EarSummaryTests: XCTestCase {
     private func item(_ id: String) -> DistributionItem {
         DistributionItem(
             id: id, label: id, secondaryLabel: nil, detail: nil,
-            tokenCount: 0, cacheRead: 0, calls: 0, shareFraction: 0, copyText: id
+            tokenCount: 0, cacheRead: 0, calls: 0, shareFraction: 0, copyText: id,
+            tokensPerSecond: nil, averageTTFTMs: nil
         )
     }
 

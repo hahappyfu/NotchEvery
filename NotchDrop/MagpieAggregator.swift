@@ -36,9 +36,10 @@ enum MagpieAggregator {
         let eligible = today.filter(countsForDistribution)
 
         var distributions: [DistributionDimension: [DistributionItem]] = [:]
-        distributions[.combo] = comboItems(eligible, names: names)
-        distributions[.provider] = providerItems(eligible, names: names)
-        distributions[.group] = groupItems(eligible, routes: routes, catalog: catalog, names: names)
+        let entries = eligible.map { ThroughputEntry(record: $0, throughput: throughput($0)) }
+        distributions[.combo] = comboItems(entries, names: names)
+        distributions[.provider] = providerItems(entries, names: names)
+        distributions[.group] = groupItems(entries, routes: routes, catalog: catalog, names: names)
 
         let groups = providerGroups(
             quotas: quotas,
@@ -116,6 +117,23 @@ enum MagpieAggregator {
         return status >= 400 && status != 499
     }
 
+    private struct ThroughputEntry {
+        let record: MagpieUsageRecord
+        let throughput: Double?
+
+        var id: String { record.id }
+        var provider: String { record.provider }
+        var providerAccount: String { record.providerAccount }
+        var served: String? { record.served }
+        var model: String { record.model }
+        var req: String { record.req }
+        var routeID: Int64? { record.routeID }
+        var inputTokens: Int { record.inputTokens }
+        var outputTokens: Int { record.outputTokens }
+        var cacheRead: Int { record.cacheRead }
+        var ttftMs: Int? { record.ttftMs }
+    }
+
     private static func throughput(_ record: MagpieUsageRecord) -> Double? {
         let genMs = record.flowMs ?? record.durationMs.flatMap { duration in
             record.ttftMs.map { ttft in max(0, duration - ttft) }
@@ -146,7 +164,8 @@ enum MagpieAggregator {
                 hour: hour,
                 netTokens: tokensByHour[hour],
                 topProviderID: top,
-                topProviderName: top.map { names[$0] ?? $0 }
+                topProviderName: top.map { names[$0] ?? $0 },
+                topProviderTokens: top.flatMap { providerTokens[hour][$0] } ?? 0
             )
         }
     }
@@ -233,6 +252,31 @@ enum MagpieAggregator {
         let cache: Int
         let calls: Int
         let copyText: String
+        let throughputs: [Double]
+        let ttfts: [Double]
+
+        init(
+            id: String,
+            label: String,
+            secondaryLabel: String?,
+            detail: String?,
+            tokens: Int,
+            cache: Int,
+            calls: Int,
+            copyText: String,
+            records: [ThroughputEntry]
+        ) {
+            self.id = id
+            self.label = label
+            self.secondaryLabel = secondaryLabel
+            self.detail = detail
+            self.tokens = tokens
+            self.cache = cache
+            self.calls = calls
+            self.copyText = copyText
+            self.throughputs = records.compactMap(\.throughput)
+            self.ttfts = records.compactMap(\.record.ttftMs).map(Double.init)
+        }
     }
 
     private static func finish(_ raw: [RawItem]) -> [DistributionItem] {
@@ -247,17 +291,27 @@ enum MagpieAggregator {
                 cacheRead: item.cache,
                 calls: item.calls,
                 shareFraction: total > 0 ? Double(item.tokens) / Double(total) : 0,
-                copyText: item.copyText
+                copyText: item.copyText,
+                tokensPerSecond: average(item.throughputs),
+                averageTTFTMs: average(item.ttfts)
             )
         }
         .sorted { $0.tokenCount != $1.tokenCount ? $0.tokenCount > $1.tokenCount : $0.label < $1.label }
     }
 
-    private static func comboItems(_ records: [MagpieUsageRecord], names: [String: String]) -> [DistributionItem] {
+    private static func average(_ values: [Double]) -> Double? {
+        values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
+    }
+
+    private static func comboItems(
+        _ records: [ThroughputEntry],
+        names: [String: String]
+    ) -> [DistributionItem] {
         struct Bucket {
             var tokens = 0
             var cache = 0
             var calls = 0
+            var records: [ThroughputEntry] = []
         }
         var buckets: [String: Bucket] = [:]
         var models: [String: String] = [:]
@@ -268,6 +322,7 @@ enum MagpieAggregator {
             buckets[key, default: Bucket()].tokens += record.inputTokens + record.outputTokens
             buckets[key, default: Bucket()].cache += record.cacheRead
             buckets[key, default: Bucket()].calls += 1
+            buckets[key, default: Bucket()].records.append(record)
             models[key] = model
             providers[key] = record.provider
         }
@@ -282,16 +337,21 @@ enum MagpieAggregator {
                 tokens: bucket.tokens,
                 cache: bucket.cache,
                 calls: bucket.calls,
-                copyText: "\(provider)/\(model)"
+                copyText: "\(provider)/\(model)",
+                records: bucket.records
             )
         })
     }
 
-    private static func providerItems(_ records: [MagpieUsageRecord], names: [String: String]) -> [DistributionItem] {
+    private static func providerItems(
+        _ records: [ThroughputEntry],
+        names: [String: String]
+    ) -> [DistributionItem] {
         struct Bucket {
             var tokens = 0
             var cache = 0
             var calls = 0
+            var records: [ThroughputEntry] = []
             var accounts: Set<String> = []
             var models: Set<String> = []
         }
@@ -300,6 +360,7 @@ enum MagpieAggregator {
             buckets[record.provider, default: Bucket()].tokens += record.inputTokens + record.outputTokens
             buckets[record.provider, default: Bucket()].cache += record.cacheRead
             buckets[record.provider, default: Bucket()].calls += 1
+            buckets[record.provider, default: Bucket()].records.append(record)
             if !record.providerAccount.isEmpty {
                 buckets[record.provider, default: Bucket()].accounts.insert(record.providerAccount)
             }
@@ -317,13 +378,14 @@ enum MagpieAggregator {
                 tokens: bucket.tokens,
                 cache: bucket.cache,
                 calls: bucket.calls,
-                copyText: provider
+                copyText: provider,
+                records: bucket.records
             )
         })
     }
 
     private static func groupItems(
-        _ records: [MagpieUsageRecord],
+        _ records: [ThroughputEntry],
         routes: MagpieRouteIndex,
         catalog: MagpieProviderCatalog,
         names: [String: String]
@@ -334,6 +396,7 @@ enum MagpieAggregator {
             var tokens = 0
             var cache = 0
             var calls = 0
+            var records: [ThroughputEntry] = []
             var providerTokens: [String: Int] = [:]
             var topTokens = -1
             var topModel = ""
@@ -341,12 +404,13 @@ enum MagpieAggregator {
         }
         var buckets: [String: Bucket] = [:]
         for record in records {
-            let identity = groupIdentity(record, routes: routes, catalog: catalog)
+            let identity = groupIdentity(record.record, routes: routes, catalog: catalog)
             var bucket = buckets[identity.key] ?? Bucket(label: identity.label, isDirect: identity.isDirect)
             let tokens = record.inputTokens + record.outputTokens
             bucket.tokens += tokens
             bucket.cache += record.cacheRead
             bucket.calls += 1
+            bucket.records.append(record)
             bucket.providerTokens[record.provider, default: 0] += tokens
             if tokens > bucket.topTokens {
                 bucket.topTokens = tokens
@@ -376,7 +440,8 @@ enum MagpieAggregator {
                 tokens: bucket.tokens,
                 cache: bucket.cache,
                 calls: bucket.calls,
-                copyText: copy
+                copyText: copy,
+                records: bucket.records
             )
         })
     }

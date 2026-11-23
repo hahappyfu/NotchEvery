@@ -548,9 +548,39 @@ final class MagpieAggregatorTests: XCTestCase {
         XCTAssertEqual(result.hourlyBuckets[9].netTokens, 12)
         XCTAssertEqual(result.hourlyBuckets[9].topProviderID, "aa")
         XCTAssertEqual(result.hourlyBuckets[9].topProviderName, "Aye")
+        XCTAssertEqual(result.hourlyBuckets[9].topProviderTokens, 7)
         XCTAssertEqual(result.hourlyBuckets[16].netTokens, 10)
+        XCTAssertEqual(result.hourlyBuckets[16].topProviderTokens, 10)
         XCTAssertEqual(result.hourlyBuckets[12].netTokens, 0)
+        XCTAssertEqual(result.hourlyBuckets[12].topProviderTokens, 0)
         XCTAssertNil(result.hourlyBuckets[12].topProviderID)
+    }
+
+    // B1: 三维分布的逐请求吞吐与 TTFT 取非 nil 样本均值；全 nil → nil。
+    func testDistributionThroughputAndTTFTAveragesIgnoreNilSamples() {
+        let result = snapshot(usage: [
+            record("combo-a", provider: "p1", model: "m1", input: 100, output: 20, ms: 100, ttftMs: 10),
+            record("combo-b", provider: "p1", model: "m1", input: 100, output: 40, ms: 100, ttftMs: 30),
+            record("combo-nil", provider: "p1", model: "m1", input: 10, output: 0, ms: nil, ttftMs: nil),
+            record("provider-c", provider: "p2", model: "m2", input: 10, output: 20, ms: 200, ttftMs: 20),
+            record("provider-nil", provider: "p2", model: "m3", input: 10, output: 0, ms: nil, ttftMs: nil)
+        ])
+        let combo = try? XCTUnwrap(result.distributions[.combo]?.first { $0.label == "m1" })
+        XCTAssertEqual(combo?.tokensPerSecond ?? -1, (2000.0 / 9.0 + 4000.0 / 7.0) / 2, accuracy: 0.0001)
+        XCTAssertEqual(combo?.averageTTFTMs ?? -1, 20, accuracy: 0.0001)
+
+        let provider = try? XCTUnwrap(result.distributions[.provider]?.first { $0.label == "p2" })
+        XCTAssertEqual(provider?.tokensPerSecond ?? -1, 1000.0 / 9.0, accuracy: 0.0001)
+        XCTAssertEqual(provider?.averageTTFTMs ?? -1, 20, accuracy: 0.0001)
+
+        let group = try? XCTUnwrap(result.distributions[.group]?.first { $0.label == "g" })
+        XCTAssertEqual(group?.tokensPerSecond ?? -1, (2000.0 / 9.0 + 4000.0 / 7.0 + 1000.0 / 9.0) / 3, accuracy: 0.0001)
+        XCTAssertEqual(group?.averageTTFTMs ?? -1, 20, accuracy: 0.0001)
+
+        let onlyNil = snapshot(usage: [record(input: 0, output: 0, ms: nil, ttftMs: nil)])
+        XCTAssertNil(onlyNil.distributions[.combo]?.first?.tokensPerSecond)
+        XCTAssertNil(onlyNil.distributions[.provider]?.first?.averageTTFTMs)
+        XCTAssertNil(onlyNil.distributions[.group]?.first?.averageTTFTMs)
     }
 
     // A5: 同 provider 不同 order 账号 + quotas 账号三个并存；同账号两处出现只留 quotas 版本。

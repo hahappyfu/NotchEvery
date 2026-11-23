@@ -2,7 +2,7 @@
 //  OverviewDistributionView.swift
 //  NotchEvery
 //
-//  第一页：今日用量分布（模型·提供商 / 提供商 / Group 三维切换）。
+//  第一页：今日用量（单行总览 + 24h 分时柱图 + 三维 Top 5）。
 //
 
 import SwiftUI
@@ -11,6 +11,7 @@ struct OverviewDistributionView: View {
     @ObservedObject var store: MagpieStore
     @StateObject private var copyFeedback = CopyFeedback()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hoveredHour: Int?
 
     init(store: MagpieStore = .shared) {
         self.store = store
@@ -19,9 +20,7 @@ struct OverviewDistributionView: View {
     var body: some View {
         VStack(spacing: 0) {
             headerView
-            dimensionSwitcher
-                .padding(.top, 6)
-            DistributionBar(items: currentItems)
+            chartView
                 .padding(.top, 8)
 
             if currentItems.isEmpty {
@@ -51,29 +50,148 @@ struct OverviewDistributionView: View {
         store.snapshot.distributions[store.distributionDimension] ?? []
     }
 
-    private var netTokensText: String {
-        let n = store.snapshot.todayNetTokens
-        return n > 0 ? TokenFormatUtils.formatCompactTokens(n) : "—"
+    private var peakTokens: Int {
+        store.snapshot.hourlyBuckets.map(\.netTokens).max() ?? 0
+    }
+
+    private var hoveredBucket: MagpieHourBucket? {
+        guard let hoveredHour else { return nil }
+        return store.snapshot.hourlyBuckets.first { $0.hour == hoveredHour }
+    }
+
+    private var currentTotalText: String {
+        "当前总量 \(TokenFormatUtils.formatCompactTokens(store.snapshot.todayNetTokens))"
+    }
+
+    private var hoveredText: String? {
+        guard let bucket = hoveredBucket else { return nil }
+        let formatted = "\(String(format: "%02d", bucket.hour)):00 · \(bucket.netTokens) Tokens"
+        guard let name = bucket.topProviderName, !name.isEmpty, bucket.netTokens > 0 else { return formatted }
+        return formatted + " · \(name)"
+    }
+
+    static func summaryText(
+        netTokens: Int,
+        cacheRate: Double?,
+        maskedValues: Int,
+        errorCount: Int,
+        retriedSuccessCount: Int
+    ) -> String {
+        var parts = [TokenFormatUtils.formatCompactTokens(netTokens)]
+        if let cacheRate {
+            parts.append("缓存 \(String(format: "%.1f%%", cacheRate * 100))")
+        }
+        if maskedValues > 0 {
+            parts.append("\(maskedValues)")
+        }
+        if errorCount > 0 {
+            parts.append("E \(errorCount)")
+        }
+        if retriedSuccessCount > 0 {
+            parts.append("重试 \(retriedSuccessCount)")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    static func barHeight(tokens: Int, peak: Int) -> CGFloat {
+        guard peak > 0, tokens > 0 else { return 1 }
+        return max(1, CGFloat(tokens) / CGFloat(peak) * 28)
     }
 
     // MARK: - Header
 
     private var headerView: some View {
-        HStack {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(StudioColor.emerald)
-                    .frame(width: 6, height: 6)
-                Text("今日用量分布")
-                    .font(.system(size: 11.5, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.85))
+        HStack(spacing: 6) {
+            Circle()
+                .fill(StudioColor.emerald)
+                .frame(width: 6, height: 6)
+            Text("今日用量")
+                .font(.system(size: 11.5, weight: .medium))
+                .foregroundStyle(StudioInk.primary)
+
+            if store.snapshot.todayMaskedValues > 0 {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(StudioInk.secondary)
+            }
+            Text(Self.summaryText(
+                netTokens: store.snapshot.todayNetTokens,
+                cacheRate: store.snapshot.todayCacheRate,
+                maskedValues: store.snapshot.todayMaskedValues,
+                errorCount: store.snapshot.todayErrorCount,
+                retriedSuccessCount: store.snapshot.todayRetriedSuccessCount
+            ))
+            .font(.system(size: 11).monospacedDigit())
+            .foregroundStyle(StudioInk.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+        }
+    }
+
+    // MARK: - 24h chart
+
+    private var chartView: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 8) {
+                dimensionSwitcher
+
+                Spacer(minLength: 4)
+
+                Text(hoveredText ?? currentTotalText)
+                    .font(.system(size: 9).monospacedDigit())
+                    .foregroundStyle(StudioInk.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
 
-            Spacer()
+            hourlyBars
+                .frame(height: 28)
+                .accessibilityLabel("今日 24 小时分时用量")
 
-            Text(netTokensText)
-                .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(.secondary)
+            HStack(alignment: .top) {
+                ForEach([0, 6, 12, 18, 24], id: \.self) { hour in
+                    Text(String(format: "%02d", hour))
+                        .font(.system(size: 9).monospacedDigit())
+                        .foregroundStyle(StudioInk.axis)
+                    if hour != 24 { Spacer(minLength: 0) }
+                }
+            }
+        }
+    }
+
+    private var hourlyBars: some View {
+        GeometryReader { geo in
+            let spacing: CGFloat = 1.5
+            let width = max(0, (geo.size.width - spacing * 23) / 24)
+            HStack(spacing: spacing) {
+                ForEach(store.snapshot.hourlyBuckets, id: \.hour) { bucket in
+                    bar(for: bucket, width: width)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder
+    private func bar(for bucket: MagpieHourBucket, width: CGFloat) -> some View {
+        let height = Self.barHeight(tokens: bucket.netTokens, peak: peakTokens)
+        let primaryHeight = bucket.topProviderTokens > 0
+            ? height * CGFloat(bucket.topProviderTokens) / CGFloat(max(1, bucket.netTokens))
+            : 0
+        VStack(spacing: 0) {
+            if primaryHeight > 0 {
+                Color.white.opacity(0.25).frame(height: height - primaryHeight)
+                StudioColor.emerald.frame(height: primaryHeight)
+            } else {
+                Color.white.opacity(0.12).frame(height: height)
+            }
+        }
+        .frame(width: width, height: 28, alignment: .bottom)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.12)) {
+                hoveredHour = hovering ? bucket.hour : nil
+            }
         }
     }
 
@@ -83,20 +201,26 @@ struct OverviewDistributionView: View {
         HStack(spacing: 2) {
             ForEach(DistributionDimension.allCases) { dim in
                 let selected = store.distributionDimension == dim
-                Text(dim.title)
-                    .font(.system(size: 9.5, weight: selected ? .semibold : .regular).monospacedDigit())
-                    .foregroundStyle(selected ? .white : Color.white.opacity(0.5))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(
-                        Capsule().fill(selected ? Color.white.opacity(0.14) : Color.clear)
-                    )
-                    .contentShape(Capsule())
-                    .onTapGesture {
-                        withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.82)) {
+                Button {
+                    if !reduceMotion {
+                        withAnimation(.easeInOut(duration: 0.12)) {
                             store.distributionDimension = dim
                         }
+                    } else {
+                        store.distributionDimension = dim
                     }
+                } label: {
+                    Text(dim.title)
+                        .font(.system(size: 9.5, weight: selected ? .semibold : .regular).monospacedDigit())
+                        .foregroundStyle(selected ? StudioInk.primary : StudioInk.secondary)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(selected ? Color.white.opacity(0.14) : Color.clear))
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("维度：\(dim.title)")
+                .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             }
         }
     }
@@ -104,20 +228,23 @@ struct OverviewDistributionView: View {
     // MARK: - Rows
 
     private var rowsView: some View {
-        let items = Array(currentItems.prefix(5).enumerated())
-        return VStack(spacing: 4) {
-            ForEach(items, id: \.element.id) { index, item in
-                DistributionRowView(
-                    item: item,
-                    index: index,
-                    dimension: store.distributionDimension,
-                    providerGroups: store.snapshot.providerGroups,
-                    copied: copyFeedback.copiedID == item.id
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
+        VStack(spacing: 4) {
+            ForEach(Array(currentItems.prefix(5).enumerated()), id: \.element.id) { index, item in
+                Button {
                     copyFeedback.copy(item.copyText, id: item.id)
+                } label: {
+                    DistributionRowView(
+                        item: item,
+                        index: index,
+                        dimension: store.distributionDimension,
+                        providerGroups: store.snapshot.providerGroups,
+                        copied: copyFeedback.copiedID == item.id
+                    )
                 }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+                .accessibilityLabel("复制 \(item.label)")
+                .accessibilityAddTraits(.isButton)
             }
         }
     }
@@ -135,7 +262,7 @@ struct OverviewDistributionView: View {
             }
         }
         .font(.system(size: 11))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(StudioInk.secondary)
         .frame(maxWidth: .infinity, minHeight: 120)
     }
 
@@ -150,70 +277,20 @@ struct OverviewDistributionView: View {
             HStack {
                 Text("缓存命中 \(TokenFormatUtils.formatCompactTokens(store.snapshot.todayCacheRead))")
                     .font(.system(size: 10).monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(StudioInk.secondary)
 
                 Spacer()
 
-                Image(systemName: "shield.lefthalf.filled")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.secondary)
-
-                Text("今日脱敏 \(store.snapshot.todayMaskedValues) 项 (\(store.snapshot.todayMaskedRequests) 次)")
-                    .font(.system(size: 10).monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-
-// MARK: - Palette (沿用旧 modelPaletteColor 配色)
-
-private func distributionPaletteColor(for index: Int) -> Color {
-    switch index {
-    case 0: return StudioColor.emerald
-    case 1: return Color(red: 90 / 255, green: 200 / 255, blue: 250 / 255)
-    case 2: return Color(red: 175 / 255, green: 82 / 255, blue: 222 / 255)
-    case 3: return StudioColor.amber
-    default: return Color.white.opacity(0.35)
-    }
-}
-
-// MARK: - DistributionBar (segmented proportion bar)
-
-private struct DistributionBar: View {
-    let items: [DistributionItem]
-
-    private var validItems: [DistributionItem] {
-        items.filter { $0.tokenCount > 0 && $0.shareFraction > 0 }
-    }
-
-    var body: some View {
-        GeometryReader { geo in
-            let totalW = geo.size.width
-            if validItems.isEmpty {
-                Capsule()
-                    .fill(Color.white.opacity(0.08))
-                    .frame(height: 6)
-            } else {
-                let spacing: CGFloat = 1.5
-                let count = validItems.count
-                let totalSpacing = CGFloat(max(0, count - 1)) * spacing
-                let availableW = max(0, totalW - totalSpacing)
-
-                HStack(spacing: spacing) {
-                    ForEach(Array(validItems.enumerated()), id: \.element.id) { index, item in
-                        let rawW = availableW * CGFloat(item.shareFraction)
-                        RoundedRectangle(cornerRadius: 3, style: .continuous)
-                            .fill(distributionPaletteColor(for: index))
-                            .frame(width: max(4.0, rawW), height: 6)
-                    }
+                if store.snapshot.todayMaskedValues > 0 {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(StudioInk.secondary)
+                    Text("脱敏 \(store.snapshot.todayMaskedValues) 项 (\(store.snapshot.todayMaskedRequests) 次)")
+                        .font(.system(size: 10).monospacedDigit())
+                        .foregroundStyle(StudioInk.secondary)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Capsule().fill(Color.white.opacity(0.08)))
-                .clipShape(Capsule())
             }
         }
-        .frame(height: 6)
     }
 }
 
@@ -229,7 +306,12 @@ private struct DistributionRowView: View {
     @State private var isHovered = false
 
     private var accentColor: Color {
-        distributionPaletteColor(for: index)
+        switch index {
+        case 0: return StudioColor.emerald
+        case 1: return StudioColor.cyan
+        case 2: return StudioColor.amber
+        default: return StudioInk.secondary
+        }
     }
 
     var body: some View {
@@ -238,7 +320,7 @@ private struct DistributionRowView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             rightColumn
-                .frame(width: 150, alignment: .trailing)
+                .frame(width: 178, alignment: .trailing)
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
@@ -249,17 +331,12 @@ private struct DistributionRowView: View {
         .onHover { isHovered = $0 }
     }
 
-    // MARK: Left column per dimension
-
     @ViewBuilder
     private var leftColumn: some View {
         switch dimension {
-        case .combo:
-            comboRow
-        case .provider:
-            providerRow
-        case .group:
-            groupRow
+        case .combo: comboRow
+        case .provider: providerRow
+        case .group: groupRow
         }
     }
 
@@ -268,19 +345,17 @@ private struct DistributionRowView: View {
             Circle()
                 .fill(accentColor)
                 .frame(width: 5, height: 5)
-
             Text(TokenFormatUtils.friendlyModelName(item.label))
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(StudioInk.primary)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 1.5)
                 .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
                 .lineLimit(1)
-
             if let secondary = item.secondaryLabel {
                 Text(secondary)
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(StudioColor.cyan.opacity(0.8))
+                    .foregroundStyle(StudioColor.cyan)
                     .lineLimit(1)
             }
         }
@@ -290,16 +365,14 @@ private struct DistributionRowView: View {
         let icon = providerGroups.first { $0.id == item.id || $0.name == item.label }?.icon
         return HStack(spacing: 6) {
             ProviderIconView(icon: icon, providerID: item.id, size: 14)
-
             Text(item.label)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(StudioInk.primary)
                 .lineLimit(1)
-
             if let detail = item.detail {
                 Text(detail)
                     .font(.system(size: 9))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(StudioInk.secondary)
                     .lineLimit(1)
             }
         }
@@ -310,51 +383,51 @@ private struct DistributionRowView: View {
             Circle()
                 .fill(accentColor)
                 .frame(width: 5, height: 5)
-
             Text(item.label)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(StudioInk.primary)
                 .lineLimit(1)
-
             if let secondary = item.secondaryLabel {
                 Text(secondary)
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(StudioColor.cyan.opacity(0.8))
+                    .foregroundStyle(StudioColor.cyan)
                     .lineLimit(1)
             }
         }
     }
 
-    // MARK: Right column (metrics)
-
     private var rightColumn: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 4) {
             if copied {
                 Image(systemName: "checkmark")
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(StudioColor.emerald)
                 Text("已复制")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 9, weight: .medium).monospacedDigit())
                     .foregroundStyle(StudioColor.emerald)
             } else {
-                Text(TokenFormatUtils.percentText(item.shareFraction))
-                    .font(.system(size: 10, weight: .medium).monospacedDigit())
-                    .foregroundStyle(accentColor)
-
                 Text(TokenFormatUtils.formatCompactTokens(item.tokenCount))
                     .font(.system(size: 11, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(.white)
-
+                    .foregroundStyle(StudioInk.primary)
+                Text((item.tokensPerSecond.map { String(format: "%.0f", $0) } ?? "--") + " tok/s")
+                    .font(.system(size: 9).monospacedDigit())
+                    .foregroundStyle(StudioInk.secondary)
                 Text(cacheText)
                     .font(.system(size: 9).monospacedDigit())
-                    .foregroundStyle(item.cacheRead > 0 ? StudioColor.cyan : .secondary)
+                    .foregroundStyle(item.cacheRead > 0 ? StudioColor.cyan : StudioInk.secondary)
             }
         }
         .lineLimit(1)
-        .minimumScaleFactor(0.8)
+        .minimumScaleFactor(0.75)
     }
 
     private var cacheText: String {
-        item.cacheRead == 0 ? "无缓存" : TokenFormatUtils.formatCompactTokens(item.cacheRead) + " 缓存"
+        if item.cacheRead > 0 {
+            return "缓存 \(TokenFormatUtils.formatCompactTokens(item.cacheRead))"
+        }
+        if let ttft = item.averageTTFTMs {
+            return "首字 \(String(format: "%.1f", ttft / 1000.0))s"
+        }
+        return "无缓存"
     }
 }

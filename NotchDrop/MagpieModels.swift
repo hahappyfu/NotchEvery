@@ -384,6 +384,8 @@ struct DistributionItem: Equatable, Identifiable {
     let calls: Int
     let shareFraction: Double
     let copyText: String
+    let tokensPerSecond: Double?
+    let averageTTFTMs: Double?
 }
 
 struct MagpieFlowRow: Equatable, Identifiable {
@@ -540,6 +542,7 @@ struct MagpieHourBucket: Equatable {
     let netTokens: Int
     let topProviderID: String?
     let topProviderName: String?
+    let topProviderTokens: Int
 }
 
 struct MagpieSnapshot: Equatable {

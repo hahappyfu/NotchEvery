@@ -60,6 +60,36 @@ final class TabMetricsTests: XCTestCase {
         XCTAssertEqual(NotchViewModel.zone(for: 99), .overview)
     }
 
+    func testOverviewSummaryTextOmitsUnavailableSegments() {
+        XCTAssertEqual(
+            OverviewDistributionView.summaryText(
+                netTokens: 12_345,
+                cacheRate: nil,
+                maskedValues: 0,
+                errorCount: 0,
+                retriedSuccessCount: 0
+            ),
+            "12.3k"
+        )
+        XCTAssertEqual(
+            OverviewDistributionView.summaryText(
+                netTokens: 100,
+                cacheRate: 0.625,
+                maskedValues: 3,
+                errorCount: 2,
+                retriedSuccessCount: 1
+            ),
+            "100 · 缓存 62.5% · 3 · E 2 · 重试 1"
+        )
+    }
+
+    func testOverviewBarHeightNormalizesAgainstTodayPeak() {
+        XCTAssertEqual(OverviewDistributionView.barHeight(tokens: 0, peak: 0), 1)
+        XCTAssertEqual(OverviewDistributionView.barHeight(tokens: 0, peak: 100), 1)
+        XCTAssertEqual(OverviewDistributionView.barHeight(tokens: 50, peak: 100), 14)
+        XCTAssertEqual(OverviewDistributionView.barHeight(tokens: 100, peak: 100), 28)
+    }
+
     func testOverviewDistributionViewInstantiates() throws {
         // 临时空 Magpie 目录 → 建视图不崩（hasMagpieDirectory=false 走空态）
         let root = FileManager.default.temporaryDirectory
