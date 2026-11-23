@@ -91,6 +91,80 @@ public struct UsageData: Equatable {
     }
 }
 
+// MARK: - 旧 TokenZoneView 模型（Task 7 随 UsageStore 一起删除）
+
+/// 单条模型请求（真数据来自 cc-switch 或 antigravity-tools 使用统计）。
+public struct TokenRequest: Identifiable, Equatable {
+    /// cc-switch 的 request_id 或 antigravity 的 id（稳定标识，滚动动画依赖）
+    public let id: String
+    public let time: String
+    public let model: String
+    public let inputTokens: Int
+    public let outputTokens: Int
+    /// 耗时存数值（秒），展示层格式化，避免反解析字符串
+    public let durationSeconds: Double
+    public let status: Int
+    public var accountEmail: String?
+    public let cachedTokens: Int
+
+    public init(
+        id: String,
+        time: String,
+        model: String,
+        inputTokens: Int,
+        outputTokens: Int,
+        durationSeconds: Double,
+        status: Int,
+        accountEmail: String? = nil,
+        cachedTokens: Int = 0
+    ) {
+        self.id = id
+        self.time = time
+        self.model = model
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.durationSeconds = durationSeconds
+        self.status = status
+        self.accountEmail = accountEmail
+        self.cachedTokens = cachedTokens
+    }
+
+    /// 友好的账号显示名称（从 AntigravityStore 匹配别名，若无则提取邮箱用户名）
+    public var friendlyAccountName: String {
+        guard let email = accountEmail, !email.isEmpty else { return "" }
+        let lower = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if let matched = AntigravityStore.shared.accounts.first(where: { $0.email.lowercased() == lower }) {
+            return matched.name
+        }
+        return accountEmailPrefix
+    }
+
+    /// 账号邮箱前缀
+    public var accountEmailPrefix: String {
+        guard let email = accountEmail, !email.isEmpty else { return "" }
+        let lower = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if let atIndex = lower.firstIndex(of: "@") {
+            return String(lower[..<atIndex])
+        }
+        return lower
+    }
+}
+
+/// KPI 聚合（真数据来自 UsageStore）。
+public struct TokenSummary: Equatable {
+    public let totalTokens: String
+    public let cacheRate: String
+    public let calls: String
+
+    public init(totalTokens: String, cacheRate: String, calls: String) {
+        self.totalTokens = totalTokens
+        self.cacheRate = cacheRate
+        self.calls = calls
+    }
+
+    public static let empty = TokenSummary(totalTokens: "0", cacheRate: "0.0%", calls: "0次")
+}
+
 // MARK: - UsageStore 主门面
 
 public final class UsageStore: ObservableObject {

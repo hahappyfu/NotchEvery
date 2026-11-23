@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		ADA6C17D67E5409D64817215 /* FlowPauseController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD531122F38ADA579B21ED71 /* FlowPauseController.swift */; };
+		AD99D3EF1697192AA2A2F105 /* FlowPauseControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD510A01DA6E5E2B73695109 /* FlowPauseControllerTests.swift */; };
 		AD879541D685E264311352FF /* CopyFeedbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0D0A606C9AD4B982B54391 /* CopyFeedbackTests.swift */; };
 		ADFB780D9B19D39BE0BF1650 /* CopyFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD896BCF34010AA4FD902D0D /* CopyFeedback.swift */; };
 		AD1E65947277B121F0FDFE72 /* ProviderIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD2FF1D3FFCA01E12350D2AA /* ProviderIconView.swift */; };
@@ -94,6 +96,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AD531122F38ADA579B21ED71 /* FlowPauseController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowPauseController.swift; sourceTree = "<group>"; };
+		AD510A01DA6E5E2B73695109 /* FlowPauseControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowPauseControllerTests.swift; sourceTree = "<group>"; };
 		AD0D0A606C9AD4B982B54391 /* CopyFeedbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyFeedbackTests.swift; sourceTree = "<group>"; };
 		AD896BCF34010AA4FD902D0D /* CopyFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyFeedback.swift; sourceTree = "<group>"; };
 		AD2FF1D3FFCA01E12350D2AA /* ProviderIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderIconView.swift; sourceTree = "<group>"; };
@@ -207,6 +211,7 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				AD531122F38ADA579B21ED71 /* FlowPauseController.swift */,
 				AD896BCF34010AA4FD902D0D /* CopyFeedback.swift */,
 				AD2FF1D3FFCA01E12350D2AA /* ProviderIconView.swift */,
 				AD3E60C9C5FCDB49973E76D8 /* OverviewDistributionView.swift */,
@@ -273,6 +278,7 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				AD510A01DA6E5E2B73695109 /* FlowPauseControllerTests.swift */,
 				AD0D0A606C9AD4B982B54391 /* CopyFeedbackTests.swift */,
 				AD9021B5401EDA52BF81D4F4 /* MagpieIconResolverTests.swift */,
 				AD6A74A8A762D50BE39EDF69 /* MagpieStoreTests.swift */,
@@ -410,6 +416,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ADA6C17D67E5409D64817215 /* FlowPauseController.swift in Sources */,
 				ADFB780D9B19D39BE0BF1650 /* CopyFeedback.swift in Sources */,
 				AD1E65947277B121F0FDFE72 /* ProviderIconView.swift in Sources */,
 				ADC2E41C6451DFD2639F9AD8 /* OverviewDistributionView.swift in Sources */,
@@ -464,6 +471,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD99D3EF1697192AA2A2F105 /* FlowPauseControllerTests.swift in Sources */,
 				AD879541D685E264311352FF /* CopyFeedbackTests.swift in Sources */,
 				AD4E4AB7A83D57AE3A2AF079 /* MagpieIconResolverTests.swift in Sources */,
 				AD163A2531529AFE6BEFB865 /* MagpieStoreTests.swift in Sources */,
