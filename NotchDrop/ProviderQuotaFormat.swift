@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 enum ProviderQuotaFormat {
     static func remainingText(_ group: MagpieProviderGroup) -> String {
@@ -94,5 +95,43 @@ enum ProviderQuotaFormat {
         let rounded = (value * 10).rounded() / 10
         let text = String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), rounded)
         return text.hasSuffix(".0") ? String(text.dropLast(2)) : text
+    }
+}
+
+/// P3 展开态百分比圆环的纯格式化（可单测，无副作用）。
+enum QuotaRingFormat {
+    /// usedPercent(0–100) → 剩余比例(0–1)；nil → nil。
+    static func remainingFraction(usedPercent: Double?) -> Double? {
+        guard let used = usedPercent else { return nil }
+        return max(0, 1 - used / 100)
+    }
+
+    /// 剩余比例 → 圆环颜色：>=0.3 emerald / >=0.1 amber / <0.1 rose / nil 白 0.35。
+    static func ringColor(fraction: Double?) -> Color {
+        guard let f = fraction else { return Color.white.opacity(0.35) }
+        if f >= 0.3 { return StudioColor.emerald }
+        if f >= 0.1 { return StudioColor.amber }
+        return StudioColor.rose
+    }
+
+    /// 窗口短名：count>4 取 prefix(4)。
+    static func shortWindowName(_ name: String) -> String {
+        name.count > 4 ? String(name.prefix(4)) : name
+    }
+
+    /// resetsAt → "重置 MM/dd"；nil → ""。
+    static func resetText(_ date: Date?, calendar: Calendar) -> String {
+        guard let date else { return "" }
+        let c = calendar.dateComponents([.month, .day], from: date)
+        return String(format: "重置 %02d/%02d", c.month ?? 0, c.day ?? 0)
+    }
+
+    /// runsOutAt → "预计 Xh 耗尽"（h=ceil小时差）；已过 → "已耗尽"；nil → ""。
+    static func exhaustionText(_ date: Date?, now: Date) -> String {
+        guard let date else { return "" }
+        let seconds = date.timeIntervalSince(now)
+        guard seconds > 0 else { return "已耗尽" }
+        let hours = Int(ceil(seconds / 3600))
+        return "预计 \(hours)h 耗尽"
     }
 }

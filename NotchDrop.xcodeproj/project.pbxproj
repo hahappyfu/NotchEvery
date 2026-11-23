@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AD4E79AD597FF0CDC703A7B9 /* QuotaRingFormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD28B37CA30FA479DCEDEF1B /* QuotaRingFormatTests.swift */; };
+		ADE65D31137CF8715B893AB2 /* ProviderIconGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF0F5FD5905D61D1714526F /* ProviderIconGateTests.swift */; };
 		AD5BBD0F2FF01317103B81DE /* EarSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD29208824A7A4AC76E534BA /* EarSummary.swift */; };
 		AD5E58AEAA7F1BC27CF2B816 /* EarSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD376E5794662BDF61AB95E3 /* EarSummaryTests.swift */; };
 		ADCBEA9DC42962367F8F52A4 /* ProviderQuotaZoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADBCECC8A8A8BC669868A971 /* ProviderQuotaZoneView.swift */; };
@@ -97,6 +99,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AD28B37CA30FA479DCEDEF1B /* QuotaRingFormatTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaRingFormatTests.swift; sourceTree = "<group>"; };
+		ADF0F5FD5905D61D1714526F /* ProviderIconGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderIconGateTests.swift; sourceTree = "<group>"; };
 		AD29208824A7A4AC76E534BA /* EarSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarSummary.swift; sourceTree = "<group>"; };
 		AD376E5794662BDF61AB95E3 /* EarSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarSummaryTests.swift; sourceTree = "<group>"; };
 		ADBCECC8A8A8BC669868A971 /* ProviderQuotaZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderQuotaZoneView.swift; sourceTree = "<group>"; };
@@ -281,6 +285,8 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				AD28B37CA30FA479DCEDEF1B /* QuotaRingFormatTests.swift */,
+				ADF0F5FD5905D61D1714526F /* ProviderIconGateTests.swift */,
 				AD376E5794662BDF61AB95E3 /* EarSummaryTests.swift */,
 				ADBF5B8E5F662A4429D784C2 /* ProviderQuotaFormatTests.swift */,
 				ADCF80CA7223BFBF1F6F4BC1 /* TokenZoneViewFormatTests.swift */,
@@ -475,6 +481,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD4E79AD597FF0CDC703A7B9 /* QuotaRingFormatTests.swift in Sources */,
+				ADE65D31137CF8715B893AB2 /* ProviderIconGateTests.swift in Sources */,
 				AD5E58AEAA7F1BC27CF2B816 /* EarSummaryTests.swift in Sources */,
 				ADA7995FD6AD8FE83EA144F9 /* ProviderQuotaFormatTests.swift in Sources */,
 				AD1EB9D6F7C8A88D66D01FDE /* TokenZoneViewFormatTests.swift in Sources */,

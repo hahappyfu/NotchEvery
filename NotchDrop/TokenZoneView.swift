@@ -72,123 +72,83 @@ private struct FlowRowView: View {
     @State private var hovering = false
     @State private var flashOpacity: Double = 0
 
-    private let colIdentityW: CGFloat = 145
-    private let colTokensW: CGFloat = 175
-    private let colTimingW: CGFloat = 70
-
-    private var cacheFraction: Double {
-        TokenFormatUtils.cacheRateFraction(cached: row.cacheRead, input: row.inputTokens)
-    }
-
-    private var cacheColor: Color {
-        switch TokenFormatUtils.cacheRateTier(fraction: cacheFraction) {
-        case .high: return StudioColor.emerald
-        case .medium: return Color(red: 90/255, green: 200/255, blue: 250/255)
-        case .low: return StudioColor.amber
-        case .none: return Color.white.opacity(0.25)
-        }
-    }
-
     private var failure: Bool {
         guard let status = row.status else { return true }
         return status >= 400 && status != 499
     }
 
-    private var secondaryRight: String {
-        if let ttft = row.ttftMs { return "TTFT \(secondsText(ttft))" }
-        return flowTimeFormatter.string(from: row.time)
+    /// 次行右侧指标段：[HTTP err] · 总Token · 耗时 · tok/s · [shield N] · 状态点 · [已切备用]
+    private var metrics: some View {
+        HStack(spacing: 4) {
+            if failure, let status = row.status {
+                Text("HTTP \(status)")
+                    .foregroundStyle(StudioColor.rose)
+            }
+            Text(TokenFormatUtils.formatCompactTokens(row.inputTokens + row.outputTokens))
+            Text("·")
+            Text(secondsText(row.durationMs))
+            if let tps = row.tokensPerSecond {
+                Text("·")
+                Text(String(format: "%.1f t/s", tps))
+            }
+            if row.maskedCount > 0 {
+                Image(systemName: "lock.shield.fill")
+                    .foregroundStyle(StudioColor.cyan)
+                Text("\(row.maskedCount)")
+                    .foregroundStyle(StudioColor.cyan)
+            }
+            Circle()
+                .fill(flowStatusColor(row.status))
+                .frame(width: 5, height: 5)
+            if row.handedOn {
+                Text("已切备用")
+                    .font(.system(size: 8))
+                    .foregroundStyle(StudioInk.axis)
+            }
+        }
+        .font(.system(size: 9.5).monospacedDigit())
+        .foregroundStyle(StudioInk.secondary)
+        .lineLimit(1)
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 5) {
-                    ProviderIconView(icon: icon, providerID: row.providerID, size: 12)
-                    Text(TokenFormatUtils.friendlyModelName(row.model))
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1.5)
-                        .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
-                        .lineLimit(1)
-                }
-                Text("\(row.providerName) · \(row.groupName ?? "直连") · \(row.agent)")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 3) {
+            // 首行：Agent 胶囊 + 路由名/模型 + 时间
+            HStack(spacing: 5) {
+                Text(row.agent)
+                    .font(.system(size: 9))
+                    .foregroundStyle(StudioInk.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1.5)
+                    .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
                     .lineLimit(1)
+                Text(row.groupName ?? (row.requestedModel.isEmpty ? row.model : row.requestedModel))
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .foregroundStyle(StudioInk.primary)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Text(flowTimeFormatter.string(from: row.time))
+                    .font(.system(size: 9.5).monospacedDigit())
+                    .foregroundStyle(StudioInk.secondary)
             }
-            .frame(width: colIdentityW, alignment: .leading)
-
-            VStack(spacing: 3) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(TokenFormatUtils.formatCompactTokens(row.inputTokens + row.outputTokens))
-                        .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
-                        .foregroundStyle(.white)
-                    Spacer()
-                    Text(TokenZoneView.cacheText(for: row))
-                        .font(.system(size: 9.5, weight: .medium).monospacedDigit())
-                        .foregroundStyle(cacheFraction > 0 ? cacheColor : Color.secondary)
-                }
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.10))
-                        .frame(width: colTokensW, height: 3)
-                    if cacheFraction > 0 {
-                        Capsule()
-                            .fill(cacheColor)
-                            .frame(width: max(4, colTokensW * CGFloat(cacheFraction)), height: 3)
-                    }
-                }
-                .frame(width: colTokensW, height: 3)
-                HStack(spacing: 4) {
-                    Text("入 \(TokenFormatUtils.formatCompactTokens(row.inputTokens))")
-                    Text("·")
-                    Text("出 \(TokenFormatUtils.formatCompactTokens(row.outputTokens))")
-                    Spacer()
-                    if row.maskedCount > 0 {
-                        Image(systemName: "shield.lefthalf.filled")
-                            .foregroundStyle(Color.cyan)
-                        Text("\(row.maskedCount)")
-                            .foregroundStyle(Color.cyan)
-                    }
-                }
-                .font(.system(size: 9).monospacedDigit())
-                .foregroundStyle(.secondary)
+            // 次行：厂商图标 + 提供商 · 账号 · 模型 + 右侧指标
+            HStack(spacing: 5) {
+                ProviderIconView(icon: icon, providerID: row.providerID, size: 14)
+                Text("\(row.providerName) · \(row.account) · \(TokenFormatUtils.friendlyModelName(row.model))")
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(StudioInk.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                metrics
             }
-            .frame(width: colTokensW)
-
-            VStack(alignment: .trailing, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(secondsText(row.durationMs))
-                        .font(.system(size: 11, weight: .semibold).monospacedDigit())
-                        .foregroundStyle(.white)
-                    Circle()
-                        .fill(flowStatusColor(row.status))
-                        .frame(width: 5, height: 5)
-                }
-                Text(secondaryRight)
-                    .font(.system(size: 9).monospacedDigit())
-                    .foregroundStyle(.secondary)
-                if failure {
-                    Text("HTTP \(row.status.map(String.init) ?? "—")")
-                        .font(.system(size: 8.5).monospacedDigit())
-                        .foregroundStyle(StudioColor.rose)
-                }
-                if row.handedOn {
-                    Text("已切备用")
-                        .font(.system(size: 8.5))
-                        .foregroundStyle(StudioColor.amber)
-                }
-            }
-            .frame(width: colTimingW, alignment: .trailing)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .frame(width: IslandMetrics.pageWidth - 10)
+        .padding(.vertical, 5)
+        .frame(width: IslandMetrics.pageWidth - 10, alignment: .leading)
         .contentShape(Rectangle())
-        .background(hovering ? StudioMaterial.cardHoverBackground : Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 9))
-        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Color.white.opacity(0.035), lineWidth: 0.5))
-        .background(StudioColor.emerald.opacity(flashOpacity), in: RoundedRectangle(cornerRadius: 9))
+        .background(hovering ? StudioMaterial.cardHoverBackground : Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.white.opacity(0.035), lineWidth: 0.5))
+        .background(StudioColor.emerald.opacity(flashOpacity), in: RoundedRectangle(cornerRadius: 8))
         .overlay(alignment: .topTrailing) {
             if copied {
                 HStack(spacing: 2) {
@@ -234,7 +194,7 @@ struct TokenZoneView: View {
             return text
         }
         let avg = store.snapshot.todayAverageMs.map { String(format: "%.1fs", $0 / 1000.0) } ?? "--"
-        return "\(store.snapshot.todayRequestCount) 请求 · \(store.snapshot.todayErrorCount) 错 · 均耗时 \(avg)"
+        return "\(store.snapshot.todayErrorCount) 错 · 均耗时 \(avg)"
     }
 
     private func togglePause() {
@@ -252,22 +212,27 @@ struct TokenZoneView: View {
             if displayedRows.isEmpty {
                 Text("暂无近期请求记录")
                     .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(StudioInk.secondary)
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else {
-                VStack(spacing: 5) {
+                VStack(spacing: 4) {
                     ForEach(displayedRows) { row in
-                        FlowRowView(
-                            row: row,
-                            icon: store.snapshot.providerGroups.first { $0.id == row.providerID }?.icon,
-                            copied: copyFeedback.copiedID == row.id,
-                            isNew: !pauseController.isPaused
-                                && lastFirstID != nil
-                                && row.id == liveRows.first?.id
-                                && row.id != lastFirstID
-                        )
+                        Button {
+                            copyRow(row)
+                        } label: {
+                            FlowRowView(
+                                row: row,
+                                icon: store.snapshot.providerGroups.first { $0.id == row.providerID }?.icon,
+                                copied: copyFeedback.copiedID == row.id,
+                                isNew: !pauseController.isPaused
+                                    && lastFirstID != nil
+                                    && row.id == liveRows.first?.id
+                                    && row.id != lastFirstID
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("复制 \(row.providerName) \(row.model) 流水")
                         .transition(reduceMotion ? .identity : .opacity)
-                        .onTapGesture { copyRow(row) }
                     }
                 }
                 .mask(
@@ -308,20 +273,22 @@ struct TokenZoneView: View {
             Circle()
                 .fill(pauseController.isPaused ? StudioColor.amber : StudioColor.emerald)
                 .frame(width: 6, height: 6)
-            Text("最近 5 笔流水")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.85))
+            Text("今天 \(store.snapshot.todayRequestCount) 次")
+                .font(.system(size: 11, weight: .medium).monospacedDigit())
+                .foregroundStyle(StudioInk.primary)
             Spacer(minLength: 4)
             Text(statusText)
                 .font(.system(size: 9, weight: .medium).monospacedDigit())
-                .foregroundStyle(Color.white.opacity(0.65))
+                .foregroundStyle(StudioInk.secondary)
                 .lineLimit(1)
             Button(action: togglePause) {
-                Image(systemName: pauseController.isPaused ? "play.fill" : "pause.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.white.opacity(0.85))
+                Image(systemName: pauseController.isPaused ? "play.circle.fill" : "pause.circle")
+                    .font(.system(size: 14))
+                    .foregroundStyle(StudioInk.primary)
+                    .frame(width: 25, height: 25)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(pauseController.isPaused ? "继续流水" : "暂停流水")
             .help(pauseController.isPaused ? "恢复流水" : "暂停流水")
         }
         .padding(.horizontal, 4)

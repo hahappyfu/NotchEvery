@@ -26,7 +26,7 @@ struct ProviderQuotaZoneView: View {
                 if groups.isEmpty {
                     Text("未检测到供应商数据")
                         .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(StudioInk.secondary)
                         .frame(maxWidth: .infinity, minHeight: 120)
                 } else {
                     VStack(spacing: 4) {
@@ -60,13 +60,13 @@ struct ProviderQuotaZoneView: View {
                 .frame(width: 6, height: 6)
             Text("供应商额度与积分")
                 .font(.system(size: 11.5, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.85))
+                .foregroundStyle(StudioInk.primary)
             Spacer(minLength: 4)
             Text(store.snapshot.activeAlertCount > 0
                  ? "\(store.snapshot.activeAlertCount) 家受限"
                  : "点击行展开明细")
                 .font(.system(size: 9).monospacedDigit())
-                .foregroundStyle(store.snapshot.activeAlertCount > 0 ? StudioColor.amber : Color.white.opacity(0.65))
+                .foregroundStyle(store.snapshot.activeAlertCount > 0 ? StudioColor.amber : StudioInk.secondary)
                 .lineLimit(1)
         }
     }
@@ -79,7 +79,7 @@ struct ProviderQuotaZoneView: View {
             HStack(spacing: 6) {
                 Text(ProviderQuotaFormat.checkinText(store.snapshot.checkin))
                     .font(.system(size: 10).monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(StudioInk.secondary)
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 Circle()
@@ -87,7 +87,7 @@ struct ProviderQuotaZoneView: View {
                     .frame(width: 5, height: 5)
                 Text(ProviderQuotaFormat.gatewayText(store.snapshot.gateway))
                     .font(.system(size: 9).monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(StudioInk.secondary)
                     .lineLimit(1)
             }
         }
@@ -103,7 +103,16 @@ struct ProviderQuotaZoneView: View {
     private func providerSection(_ group: MagpieProviderGroup) -> some View {
         let expanded = expandedProviderID == group.id
         return VStack(alignment: .leading, spacing: 0) {
-            providerRow(group, expanded: expanded)
+            Button {
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
+                    expandedProviderID = expanded ? nil : group.id
+                }
+            } label: {
+                providerRow(group, expanded: expanded)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("展开 \(group.name)")
+
             if expanded {
                 detailView(group)
                     .padding(.horizontal, 8)
@@ -126,7 +135,7 @@ struct ProviderQuotaZoneView: View {
                 ProviderIconView(icon: group.icon, providerID: group.id, size: 13)
                 Text(group.name)
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(StudioInk.primary)
                     .lineLimit(1)
 
                 if group.accounts.count > 1 {
@@ -141,11 +150,10 @@ struct ProviderQuotaZoneView: View {
 
                 Spacer(minLength: 2)
 
-                WaterLevelBar(fraction: group.fraction, active: group.limitState.isActive)
-                    .frame(width: 54)
+                trackView(group)
                 Text(ProviderQuotaFormat.remainingText(group))
                     .font(.system(size: 9, weight: .medium).monospacedDigit())
-                    .foregroundStyle(Color.white.opacity(0.85))
+                    .foregroundStyle(StudioInk.primary)
                     .lineLimit(1)
             }
 
@@ -153,18 +161,32 @@ struct ProviderQuotaZoneView: View {
             if !details.isEmpty {
                 Text(details.joined(separator: " · "))
                     .font(.system(size: 9).monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(StudioInk.secondary)
                     .lineLimit(1)
             }
         }
         .padding(.horizontal, 7)
         .padding(.vertical, 5)
         .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
-                expandedProviderID = expanded ? nil : group.id
-            }
+    }
+
+    /// 折叠行右侧轨道：有刻度用水位条（语义=剩余比例），无刻度画虚线轨道。
+    /// 「无刻度」文案由右侧 remainingText 统一给出，此处不再重复。
+    private func trackView(_ group: MagpieProviderGroup) -> some View {
+        if group.fraction == nil {
+            return AnyView(
+                RoundedRectangle(cornerRadius: 2)
+                    .strokeBorder(
+                        StudioInk.axis.opacity(0.5),
+                        style: StrokeStyle(lineWidth: 1, dash: [3, 3])
+                    )
+                    .frame(width: 40, height: 5)
+            )
         }
+        return AnyView(
+            WaterLevelBar(fraction: group.fraction, active: group.limitState.isActive)
+                .frame(width: 54)
+        )
     }
 
     private func summaryParts(_ group: MagpieProviderGroup) -> [String] {
@@ -198,94 +220,133 @@ struct ProviderQuotaZoneView: View {
         }
     }
 
-    // MARK: - Accordion detail
+    // MARK: - Accordion detail（单账号卡片：左区信息 + 右区 1–3 枚百分比圆环）
 
     private func detailView(_ group: MagpieProviderGroup) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(group.accounts) { account in
-                accountDetail(account)
+                accountCard(account)
             }
         }
         .padding(.top, 4)
     }
 
-    private func accountDetail(_ account: MagpieQuotaAccount) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 5) {
-                Text(account.label)
-                    .font(.system(size: 9.5, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(0.85))
-                    .lineLimit(1)
-                if let plan = account.plan, !plan.isEmpty {
-                    Text(plan)
-                        .font(.system(size: 8.5))
-                        .foregroundStyle(StudioColor.indigo)
+    private func accountCard(_ account: MagpieQuotaAccount) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            // 左区：别名 + 套餐 + 虚线 Sparkline + 重置/耗尽 + 活跃限流摘要
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 5) {
+                    Text(account.label)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(StudioInk.primary)
                         .lineLimit(1)
+                    if let plan = account.plan, !plan.isEmpty {
+                        Text(plan)
+                            .font(.system(size: 9.5))
+                            .foregroundStyle(StudioInk.secondary)
+                            .lineLimit(1)
+                    }
                 }
-                if let message = account.noticeMessage, !message.isEmpty {
-                    badgeView(ProviderQuotaFormat.noticeBadge(account.limitState, now: now) ?? "告警", state: account.limitState)
-                }
-            }
 
-            ForEach(account.windows) { window in
-                windowRow(window)
-            }
+                dashedSparkline(account)
 
-            if let history = account.windows.first(where: { !$0.isAside })?.history,
-               !history.isEmpty
-            {
-                Sparkline(history: history)
-                    .frame(width: 48, height: 12)
-            }
-
-            if let message = account.noticeMessage, !message.isEmpty {
-                Text(message)
-                    .font(.system(size: 9))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-        }
-        .padding(.vertical, 3)
-    }
-
-    private func windowRow(_ window: MagpieWindow) -> some View {
-        HStack(spacing: 5) {
-            Text(window.name)
-                .font(.system(size: 9))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            WaterLevelBar(fraction: window.usedPercent.map { $0 / 100 })
-                .frame(width: 40)
-            Text(windowText(window))
-                .font(.system(size: 9).monospacedDigit())
-                .foregroundStyle(Color.white.opacity(0.75))
-                .lineLimit(1)
-            if let resetText = resetText(window) {
-                Text(resetText)
-                    .font(.system(size: 8.5).monospacedDigit())
-                    .foregroundStyle(.secondary)
+                Text(resetAndExhaustionText(account))
+                    .font(.system(size: 9.5).monospacedDigit())
+                    .foregroundStyle(StudioInk.secondary)
                     .lineLimit(1)
+
+                if account.limitState.isActive, let message = account.noticeMessage, !message.isEmpty {
+                    Text(message)
+                        .font(.system(size: 9))
+                        .foregroundStyle(account.limitState.severity >= 3 ? StudioColor.rose : StudioColor.amber)
+                        .lineLimit(2)
+                }
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // 右区：横向并排 1–3 枚 26pt 百分比小圆环
+            HStack(spacing: 8) {
+                ForEach(ringWindows(account)) { window in
+                    quotaRing(window)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    /// 主窗口历史虚线 Sparkline（宽 96 高 24，不足 2 点显示 —）。
+    private func dashedSparkline(_ account: MagpieQuotaAccount) -> some View {
+        let history = Array((account.windows.first(where: { !$0.isAside }) ?? account.windows.first)?.history ?? []).suffix(24)
+        return Group {
+            if history.count >= 2 {
+                Path { path in
+                    let step = 96 / CGFloat(history.count - 1)
+                    for (index, value) in history.enumerated() {
+                        let y = 24 - 24 * CGFloat(min(max(value / 100, 0), 1))
+                        let point = CGPoint(x: CGFloat(index) * step, y: y)
+                        if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                    }
+                }
+                .stroke(StudioColor.emerald, style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
+                .frame(width: 96, height: 24)
+            } else {
+                Text("—")
+                    .font(.system(size: 11))
+                    .foregroundStyle(StudioInk.axis)
+                    .frame(width: 96, height: 24, alignment: .leading)
+            }
         }
     }
 
-    private func windowText(_ window: MagpieWindow) -> String {
-        ProviderQuotaFormat.windowUsage(window)
+    /// "重置 MM/dd · 预计 Xh 耗尽"，两段都空时不渲染文字（外层 lineLimit 已隐藏空串）。
+    private func resetAndExhaustionText(_ account: MagpieQuotaAccount) -> String {
+        let mainWindow = account.windows.first(where: { !$0.isAside }) ?? account.windows.first
+        var parts: [String] = []
+        let reset = QuotaRingFormat.resetText(mainWindow?.resetsAt, calendar: Calendar.current)
+        if !reset.isEmpty { parts.append(reset) }
+        let exhaustion = QuotaRingFormat.exhaustionText(mainWindow?.runsOutAt, now: now)
+        if !exhaustion.isEmpty { parts.append(exhaustion) }
+        return parts.joined(separator: " · ")
     }
 
-    private func resetText(_ window: MagpieWindow) -> String? {
-        if let runsOutAt = window.runsOutAt {
-            return ProviderQuotaFormat.countdown(runsOutAt, now: now)
+    /// 圆环窗口顺序：主窗口（非 aside 第一个）在前，其余依序，最多 3 枚。
+    private func ringWindows(_ account: MagpieQuotaAccount) -> [MagpieWindow] {
+        let main = account.windows.first(where: { !$0.isAside })
+        let rest = account.windows.filter { $0.id != main?.id }
+        let ordered = (main.map { [$0] } ?? []) + rest
+        return Array(ordered.prefix(3))
+    }
+
+    /// 26pt 百分比小圆环：12 点起顺时针，中心 .monospacedDigit() 百分比，下方窗口短名。
+    private func quotaRing(_ window: MagpieWindow) -> some View {
+        let fraction = QuotaRingFormat.remainingFraction(usedPercent: window.usedPercent)
+        let color = QuotaRingFormat.ringColor(fraction: fraction)
+        let centerText = fraction.map { "\(Int(round($0 * 100)))%" } ?? "--"
+
+        return VStack(spacing: 2) {
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.12), lineWidth: 2.5)
+                if let f = fraction {
+                    Circle()
+                        .trim(from: 0, to: max(0.001, f))
+                        .stroke(color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                }
+                Text(centerText)
+                    .font(.system(size: 7.5).monospacedDigit())
+                    .foregroundStyle(fraction == nil ? StudioInk.axis : color)
+            }
+            .frame(width: 26, height: 26)
+            Text(QuotaRingFormat.shortWindowName(window.name))
+                .font(.system(size: 8.5))
+                .foregroundStyle(StudioInk.secondary)
+                .lineLimit(1)
         }
-        if let resetsAt = window.resetsAt {
-            return ProviderQuotaFormat.countdown(resetsAt, now: now)
-        }
-        return nil
     }
 }
 
-// MARK: - Water level
+// MARK: - Water level（语义=剩余比例，0..1；nil → 不填充）
 
 private struct WaterLevelBar: View {
     let fraction: Double?
@@ -308,26 +369,5 @@ private struct WaterLevelBar: View {
         guard fraction != nil else { return Color.white.opacity(0.35) }
         if active { return StudioColor.amber }
         return (fraction ?? 0) > 0.2 ? StudioColor.emerald : StudioColor.rose
-    }
-}
-
-// MARK: - Sparkline（纯 Path，最近 20 点，0–100 映射）
-// shortcut: 趋势仅取最近 20 点并线性映射 0–100，窗口历史口径变化时需调整
-
-private struct Sparkline: View {
-    let history: [Double]
-
-    var body: some View {
-        let points = Array(history.suffix(20))
-        Path { path in
-            guard points.count > 1 else { return }
-            let step = 48 / CGFloat(points.count - 1)
-            for (index, value) in points.enumerated() {
-                let y = 12 - 12 * CGFloat(min(max(value / 100, 0), 1))
-                let point = CGPoint(x: CGFloat(index) * step, y: y)
-                if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
-            }
-        }
-        .stroke(StudioColor.cyan.opacity(0.8), lineWidth: 1)
     }
 }

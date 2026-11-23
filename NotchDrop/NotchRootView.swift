@@ -66,9 +66,10 @@ struct NotchRootView: View {
                 let icon = snapshot.providerGroups.first(where: { $0.id == provider })?.icon
                 HStack(spacing: 4) {
                     ProviderIconView(icon: icon, providerID: provider, size: 11)
+                        .id(provider)
                     Text(text)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(StudioInk.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
                 }
@@ -148,7 +149,7 @@ struct NotchRootView: View {
                 .frame(width: 6, height: 6)
             Text(text)
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(StudioInk.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
@@ -156,21 +157,23 @@ struct NotchRootView: View {
         .truncationMode(.tail)
     }
 
-    /// 黄色告警角标：可点击，直跳 P3 供应商额度页。
+    /// 黄色告警角标：可点击 Button，直跳 P3 供应商额度页。
     private func alertBadge(count: Int) -> some View {
-        HStack(spacing: 2) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(StudioColor.amber)
-            Text("\(count)")
-                .font(.system(size: 10, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(StudioColor.amber)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
+        Button {
             vm.jumpToZone(.providers)
+        } label: {
+            HStack(spacing: 2) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(StudioColor.amber)
+                Text("\(count)")
+                    .font(.system(size: 10, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(StudioColor.amber)
+            }
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(count) 家受限，查看详情")
     }
 
     private var pages: some View {

@@ -208,7 +208,7 @@ struct NotchView: View {
                     .frame(width: 4.5, height: 4.5)
                 Text(peekLeftText)
                     .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.92))
+                    .foregroundStyle(StudioInk.primary)
                     .lineLimit(1)
             }
             .padding(.horizontal, 6)
@@ -226,7 +226,7 @@ struct NotchView: View {
                     Text(TokenFormatUtils.formatCompactTokens(magpie.snapshot.todayNetTokens))
                         .font(.system(size: 11, weight: .semibold))
                         .monospacedDigit()
-                        .foregroundStyle(Color.white.opacity(0.92))
+                        .foregroundStyle(StudioInk.primary)
 
                     if let rate = magpie.snapshot.todayCacheRate {
                         Text("·")
