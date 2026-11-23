@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AD9B9447CC317C0D202F441A /* MagpieUsageReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADCF8D39256FE35E7365802E /* MagpieUsageReader.swift */; };
+		AD577F6CF5DE77933CE9F451 /* MagpieModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADEC4B90B1A8AD9117A11288 /* MagpieModels.swift */; };
+		AD3389D3EA60E59A2FFEC6F1 /* MagpiePaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD7B0D093C70352E5E695915 /* MagpiePaths.swift */; };
+		AD9C7B9E11DEA7FE0C94EC2D /* MagpieUsageReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADB4441411E69C6B5B5C6305 /* MagpieUsageReaderTests.swift */; };
 		ADDB21B255F6A66664CD179F /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADFDC8346F81347405A0C429 /* LoginItem.swift */; };
 		ADA80C77A6D2C2382B1F7F3C /* LoginItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD7DB047455C019B00EFE7B9 /* LoginItemTests.swift */; };
 		ADACB2EEBB907D6E4F116A55 /* UsageMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD001802C09CB45D4544976F /* UsageMetricsTests.swift */; };
@@ -80,6 +84,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		ADCF8D39256FE35E7365802E /* MagpieUsageReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieUsageReader.swift; sourceTree = "<group>"; };
+		ADEC4B90B1A8AD9117A11288 /* MagpieModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieModels.swift; sourceTree = "<group>"; };
+		AD7B0D093C70352E5E695915 /* MagpiePaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpiePaths.swift; sourceTree = "<group>"; };
+		ADB4441411E69C6B5B5C6305 /* MagpieUsageReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagpieUsageReaderTests.swift; sourceTree = "<group>"; };
 		ADFDC8346F81347405A0C429 /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 		AD7DB047455C019B00EFE7B9 /* LoginItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemTests.swift; sourceTree = "<group>"; };
 		AD001802C09CB45D4544976F /* UsageMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageMetricsTests.swift; sourceTree = "<group>"; };
@@ -179,6 +187,9 @@
 		504381822C3A86EA000ED325 /* NotchDrop */ = {
 			isa = PBXGroup;
 			children = (
+				ADCF8D39256FE35E7365802E /* MagpieUsageReader.swift */,
+				ADEC4B90B1A8AD9117A11288 /* MagpieModels.swift */,
+				AD7B0D093C70352E5E695915 /* MagpiePaths.swift */,
 				ADFDC8346F81347405A0C429 /* LoginItem.swift */,
 				AD5DBC24BF6910457FC4AB97 /* ModelDistributionCardView.swift */,
 				AD0CA29C5F33432DCC53D482 /* GearHapticFeedback.swift */,
@@ -237,6 +248,7 @@
 		7AE10C0220260AB0000000A6 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				ADB4441411E69C6B5B5C6305 /* MagpieUsageReaderTests.swift */,
 				AD7DB047455C019B00EFE7B9 /* LoginItemTests.swift */,
 				AD001802C09CB45D4544976F /* UsageMetricsTests.swift */,
 				7AE10C0220260AB0000000E1 /* AnimationMetricsTests.swift */,
@@ -368,6 +380,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD9B9447CC317C0D202F441A /* MagpieUsageReader.swift in Sources */,
+				AD577F6CF5DE77933CE9F451 /* MagpieModels.swift in Sources */,
+				AD3389D3EA60E59A2FFEC6F1 /* MagpiePaths.swift in Sources */,
 				ADDB21B255F6A66664CD179F /* LoginItem.swift in Sources */,
 				AD278622E22CEAA86F3CE928 /* ModelDistributionCardView.swift in Sources */,
 				AD623CB6163DBEA68623E727 /* GearHapticFeedback.swift in Sources */,
@@ -414,6 +429,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD9C7B9E11DEA7FE0C94EC2D /* MagpieUsageReaderTests.swift in Sources */,
 				ADA80C77A6D2C2382B1F7F3C /* LoginItemTests.swift in Sources */,
 				ADACB2EEBB907D6E4F116A55 /* UsageMetricsTests.swift in Sources */,
 				7AE10C0220260AB0000000E2 /* AnimationMetricsTests.swift in Sources */,
